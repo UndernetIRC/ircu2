@@ -19,7 +19,7 @@ Since CF is a server-to-server only command, client-level tests focus on:
 import asyncio
 import pytest
 
-from tests.irc_client import IRCClient
+from irc_client import IRCClient
 
 
 pytestmark = pytest.mark.single_server

@@ -17,7 +17,7 @@ that part messages are suppressed on remote servers.
 import asyncio
 import pytest
 
-from tests.irc_client import IRCClient
+from irc_client import IRCClient
 
 
 pytestmark = pytest.mark.multi_server

@@ -1,6 +1,6 @@
 """Unit tests for the IRC message parser."""
 
-from tests.irc_client import Message, parse_message
+from irc_client import Message, parse_message
 
 
 def test_parse_server_welcome():

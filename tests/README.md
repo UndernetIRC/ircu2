@@ -11,39 +11,43 @@ Python-based integration test suite for ircu2 using Docker and pytest.
 ## Setup
 
 ```bash
+cd tests
 uv sync
 ```
 
 ## Running Tests
 
+All commands are run from the `tests/` directory:
+
 ```bash
+cd tests
+
 # All tests (starts Docker containers automatically)
-uv run pytest tests/
+uv run pytest
 
 # Specific PR tests
-uv run pytest tests/pr59_part_messages/
-uv run pytest tests/pr61_uhnames/
+uv run pytest pr59_part_messages/
+uv run pytest pr61_uhnames/
 
 # Only unit tests (no Docker needed)
-uv run pytest tests/test_irc_client.py
+uv run pytest test_irc_client.py
 
 # By marker
 uv run pytest -m single_server    # tests needing only the hub
 uv run pytest -m multi_server     # tests needing hub + 2 leaves
 
 # Verbose with output
-uv run pytest tests/ -v -s --timeout=60
+uv run pytest -v -s --timeout=60
 ```
 
 ## Test Organization
 
-Each PR has its own directory under `tests/`:
+Each PR has its own directory:
 
 ```
-tests/
-  irc_client.py          # Async IRC client for client-level testing
-  p10_server.py          # Fake P10 server for server-to-server testing
-  conftest.py            # pytest fixtures (ircd_hub, ircd_network, make_client)
+irc_client.py          # Async IRC client for client-level testing
+p10_server.py          # Fake P10 server for server-to-server testing
+conftest.py            # pytest fixtures (ircd_hub, ircd_network, make_client)
   pr59_part_messages/
     test_fix.py          # TDD: reproduces the exact bug the PR fixes
     test_edge_cases.py   # Adversarial: tries to break the implementation
@@ -82,14 +86,14 @@ The hub also has Connect blocks for two external test servers used by the P10 te
 | notulined.test.net  | 5       | No          | Non-U:lined server for rejection tests |
 | uworldonly.test.net | 6       | Yes (no oper) | U:lined without CONF_UWORLD_OPER   |
 
-Configs are baked into the Docker images (in `tests/docker/`), not volume-mounted.
+Configs are baked into the Docker images (in `docker/`), not volume-mounted.
 
 ## IRC Client API
 
-`tests/irc_client.py` provides `IRCClient` — a minimal async IRC client:
+`irc_client.py` provides `IRCClient` — a minimal async IRC client:
 
 ```python
-from tests.irc_client import IRCClient
+from irc_client import IRCClient
 
 client = IRCClient()
 await client.connect("127.0.0.1", 6667)
@@ -115,10 +119,10 @@ msg = await client.send_and_expect("NAMES #channel", "366")
 
 ## P10 Server API
 
-`tests/p10_server.py` provides `P10Server` — a fake IRC server that connects to ircd on its server port and speaks the P10 protocol. This enables testing server-to-server behavior (OPMODE, ACCOUNT, etc.) that can't be triggered from client connections.
+`p10_server.py` provides `P10Server` — a fake IRC server that connects to ircd on its server port and speaks the P10 protocol. This enables testing server-to-server behavior (OPMODE, ACCOUNT, etc.) that can't be triggered from client connections.
 
 ```python
-from tests.p10_server import P10Server
+from p10_server import P10Server
 
 srv = P10Server("services.test.net", numeric=4, password="testpass")
 await srv.connect("127.0.0.1", 4400)
@@ -151,7 +155,7 @@ The P10 server handles the full handshake (PASS, SERVER, burst, EB/EA), auto-res
 
 ## Writing Tests for a New PR
 
-1. Create `tests/pr<N>_<short_name>/`
+1. Create `pr<N>_<short_name>/`
 2. Add `__init__.py`
 3. Write `test_fix.py` — reproduce the bug/feature
 4. Write `test_edge_cases.py` — try to break it
@@ -161,7 +165,11 @@ The P10 server handles the full handshake (PASS, SERVER, burst, EB/EA), auto-res
 
 ## Troubleshooting
 
+Docker commands must be run from the repo root (where `docker-compose.yml` lives):
+
 ```bash
+cd ..  # back to repo root
+
 # View server logs
 docker compose logs ircd-hub
 docker compose logs ircd-leaf1

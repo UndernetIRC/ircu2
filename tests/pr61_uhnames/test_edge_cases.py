@@ -6,7 +6,7 @@ PR #61 to be applied.
 
 import pytest
 
-from tests.irc_client import IRCClient
+from irc_client import IRCClient
 
 
 pytestmark = pytest.mark.single_server

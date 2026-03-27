@@ -1,12 +1,16 @@
 """pytest fixtures for ircu2 integration testing."""
 
+import os
 import subprocess
 import time
 
 import pytest
 import pytest_asyncio
 
-from tests.irc_client import IRCClient
+from irc_client import IRCClient
+
+# docker-compose.yml and Dockerfile live in the repo root (parent of tests/)
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def wait_for_port(host: str, port: int, timeout: float = 30.0):
@@ -24,12 +28,13 @@ def wait_for_port(host: str, port: int, timeout: float = 30.0):
 
 
 def docker_compose(*args, check=True):
-    """Run a docker compose command."""
+    """Run a docker compose command from the repo root."""
     result = subprocess.run(
         ["docker", "compose"] + list(args),
         capture_output=True,
         text=True,
         timeout=600,
+        cwd=REPO_ROOT,
     )
     if check and result.returncode != 0:
         raise RuntimeError(

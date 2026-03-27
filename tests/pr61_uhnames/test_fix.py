@@ -9,7 +9,7 @@ branch where the userhost-in-names capability does not exist.
 
 import pytest
 
-from tests.irc_client import IRCClient
+from irc_client import IRCClient
 
 
 pytestmark = pytest.mark.single_server

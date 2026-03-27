@@ -8,7 +8,7 @@ behavior, and case sensitivity boundary cases.
 import asyncio
 import pytest
 
-from tests.irc_client import IRCClient
+from irc_client import IRCClient
 
 
 # -- Single-server edge cases --

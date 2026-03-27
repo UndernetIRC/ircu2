@@ -8,4 +8,5 @@ specs/
 tests/__pycache__/
 .claude/
 .venv/
-uv.lock
+tests/uv.lock
+tests/.venv/

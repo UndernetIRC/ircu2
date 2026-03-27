@@ -16,8 +16,8 @@ correct. It's included to document and verify the behavior for reviewers.
 import asyncio
 import pytest
 
-from tests.irc_client import IRCClient
-from tests.p10_server import P10Server
+from irc_client import IRCClient
+from p10_server import P10Server
 
 
 pytestmark = pytest.mark.multi_server
