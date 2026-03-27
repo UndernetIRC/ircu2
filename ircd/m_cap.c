@@ -38,6 +38,7 @@
 #include "send.h"
 #include "s_auth.h"
 #include "s_user.h"
+#include "s_bsd.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -51,14 +52,63 @@ static struct capabilities {
   unsigned long flags;
   char *name;
   int namelen;
+  char value[256];
 } capab_list[] = {
 #define _CAP(cap, config, flags, name)      \
-	{ CAP_ ## cap, #cap, (config), (flags), (name), sizeof(name) - 1 }
+	{ CAP_ ## cap, #cap, (config), (flags), (name), sizeof(name) - 1, "" }
   CAPLIST
 #undef _CAP
 };
 
 #define CAPAB_LIST_LEN	(sizeof(capab_list) / sizeof(struct capabilities))
+
+void cap_set_value(enum Capab cap, const char *value)
+{
+  if (cap >= _E_CAP_LAST_CAP || !value)
+    return;
+  
+  /* Find the capability in capab_list by bit mask */
+  enum CapabBits cap_mask = (1u << cap);
+  int i;
+  for (i = 0; i < CAPAB_LIST_LEN; i++) {
+    if (capab_list[i].cap == cap_mask) {
+      ircd_strncpy(capab_list[i].value, value, sizeof(capab_list[i].value) - 1);
+      capab_list[i].value[sizeof(capab_list[i].value) - 1] = '\0';
+      return;
+    }
+  }
+}
+
+void cap_update_availability(enum Capab cap, int available)
+{
+  int was_available;
+  int i;
+  enum CapabBits cap_mask;
+  
+  if (cap >= _E_CAP_LAST_CAP)
+    return;
+    
+  /* Find the capability in capab_list by bit mask */
+  cap_mask = (1u << cap);
+  for (i = 0; i < CAPAB_LIST_LEN; i++) {
+    if (capab_list[i].cap == cap_mask) {
+      /* Check previous state by looking at UNAVAILABLE flag */
+      was_available = !(capab_list[i].flags & CAPFL_UNAVAILABLE);
+      
+      /* If availability changed, update capability visibility */
+      if (was_available && !available) {
+        /* Capability became unavailable - set UNAVAILABLE flag and send CAP DEL */
+        capab_list[i].flags |= CAPFL_UNAVAILABLE;
+        cap_del(cap);
+      } else if (!was_available && available) {
+        /* Capability became available - clear UNAVAILABLE flag and send CAP NEW */
+        capab_list[i].flags &= ~CAPFL_UNAVAILABLE;
+        cap_new(cap);
+      }
+      return;
+    }
+  }
+}
 
 static int
 capab_sort(const struct capabilities *cap1, const struct capabilities *cap2)
@@ -133,8 +183,8 @@ find_cap(const char **caplist_p, int *neg_p)
  * If more than one line is necessary, each line before the last has
  * an added "*" parameter before that line's capability list.
  * @param[in] sptr Client receiving capability list.
- * @param[in] set Capabilities to show as set (with ack and sticky modifiers).
- * @param[in] rem Capabalities to show as removed (with no other modifier).
+ * @param[in] set Capabilities to show as set.
+ * @param[in] rem Capabalities to show as removed.
  * @param[in] subcmd Name of capability subcommand.
  */
 static int
@@ -156,7 +206,11 @@ send_caplist(struct Client *sptr, capset_t set,
       break;
 
     /* Check if the capability is enabled in features() */
-    if (!feature_bool(capab_list[i].config))
+    if (capab_list[i].config != 0 && !feature_bool(capab_list[i].config))
+      continue;
+
+    /* Check if capability is hidden from IRCv3.2 clients */
+    if (!set && HasFlag(sptr, FLAG_CAP302) && (flags & CAPFL_HIDDEN_302))
       continue;
 
     /* This is a little bit subtle, but just involves applying de
@@ -169,28 +223,37 @@ send_caplist(struct Client *sptr, capset_t set,
         && (rem || set || (flags & CAPFL_HIDDEN)))
       continue;
 
-    /* Build the prefix (space separator and any modifiers needed). */
+    /* Build the prefix (space separator). */
     pfx_len = 0;
     if (loc)
       pfx[pfx_len++] = ' ';
     if (rem && CapHas(rem, capab_list[i].cap))
         pfx[pfx_len++] = '-';
-    else {
-      if (flags & CAPFL_PROTO)
-        pfx[pfx_len++] = '~';
-      if (flags & CAPFL_STICKY)
-        pfx[pfx_len++] = '=';
-    }
     pfx[pfx_len] = '\0';
 
-    len = capab_list[i].namelen + pfx_len; /* how much we'd add... */
+    /* Get capability value for LS command */
+    const char *cap_value = "";
+    if (!strcmp(subcmd, "LS")) {
+      if (capab_list[i].value[0] != '\0' && HasFlag(sptr, FLAG_CAP302)) {
+        cap_value = capab_list[i].value;
+      }
+    }
+
+    /* Calculate length including value */
+    int value_len = (cap_value && cap_value[0] != '\0') ? strlen(cap_value) + 1 : 0; /* +1 for = */
+    len = capab_list[i].namelen + pfx_len + value_len; /* how much we'd add... */
     if (msgq_bufleft(mb) < loc + len + 2) { /* would add too much; must flush */
       sendcmdto_one(&me, CMD_CAP, sptr, "%C %s * :%s", sptr, subcmd, capbuf);
       capbuf[(loc = 0)] = '\0'; /* re-terminate the buffer... */
     }
 
-    loc += ircd_snprintf(0, capbuf + loc, sizeof(capbuf) - loc, "%s%s",
-			 pfx, capab_list[i].name);
+    if (cap_value && cap_value[0] != '\0') {
+      loc += ircd_snprintf(0, capbuf + loc, sizeof(capbuf) - loc, "%s%s=%s",
+			   pfx, capab_list[i].name, cap_value);
+    } else {
+      loc += ircd_snprintf(0, capbuf + loc, sizeof(capbuf) - loc, "%s%s",
+			   pfx, capab_list[i].name);
+    }
   }
 
   msgq_append(0, mb, "%s", capbuf); /* append capabilities to the final cmd */
@@ -205,6 +268,16 @@ cap_ls(struct Client *sptr, const char *caplist)
 {
   if (IsUserPort(sptr)) /* registration hasn't completed; suspend it... */
     auth_cap_start(cli_auth(sptr));
+  
+  /* Check if client supports IRCv3.2 (LS version >= 302) */
+  if (caplist) {
+    int version = atoi(caplist);
+    if (version >= 302) {
+      SetFlag(sptr, FLAG_CAP302);
+      CapSet(cli_active(sptr), CAP_CAPNOTIFY);
+    }
+  }
+  
   return send_caplist(sptr, 0, 0, "LS"); /* send list of capabilities */
 }
 
@@ -223,9 +296,10 @@ cap_req(struct Client *sptr, const char *caplist)
 
   while (cl) { /* walk through the capabilities list... */
     if (!(cap = find_cap(&cl, &neg)) /* look up capability... */
-        || !feature_bool(cap->config) /* is it deactivated in config? */
+        || (cap->config != 0 && !feature_bool(cap->config)) /* is it deactivated in config? */
         || (!neg && (cap->flags & CAPFL_PROHIBIT)) /* is it prohibited? */
-        || (neg && (cap->flags & CAPFL_STICKY))) { /* is it sticky? */
+        || (neg && (cap->flags & CAPFL_STICKY)) /* is it sticky? */
+        || (neg && HasFlag(sptr, FLAG_CAP302) && (cap->flags & CAPFL_STICKY_302))) { /* is it sticky for IRCv3.2? */
       sendcmdto_one(&me, CMD_CAP, sptr, "%C NAK :%s", sptr, caplist);
       return 0; /* can't complete requested op... */
     }
@@ -235,13 +309,13 @@ cap_req(struct Client *sptr, const char *caplist)
       CapClr(set, cap->cap);
       CapClr(cs, cap->cap);
       if (!(cap->flags & CAPFL_PROTO))
-	CapClr(as, cap->cap);
+	      CapClr(as, cap->cap);
     } else {
       CapClr(rem, cap->cap);
       CapSet(set, cap->cap);
       CapSet(cs, cap->cap);
       if (!(cap->flags & CAPFL_PROTO))
-	CapSet(as, cap->cap);
+	      CapSet(as, cap->cap);
     }
   }
 
@@ -249,60 +323,6 @@ cap_req(struct Client *sptr, const char *caplist)
   send_caplist(sptr, set, rem, "ACK");
   cli_capab(sptr) = cs;
   cli_active(sptr) = as;
-
-  return 0;
-}
-
-static int
-cap_ack(struct Client *sptr, const char *caplist)
-{
-  const char *cl = caplist;
-  struct capabilities *cap;
-  int neg;
-
-  /* Coming from the client, this generally indicates that the client
-   * is using a new backwards-incompatible protocol feature.  As such,
-   * it does not require further response from the server.
-   */
-  while (cl) { /* walk through the capabilities list... */
-    if (!(cap = find_cap(&cl, &neg)) || /* look up capability... */
-	(neg ? HasCap(sptr, cap->cap) : !HasCap(sptr, cap->cap))) /* uh... */
-      continue;
-
-    if (neg) { /* set or clear the active capability... */
-      if (cap->flags & CAPFL_STICKY)
-        continue; /* but don't clear sticky capabilities */
-      CapClr(cli_active(sptr), cap->cap);
-    } else {
-      if (cap->flags & CAPFL_PROHIBIT)
-        continue; /* and don't set prohibited ones */
-      CapSet(cli_active(sptr), cap->cap);
-    }
-  }
-
-  return 0;
-}
-
-static int
-cap_clear(struct Client *sptr, const char *caplist)
-{
-  capset_t cleared = 0;
-  struct capabilities *cap;
-  unsigned int ii;
-
-  /* XXX: If we ever add a capab list sorted by capab value, it would
-   * be good cache-wise to use it here. */
-  for (ii = 0; ii < CAPAB_LIST_LEN; ++ii) {
-    cap = &capab_list[ii];
-    /* Only clear active non-sticky capabilities. */
-    if (!HasCap(sptr, cap->cap) || (cap->flags & CAPFL_STICKY))
-      continue;
-    CapSet(cleared, cap->cap);
-    CapClr(cli_capab(sptr), cap->cap);
-    if (!(cap->flags & CAPFL_PROTO))
-      CapClr(cli_active(sptr), cap->cap);
-  }
-  send_caplist(sptr, 0, cleared, "ACK");
 
   return 0;
 }
@@ -327,14 +347,105 @@ static struct subcmd {
   char *cmd;
   int (*proc)(struct Client *sptr, const char *caplist);
 } cmdlist[] = {
-  { "ACK",   cap_ack   },
-  { "CLEAR", cap_clear },
+  { "ACK",   0         },
   { "END",   cap_end   },
   { "LIST",  cap_list  },
   { "LS",    cap_ls    },
   { "NAK",   0         },
+  { "NEW",   0         },
+  { "DEL",   0         },
   { "REQ",   cap_req   }
 };
+
+/** Send CAP NEW to all clients with cap-notify capability
+ * @param[in] cap Capability enum value
+ */
+void cap_new(enum Capab cap)
+{
+  struct Client* acptr;
+  int i;
+  int cap_index = -1;
+  unsigned long flags;
+  const char* cap_name = NULL;
+  const char* cap_value = "";
+  
+  /* Find the capability in the list */
+  for (i = 0; i < CAPAB_LIST_LEN; i++) {
+    if (capab_list[i].cap == (1u << cap)) {
+      cap_index = i;
+      cap_name = capab_list[i].name;
+      cap_value = capab_list[i].value;
+      flags = capab_list[i].flags;
+      break;
+    }
+  }
+  
+  if (cap_index == -1) {
+    return;
+  }
+  
+  /* Check if the capability should be advertised */
+  if (capab_list[cap_index].config != 0 && !feature_bool(capab_list[cap_index].config))
+    return;
+  
+  /* Iterate through all local clients */
+  for (i = 0; i < HighestFd; i++) {
+    if (!(acptr = LocalClientArray[i]))
+      continue;
+      
+    /* Only send to registered users with cap-notify capability */
+    if (!IsUser(acptr) || !MyConnect(acptr) || !CapHas(cli_active(acptr), CAP_CAPNOTIFY))
+      continue;
+      
+    /* Send CAP NEW message */
+    if (cap_value && *cap_value && HasFlag(acptr, FLAG_CAP302)) {
+      sendcmdto_one(&me, CMD_CAP, acptr, "%C NEW %s=%s", acptr, cap_name, cap_value);
+    } else {
+      sendcmdto_one(&me, CMD_CAP, acptr, "%C NEW %s", acptr, cap_name);
+    }
+  }
+}
+
+/** Send CAP DEL to all clients with cap-notify capability
+ * @param[in] cap Capability enum value
+ */
+void cap_del(enum Capab cap)
+{
+  struct Client* acptr;
+  int i;
+  int cap_index = -1;
+  unsigned long flags;
+  const char* cap_name = NULL;
+  
+  /* Find the capability in the list */
+  for (i = 0; i < CAPAB_LIST_LEN; i++) {
+    if (capab_list[i].cap == (1u << cap)) {
+      cap_index = i;
+      cap_name = capab_list[i].name;
+      break;
+    }
+  }
+  
+  if (cap_index == -1) {
+    return;
+  }
+  
+  /* Iterate through all local clients */
+  for (i = 0; i < HighestFd; i++) {
+    if (!(acptr = LocalClientArray[i]))
+      continue;
+      
+    /* Only send to registered users with cap-notify capability */
+    if (!IsUser(acptr) || !MyConnect(acptr) || !CapHas(cli_active(acptr), CAP_CAPNOTIFY))
+      continue;
+      
+    /* Send CAP DEL message */
+    sendcmdto_one(&me, CMD_CAP, acptr, "%C DEL :%s", acptr, cap_name);
+
+    /* Disable the capability for this client. */
+    CapClr(cli_active(acptr), capab_list[cap_index].cap);
+  }
+}
 
 static int
 subcmd_search(const char *cmd, const struct subcmd *elem)

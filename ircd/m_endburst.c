@@ -88,10 +88,12 @@
 #include "ircd_log.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
+#include "sasl.h"
 #include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
 #include "send.h"
+#include "sasl.h"
 
 /* #include <assert.h> -- Now using assert in ircd_log.h */
 
@@ -154,6 +156,7 @@ int ms_end_of_burst_ack(struct Client *cptr, struct Client *sptr, int parc, char
 		       sptr);
   sendcmdto_serv_butone(sptr, CMD_END_OF_BURST_ACK, cptr, "");
   ClearBurstAck(sptr);
+  sasl_check_capability();
 
   return 0;
 }

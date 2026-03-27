@@ -55,7 +55,11 @@ struct ConfigCallback {
 
 /** Network configuration options */
 enum NetConf {
-    /* To be included. This is the implementation only. */
+    /* SASL configuration options */
+    NETCONF_SASL_SERVER,
+    NETCONF_SASL_MECHANISMS,
+    NETCONF_SASL_TIMEOUT,
+    
     NETCONF_LAST_NC
 };
 

@@ -468,7 +468,6 @@ extern const struct Numeric* get_error_numeric(int err);
 /*      ERR_NOMANAGER_LONG   565	no longer used */
 #define ERR_NOMANAGER        566	/* Undernet extension */
 #define ERR_UPASS_SAME_APASS 567        /* Undernet extension */
-#define ERR_LASTERROR        568
 
 /*	RPL_LOGON	     600	dalnet,unreal
 	RPL_LOGOFF           601	dalnet,unreal
@@ -492,4 +491,20 @@ extern const struct Numeric* get_error_numeric(int err);
 	RPL_DUMPRPL	     641	unreal
 	RPL_EODUMP	     642	unreal
 */
+
+/*
+ * SASL replies and errors (starting at 900).
+ */
+#define RPL_LOGGEDIN         900    /* SASL */
+/* RPL_LOGGEDOUT        901    SASL */
+/* ERR_NICKLOCKED       902    SASL */
+#define RPL_SASLSUCCESS      903    /* SASL */
+#define ERR_SASLFAIL         904    /* SASL */
+#define ERR_SASLTOOLONG      905    /* SASL */
+#define ERR_SASLABORTED      906    /* SASL */
+#define ERR_SASLALREADY      907    /* SASL */
+#define RPL_SASLMECHS        908	/* SASL */
+
+#define ERR_LASTERROR        909
+
 #endif /* INCLUDED_numeric_h */

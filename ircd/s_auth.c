@@ -564,6 +564,12 @@ static int check_auth_finished(struct AuthRequest *auth, int bitclr)
 
     if (res == 0)
     {
+      if (HasFlag(auth->client, FLAG_SASL)) {
+        send_reply(auth->client, RPL_LOGGEDIN,
+          cli_name(auth->client), cli_user(auth->client)->username,
+          cli_user(auth->client)->host, cli_user(auth->client)->account,
+          cli_user(auth->client)->account);
+      }
       memset(cli_passwd(cptr), 0, sizeof(cli_passwd(cptr)));
       res = register_user(cptr, cptr);
     }

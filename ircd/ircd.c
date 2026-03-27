@@ -54,6 +54,7 @@
 #include "s_debug.h"
 #include "s_misc.h"
 #include "s_stats.h"
+#include "sasl.h"
 #include "send.h"
 #include "sys.h"
 #include "uping.h"
@@ -698,6 +699,7 @@ int main(int argc, char **argv) {
   initwhowas();
   initmsgtree();
   initstats();
+  sasl_init();
 
   /* we need this for now, when we're modular this 
      should be removed -- hikari */

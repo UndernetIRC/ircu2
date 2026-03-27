@@ -161,6 +161,7 @@ enum Flag
     FLAG_LOCOP,                     /**< Local operator -- SRB */
     FLAG_SERVNOTICE,                /**< server notices such as kill */
     FLAG_OPER,                      /**< Operator */
+    FLAG_SASL,                      /**< Authenticated using SASL */
     FLAG_INVISIBLE,                 /**< makes user invisible */
     FLAG_WALLOP,                    /**< send wallops to them */
     FLAG_DEAF,                      /**< Makes user deaf */
@@ -169,6 +170,7 @@ enum Flag
     FLAG_DEBUG,                     /**< send global debug/anti-hack info */
     FLAG_ACCOUNT,                   /**< account name has been set */
     FLAG_HIDDENHOST,                /**< user's host is hidden */
+    FLAG_CAP302,                    /**< client supports IRCv3.2 */
     FLAG_LAST_FLAG,                 /**< number of flags */
     FLAG_LOCAL_UMODES = FLAG_LOCOP, /**< First local mode flag */
     FLAG_GLOBAL_UMODES = FLAG_OPER  /**< First global mode flag */
@@ -236,6 +238,8 @@ struct Connection
   capset_t            con_active;    /**< Active capabilities (to us) */
   struct AuthRequest* con_auth;      /**< Auth request for client */
   const struct wline* con_wline;     /**< WebIRC authorization for client */
+  uint64_t            con_sasl;      /**< SASL session cookie */
+  struct Timer        con_sasl_timer; /**< SASL timeout timer */
 };
 
 /** Magic constant to identify valid Connection structures. */
@@ -387,6 +391,10 @@ struct Client {
 #define cli_wline(cli)          con_wline(cli_connect(cli))
 /** Get sentalong marker for client. */
 #define cli_sentalong(cli)      con_sentalong(cli_connect(cli))
+/** Get SASL session cookie for client. */
+#define cli_sasl(cli)           con_sasl(cli_connect(cli))
+/** Get SASL timeout timer for client. */
+#define cli_sasl_timer(cli)     (&con_sasl_timer(cli_connect(cli)))
 
 /** Verify that a connection is valid. */
 #define con_verify(con)		((con)->con_magic == CONNECTION_MAGIC)
@@ -470,6 +478,10 @@ struct Client {
 #define con_auth(con)		((con)->con_auth)
 /** Get the WebIRC block (if any) used by the connection. */
 #define con_wline(con)          ((con)->con_wline)
+/** Get the SASL session cookie for the connection. */
+#define con_sasl(con)           ((con)->con_sasl)
+/** Get the SASL timeout timer for the connection. */
+#define con_sasl_timer(con)     ((con)->con_sasl_timer)
 
 #define STAT_CONNECTING         0x001 /**< connecting to another server */
 #define STAT_HANDSHAKE          0x002 /**< pass - server sent */

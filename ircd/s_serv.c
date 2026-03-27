@@ -58,6 +58,7 @@
 #include "struct.h"
 #include "sys.h"
 #include "userload.h"
+#include "sasl.h"
 
 /* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <stdlib.h>
