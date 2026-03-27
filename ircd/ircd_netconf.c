@@ -282,7 +282,7 @@ void config_burst(struct Client *cptr)
                   entry->timestamp, entry->key, entry->value);
   }
 
-  Debug((DEBUG_INFO, "Config burst: %d entries sent to %s",
+  Debug((DEBUG_DEBUG, "Config burst: %d entries sent to %s",
          config_count(), cli_name(cptr)));
 }
 

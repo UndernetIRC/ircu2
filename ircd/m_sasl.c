@@ -95,7 +95,6 @@
 
 #include <stdlib.h>
 
-
 /** SASL timeout callback - called when a SASL session times out
  * @param[in] ev Timer event (contains client pointer in timer data)
  */
