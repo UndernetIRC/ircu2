@@ -228,6 +228,7 @@ struct Client* make_client(struct Client *from, int status)
   cli_status(cptr) = status;
   cli_hnext(cptr) = cptr;
   strcpy(cli_username(cptr), "");
+  strcpy(cli_tls_fingerprint(cptr), "");
 
   return cptr;
 }

@@ -724,6 +724,38 @@ AC_MSG_RESULT([$unet_cv_with_maxcon])
 AC_DEFINE_UNQUOTED(MAXCONNECTIONS, $unet_cv_with_maxcon,
 [Maximum number of network connections])
 
+
+# Call unet_TLS macro to set unet_cv_with_tls and TLS_C
+unet_TLS
+
+# Set Automake conditionals for each TLS backend
+case x"$unet_cv_with_tls" in
+    xopenssl)
+        AM_CONDITIONAL([TLS_OPENSSL], [true])
+        AM_CONDITIONAL([TLS_GNUTLS], [false])
+        AM_CONDITIONAL([TLS_LIBTLS], [false])
+        AM_CONDITIONAL([TLS_NONE], [false])
+        ;;
+    xgnutls)
+        AM_CONDITIONAL([TLS_OPENSSL], [false])
+        AM_CONDITIONAL([TLS_GNUTLS], [true])
+        AM_CONDITIONAL([TLS_LIBTLS], [false])
+        AM_CONDITIONAL([TLS_NONE], [false])
+        ;;
+    xlibtls)
+        AM_CONDITIONAL([TLS_OPENSSL], [false])
+        AM_CONDITIONAL([TLS_GNUTLS], [false])
+        AM_CONDITIONAL([TLS_LIBTLS], [true])
+        AM_CONDITIONAL([TLS_NONE], [false])
+        ;;
+    *)
+        AM_CONDITIONAL([TLS_OPENSSL], [false])
+        AM_CONDITIONAL([TLS_GNUTLS], [false])
+        AM_CONDITIONAL([TLS_LIBTLS], [false])
+        AM_CONDITIONAL([TLS_NONE], [true])
+        ;;
+esac
+
 dnl Finally really generate all output files:
 AC_CONFIG_FILES([Makefile ircd/Makefile ircd/test/Makefile])
 AC_OUTPUT
@@ -746,6 +778,7 @@ ircu is now hopefully configured for your system.
   CPath:               $unet_cv_with_cpath
   LPath:               $unet_cv_with_lpath
   Maximum connections: $unet_cv_with_maxcon
+  TLS implementation:  $unet_cv_with_tls
 
   poll() engine:       $unet_cv_enable_poll
   kqueue() engine:     $unet_cv_enable_kqueue

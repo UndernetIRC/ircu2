@@ -37,6 +37,7 @@
 #include "ircd_reply.h"
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
+#include "ircd_tls.h"
 #include "ircd.h"
 #include "list.h"
 #include "listener.h"
@@ -282,9 +283,14 @@ unsigned int deliver_it(struct Client *cptr, struct MsgQ *buf)
 {
   unsigned int bytes_written = 0;
   unsigned int bytes_count = 0;
+  IOResult io_result;
+
   assert(0 != cptr);
 
-  switch (os_sendv_nonb(cli_fd(cptr), buf, &bytes_count, &bytes_written)) {
+  io_result = IsTLS(cptr) && s_tls(&cli_socket(cptr))
+    ? ircd_tls_sendv(cptr, buf, &bytes_count, &bytes_written)
+    : os_sendv_nonb(cli_fd(cptr), buf, &bytes_count, &bytes_written);
+  switch (io_result) {
   case IO_SUCCESS:
     ClrFlag(cptr, FLAG_BLOCKED);
 
@@ -340,6 +346,29 @@ static int completed_connection(struct Client* cptr)
   if (s_state(&(cli_socket(cptr))) == SS_CONNECTING)
     socket_state(&(cli_socket(cptr)), SS_CONNECTED);
 
+  if (aconf->flags & CONF_CONNECT_TLS) {
+    /* Should we start the TLS handshake? */
+    if (!IsTLS(cptr)) {
+      void *tls;
+
+      tls = ircd_tls_connect(aconf, cli_fd(cptr));
+      if (!tls) {
+        sendto_opmask_butone(0, SNO_OLDSNO, "Unable to start TLS connection to %s", cli_name(cptr));
+        return 0;
+      }
+      s_tls(&cli_socket(cptr)) = tls;
+      SetNegotiatingTLS(cptr);
+      SetTLS(cptr);
+    }
+
+    /* Are we making progress? */
+    if (IsNegotiatingTLS(cptr)) {
+      ircd_tls_negotiate(cptr);
+      if (IsNegotiatingTLS(cptr))
+        return 1;
+    }
+  }
+
   if (!EmptyString(aconf->passwd))
     sendrawto_one(cptr, MSG_PASS " :%s", aconf->passwd);
 
@@ -368,6 +397,12 @@ static int completed_connection(struct Client* cptr)
                 cli_name(&me), cli_serv(&me)->timestamp, newts,
 		MAJOR_PROTOCOL, NumServCap(&me),
 		feature_bool(FEAT_HUB) ? "h" : "", cli_info(&me));
+
+  if (IsTLS(cptr) && !IsNegotiatingTLS(cptr)) {
+    Debug((DEBUG_DEBUG, "TLS connection completed for %s", cli_name(cptr)));
+    socket_events(&cli_socket(cptr), SOCK_EVENT_READABLE | SOCK_EVENT_WRITABLE);
+    send_queued(cptr);
+  }
 
   return (IsDead(cptr)) ? 0 : 1;
 }
@@ -416,6 +451,10 @@ void close_connection(struct Client *cptr)
   if (-1 < cli_fd(cptr)) {
     flush_connections(cptr);
     LocalClientArray[cli_fd(cptr)] = 0;
+    if (IsTLS(cptr) && s_tls(&cli_socket(cptr))) {
+      ircd_tls_close(s_tls(&cli_socket(cptr)), NULL);
+      s_tls(&cli_socket(cptr)) = NULL;
+    }
     close(cli_fd(cptr));
     socket_del(&(cli_socket(cptr))); /* queue a socket delete */
     cli_fd(cptr) = -1;
@@ -476,6 +515,7 @@ void add_connection(struct Listener* listener, int fd) {
   struct irc_sockaddr addr;
   struct Client      *new_client;
   time_t             next_target = 0;
+  void               *tls;
 
   const char* const throttle_message =
          "ERROR :Your host is trying to (re)connect too fast -- throttled\r\n";
@@ -556,9 +596,19 @@ void add_connection(struct Listener* listener, int fd) {
   cli_listener(new_client) = listener;
   ++listener->ref_count;
 
+  tls = listener_tls(listener) ? ircd_tls_accept(listener, fd) : NULL;
+  s_tls(&cli_socket(new_client)) = tls;
+  if (tls)
+  {
+    SetTLS(new_client);
+    SetNegotiatingTLS(new_client);
+    socket_events(&cli_socket(new_client), SOCK_EVENT_WRITABLE);
+  }
+
   Count_newunknown(UserStats);
   /* if we've made it this far we can put the client on the auth query pile */
-  start_auth(new_client);
+  if (!IsTLS(new_client))
+    start_auth(new_client);
 }
 
 /** Determines whether to tell the events engine we're interested in
@@ -593,8 +643,11 @@ static int read_packet(struct Client *cptr, int socket_ready)
 
   if (socket_ready &&
       !(IsUser(cptr) &&
-        DBufLength(&(cli_recvQ(cptr))) > GetMaxFlood(cptr))) {
-    switch (os_recv_nonb(cli_fd(cptr), readbuf, sizeof(readbuf), &length)) {
+	DBufLength(&(cli_recvQ(cptr))) > GetMaxFlood(cptr))) {
+    IOResult io_result = IsTLS(cptr) && s_tls(&cli_socket(cptr))
+      ? ircd_tls_recv(cptr, readbuf, sizeof(readbuf), &length)
+      : os_recv_nonb(cli_fd(cptr), readbuf, sizeof(readbuf), &length);
+    switch (io_result) {
     case IO_SUCCESS:
       if (length)
       {
@@ -862,6 +915,10 @@ static void client_sock_callback(struct Event* ev)
 
     if (!con_freeflag(con) && !cptr)
       free_connection(con);
+    if (s_tls(&con_socket(con))) {
+      ircd_tls_close(s_tls(&con_socket(con)), NULL);
+      s_tls(&con_socket(con)) = NULL;
+    }
     break;
 
   case ET_CONNECT: /* socket connection completed */
@@ -902,6 +959,28 @@ static void client_sock_callback(struct Event* ev)
     break;
 
   case ET_WRITE: /* socket is writable */
+    if (IsNegotiatingTLS(cptr)) {
+      int res = ircd_tls_negotiate(cptr);
+      if (res < 0) {
+        SetFlag(cptr, FLAG_DEADSOCKET);
+        ClrFlag(cptr, FLAG_NEGOTIATING_TLS);
+        /* Clean up TLS context if it still exists */
+        if (s_tls(&cli_socket(cptr))) {
+          ircd_tls_close(s_tls(&cli_socket(cptr)), "TLS negotiation failed");
+          s_tls(&cli_socket(cptr)) = NULL;
+        }
+        fmt = "TLS negotiation failed: %s";
+        fallback = "TLS negotiation failed";
+        break;
+      }
+      if (res == 0) {
+        /* Still negotiating */
+        break;
+      }
+       /* TLS negotiation succeeded */
+       IsConnecting(cptr) ? completed_connection(cptr) : start_auth(cptr);
+       return;
+    }
     ClrFlag(cptr, FLAG_BLOCKED);
     if (cli_listing(cptr) && MsgQLength(&(cli_sendQ(cptr))) < 2048)
       list_next_channels(cptr);
@@ -912,8 +991,30 @@ static void client_sock_callback(struct Event* ev)
   case ET_READ: /* socket is readable */
     if (!IsDead(cptr)) {
       Debug((DEBUG_DEBUG, "Reading data from %C", cptr));
+      if (IsNegotiatingTLS(cptr)) {
+        int res = ircd_tls_negotiate(cptr);
+        if (res < 0) {
+          SetFlag(cptr, FLAG_DEADSOCKET);
+          ClrFlag(cptr, FLAG_NEGOTIATING_TLS);
+          /* Clean up TLS context if it still exists */
+          if (s_tls(&cli_socket(cptr))) {
+            ircd_tls_close(s_tls(&cli_socket(cptr)), "TLS negotiation failed");
+            s_tls(&cli_socket(cptr)) = NULL;
+          }
+          fmt = "TLS negotiation failed: %s";
+          fallback = "TLS negotiation failed";
+          break;
+        }
+        if (res == 0) {
+          /* Still negotiating */
+          break;
+        }
+        /* TLS negotiation succeeded */
+        if (IsConnecting(cptr))
+          completed_connection(cptr);
+      }
       if (read_packet(cptr, 1) == 0) /* error while reading packet */
-	fallback = "EOF from client";
+        fallback = "EOF from client";
     }
     break;
 
@@ -928,6 +1029,12 @@ static void client_sock_callback(struct Event* ev)
     const char* msg = (cli_error(cptr)) ? strerror(cli_error(cptr)) : fallback;
     if (!msg)
       msg = "Unknown error";
+
+    if (s_tls(&con_socket(con))) {
+      ircd_tls_close(s_tls(&con_socket(con)), NULL);
+      s_tls(&con_socket(con)) = NULL;
+    }
+
     exit_client_msg(cptr, cptr, &me, fmt, msg);
   }
 }

@@ -89,6 +89,7 @@
 #include "ircd_log.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
+#include "ircd_tls.h"
 #include "ircd_crypt.h"
 #include "msg.h"
 #include "numeric.h"
@@ -155,6 +156,15 @@ int m_oper(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return 0;
   }
   assert(0 != (aconf->status & CONF_OPERATOR));
+
+  if (!EmptyString(aconf->tls_fingerprint)
+    && ircd_strcmp(cli_tls_fingerprint(sptr), aconf->tls_fingerprint))
+  {
+    send_reply(sptr, ERR_TLSCLIFINGERPRINT);
+    sendto_opmask_butone(0, SNO_OLDREALOP, "Failed OPER attempt by %s (%s@%s)",
+                         parv[0], cli_user(sptr)->username, cli_sockhost(sptr));
+    return 0;
+  }
 
   if (oper_password_match(password, aconf->passwd))
   {

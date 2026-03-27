@@ -182,6 +182,10 @@ void send_queued(struct Client *to)
   if (IsBlocked(to) || !can_send(to))
     return;                     /* Don't bother */
 
+  /* If we're still negotiating TLS, don't try to send data yet */
+  if (IsTLS(to) && IsNegotiatingTLS(to))
+    return;
+
   while (MsgQLength(&(cli_sendQ(to))) > 0) {
     unsigned int len;
 
