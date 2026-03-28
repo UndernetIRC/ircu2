@@ -56,7 +56,8 @@ struct Sline* GlobalSlineList = 0;
 struct HoldQueueEntry {
   struct HoldQueueEntry *next;      /**< Next entry in queue */
   struct HoldQueueEntry **prev_p;   /**< Previous pointer to this entry */
-  unsigned int token;               /**< Unique token for this entry */
+  struct HoldQueueEntry *next_hash; /**< Next entry in hash bucket */
+  uint64_t token;                   /**< Unique token for this entry */
   sl_msgtype_t msgtype;             /**< Type of message (SLINE_PRIVATE, SLINE_CHANNEL) */
   const char *cmdtype;              /**< Type of command (MSG_PRIVATE, MSG_NOTICE, MSG_WALLCHOPS, MSG_WALLVOICES) */
   struct Client *sender;            /**< Sender of the message */
@@ -71,6 +72,17 @@ struct HoldQueueEntry {
 
 /** Global hold queue list */
 static struct HoldQueueEntry *GlobalHoldQueue = 0;
+
+/** Hash table size for hold queue token lookup */
+#define SLINE_HASH_SIZE 1024
+
+/** Hash table for O(1) token lookup */
+static struct HoldQueueEntry *sline_hold_table[SLINE_HASH_SIZE] = {0};
+
+/** Compute hash bucket index for a given token */
+static unsigned int sline_token_hash(uint64_t token) {
+  return token % SLINE_HASH_SIZE;
+}
 
 /** Next available token number */
 static uint64_t next_hold_token = 1;
@@ -711,6 +723,11 @@ sline_hold_privmsg(struct Client *sender, struct Client *recipient,
   sline_stats_counters.messages_held++;
 
   Debug((DEBUG_DEBUG, "sline_hold_privmsg: assigned token %u", entry->token));
+
+  /* Add to hash table */
+  unsigned int idx = sline_token_hash(entry->token);
+  entry->next_hash = sline_hold_table[idx];
+  sline_hold_table[idx] = entry;
   return entry;
 }
 
@@ -771,6 +788,11 @@ sline_hold_chanmsg(struct Client *sender, struct Channel *channel,
   sline_stats_counters.messages_held++;
 
   Debug((DEBUG_DEBUG, "sline_hold_chanmsg: assigned token %u", entry->token));
+
+  /* Add to hash table */
+  unsigned int idx = sline_token_hash(entry->token);
+  entry->next_hash = sline_hold_table[idx];
+  sline_hold_table[idx] = entry;
   return entry;
 }
 
@@ -817,6 +839,17 @@ sline_hold_free(struct HoldQueueEntry *entry)
     return;
 
   Debug((DEBUG_DEBUG, "sline_hold_free: removing token %u", entry->token));
+
+  /* Remove from hash table */
+  unsigned int idx = sline_token_hash(entry->token);
+  struct HoldQueueEntry **pp = &sline_hold_table[idx];
+  while (*pp) {
+    if (*pp == entry) {
+      *pp = entry->next_hash;
+      break;
+    }
+    pp = &((*pp)->next_hash);
+  }
 
   /* Store references for FLAG_SPAMHOLD cleanup */
   sender = entry->sender;
@@ -953,7 +986,8 @@ sline_find_hold_entry(unsigned int token)
 {
   struct HoldQueueEntry *entry;
   
-  for (entry = GlobalHoldQueue; entry; entry = entry->next) {
+  unsigned int idx = sline_token_hash(token);
+  for (entry = sline_hold_table[idx]; entry; entry = entry->next_hash) {
     if (entry->token == token)
       return entry;
   }
