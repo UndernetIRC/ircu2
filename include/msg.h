@@ -292,6 +292,10 @@ struct Client;
 #define TOK_GLINE               "GL"
 #define CMD_GLINE		MSG_GLINE, TOK_GLINE
 
+#define MSG_SLINE               "SLINE"         /* SLIN */
+#define TOK_SLINE               "SL"
+#define CMD_SLINE		MSG_SLINE, TOK_SLINE
+
 #define MSG_BURST               "BURST"         /* BURS */
 #define TOK_BURST               "B"
 #define CMD_BURST		MSG_BURST, TOK_BURST

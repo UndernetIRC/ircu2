@@ -143,6 +143,13 @@ int ms_rping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     }
     if ((destination = FindNServer(parv[1]))) {
       /*
+       * Store lag value.
+       */
+      int timestamp = atoi(parv[3]);
+      if (timestamp > 0)
+        cli_serv(sptr)->lag = TStime() - timestamp;
+
+      /*
        * if it's not for me, pass it on
        */
       if (IsMe(destination))

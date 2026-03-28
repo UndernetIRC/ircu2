@@ -130,7 +130,7 @@ extern const struct Numeric* get_error_numeric(int err);
 #define RPL_STATSENGINE      237	/* Undernet engine name */
 #define RPL_STATSFLINE       238	/* Undernet feature lines */
 /*      RPL_STATSIAUTH       239           IRCnet extension */
-/*      RPL_STATSVLINE       240           IRCnet extension */
+#define RPL_STATSSLINE       240    /* Undernet extension */
 /*	RPL_STATSXLINE	     240	austnet */
 #define RPL_STATSLLINE       241	/* Undernet dynamicly loaded modules */
 #define RPL_STATSUPTIME      242

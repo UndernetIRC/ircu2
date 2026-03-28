@@ -60,6 +60,11 @@ enum NetConf {
     NETCONF_SASL_MECHANISMS,
     NETCONF_SASL_TIMEOUT,
     
+    /* S:line related settings */
+    NETCONF_SLINE_SERVER,
+    NETCONF_SLINE_HOLD_TIMEOUT,
+    NETCONF_SLINE_HOLD_TIMEOUT_BLOCK,
+  
     NETCONF_LAST_NC
 };
 

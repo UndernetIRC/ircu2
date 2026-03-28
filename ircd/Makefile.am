@@ -94,6 +94,7 @@ ircd_SOURCES = \
 	m_set.c \
 	m_settime.c \
 	m_silence.c \
+	m_sline.c \
 	m_squit.c \
 	m_stats.c \
 	m_time.c \
@@ -137,6 +138,7 @@ ircd_SOURCES = \
 	s_user.c \
 	sasl.c \
 	send.c \
+	sline.c \
 	uping.c \
 	userload.c \
 	whocmds.c \

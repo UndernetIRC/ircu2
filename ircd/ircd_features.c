@@ -326,6 +326,7 @@ static struct FeatureDesc {
   F_B(TOPIC_BURST, 0, 1, 0),
   F_B(AWAY_BURST, 0, 1, 0),
   F_B(DISABLE_GLINES, 0, 0, 0),
+  F_B(DISABLE_SLINES, 0, 0, 0),
   F_B(JOIN_TARGET, 0, 0, 0),
 
   /* features that probably should not be touched */
@@ -407,6 +408,7 @@ static struct FeatureDesc {
   F_B(HIS_STATS_q, 0, 1, 0),
   F_B(HIS_STATS_r, 0, 1, 0),
   F_B(HIS_STATS_R, 0, 1, 0),
+  F_B(HIS_STATS_s, 0, 1, 0),
   F_B(HIS_STATS_S, 0, 1, 0),
   F_B(HIS_STATS_t, 0, 1, 0),
   F_B(HIS_STATS_T, 0, 1, 0),
