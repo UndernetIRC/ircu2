@@ -32,6 +32,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <netinet/in.h>
+#include <stdio.h> /* snprintf */
 
 /*
  * include the character attribute tables here
@@ -450,6 +451,23 @@ const char* ircd_ntoa_r(char* buf, const struct irc_in_addr* in)
       buf[pos++] = '\0';
       return buf;
     }
+}
+
+/** Convert an IP address and \a bits to printable CIDR notation.
+ * @param[in] in Address.
+ * @param[in] bits Prefix length or Subnet mask length .
+ * @return Pointer to a static buffer containing the readable form.
+ */
+const char* ircd_ntocidrmask(const struct irc_in_addr* in, const unsigned char bits)
+{
+  static char cidr[CIDR_LEN + 1];
+  const char *mask_str;
+
+  mask_str = ircd_ntoa(in);
+  assert(strlen(mask_str) < 40);
+  snprintf(cidr, CIDR_LEN + 1, "%s/%u", mask_str, (unsigned int) irc_in_addr_is_ipv4(in) ? (bits - 96) : bits);
+  cidr[CIDR_LEN] = 0;
+  return cidr;
 }
 
 /** Attempt to parse an IPv4 address into a network-endian form.

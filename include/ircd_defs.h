@@ -98,5 +98,9 @@
 #define STARTTARGETS    10
 /** Target number to start assigning new targets. */
 #define RESERVEDTARGETS 12
+/** Maximum length for a cidr of the form ip/bits. i.e. 1.2.3.0/24.
+ * (39+1+3 : 39 for ipv6_len, 1 for `/`, 3 for cidr_len)
+ */
+#define CIDR_LEN 43
 
 #endif /* INCLUDED_ircd_defs_h */

@@ -1,4 +1,4 @@
-AM_CPPFLAGS = -I$(top_srcdir)/include
+AM_CPPFLAGS = -I$(top_srcdir)/include -DIRCU2_BUILD
 AM_YFLAGS = -d
 
 bin_PROGRAMS = ircd umkpasswd convert-conf
@@ -10,6 +10,7 @@ CLEANFILES = chattr.tab.c version.c
 ircd_SOURCES = \
 	IPcheck.c \
 	channel.c \
+	cidr_lookups.c \
 	class.c \
 	client.c \
 	crule.c \
