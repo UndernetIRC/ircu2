@@ -222,6 +222,7 @@ static void free_slist(struct SLink **link) {
 %token TOK_IPV4 TOK_IPV6
 %token DNS
 %token WEBIRC
+%token WEBSOCKET
 %token IPCHECK
 %token EXCEPT
 %token INCLUDE
@@ -927,8 +928,8 @@ portblock: PORT {
 };
 portitems: portitem portitems | portitem;
 portitem: portnumber | portvhost | portvhostnumber | portmask | portserver
-  | portwebirc | porthidden | porttls | tlsciphers | tlsverifypeer | tlssystemca
-  | tlscertfile | tlscertdir;
+  | portwebirc | portwebsocket | porthidden | porttls | tlsciphers | tlsverifypeer
+  | tlssystemca | tlscertfile | tlscertdir;
 portnumber: PORT '=' address_family NUMBER ';'
 {
   if ($4 < 1 || $4 > 65535) {
@@ -979,6 +980,14 @@ portserver: SERVER '=' YES ';'
 } | SERVER '=' NO ';'
 {
   FlagClr(&listen_flags, LISTEN_SERVER);
+};
+
+portwebsocket: WEBSOCKET '=' YES ';'
+{
+  FlagSet(&listen_flags, LISTEN_WEBSOCKET);
+} | WEBSOCKET '=' NO ';'
+{
+  FlagClr(&listen_flags, LISTEN_WEBSOCKET);
 };
 
 porthidden: HIDDEN '=' YES ';'

@@ -141,6 +141,7 @@ ircd_SOURCES = \
 	sline.c \
 	uping.c \
 	userload.c \
+	websocket.c \
 	whocmds.c \
 	whowas.c \
 	ircd_parser.y \

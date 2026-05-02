@@ -266,7 +266,7 @@ send_caplist(struct Client *sptr, capset_t set,
 static int
 cap_ls(struct Client *sptr, const char *caplist)
 {
-  if (IsUserPort(sptr)) /* registration hasn't completed; suspend it... */
+  if (IsUserPort(sptr) || IsWebsocketPort(sptr)) /* registration hasn't completed; suspend it... */
     auth_cap_start(cli_auth(sptr));
   
   /* Check if client supports IRCv3.2 (LS version >= 302) */
@@ -291,7 +291,7 @@ cap_req(struct Client *sptr, const char *caplist)
   capset_t as = cli_active(sptr); /* active set */
   int neg;
 
-  if (IsUserPort(sptr)) /* registration hasn't completed; suspend it... */
+  if (IsUserPort(sptr) || IsWebsocketPort(sptr)) /* registration hasn't completed; suspend it... */
     auth_cap_start(cli_auth(sptr));
 
   while (cl) { /* walk through the capabilities list... */
@@ -330,7 +330,7 @@ cap_req(struct Client *sptr, const char *caplist)
 static int
 cap_end(struct Client *sptr, const char *caplist)
 {
-  if (!IsUserPort(sptr)) /* registration has completed... */
+  if (!IsUserPort(sptr) && !IsWebsocketPort(sptr)) /* registration has completed... */
     return 0; /* so just ignore the message... */
 
   return auth_cap_done(cli_auth(sptr));

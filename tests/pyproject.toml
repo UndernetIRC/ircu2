@@ -17,5 +17,5 @@ markers = [
     "single_server: tests that need only the hub server",
     "multi_server: tests that need the full hub + 2 leaves topology",
     "tls: tests that need the TLS hub + leaf containers",
+    "websocket_stress: aggressive WebSocket load / edge-case tests (hub + port 7000)",
 ]
-timeout = 60

@@ -34,6 +34,7 @@ struct AuthRequest;
 struct StatDesc;
 
 extern void start_auth(struct Client *);
+extern void start_dns_ident(struct Client *client);
 extern int auth_ping_timeout(struct Client *);
 extern int auth_set_pong(struct AuthRequest *auth, unsigned int cookie);
 extern int auth_set_user(struct AuthRequest *auth, const char *username, const char *hostname, const char *servername, const char *userinfo);
