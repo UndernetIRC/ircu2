@@ -77,6 +77,20 @@ class IRCClient:
         self._writer.write((line + "\r\n").encode("utf-8"))
         await self._writer.drain()
 
+    async def send_raw(self, line: bytes):
+        """Send one IRC line as exact octets, then CRLF.
+
+        Use this to emit byte sequences that are not valid UTF-8 (e.g. a lone
+        0xFF in a channel name). ``send()`` always UTF-8-encodes its string.
+        """
+        if not self._writer:
+            raise ConnectionError("Not connected")
+        if b"\r" in line or b"\n" in line:
+            raise ValueError("line must not contain CR or LF")
+        self._logger.debug(">> %r", line)
+        self._writer.write(line + b"\r\n")
+        await self._writer.drain()
+
     async def recv(self, timeout: float = 5.0) -> Message:
         """Read and parse the next IRC message.
 

@@ -724,6 +724,19 @@ AC_MSG_RESULT([$unet_cv_with_maxcon])
 AC_DEFINE_UNQUOTED(MAXCONNECTIONS, $unet_cv_with_maxcon,
 [Maximum number of network connections])
 
+# Check for OpenSSL (libssl, libcrypto)
+# Use pkg-config to find OpenSSL if available
+PKG_CHECK_MODULES([OPENSSL], [openssl], [
+  CPPFLAGS="$OPENSSL_CFLAGS $CPPFLAGS"
+  LIBS="$OPENSSL_LIBS $LIBS"
+], [
+  AC_CHECK_LIB([ssl], [SSL_library_init], [SSL_LIBS="-lssl"], [AC_MSG_ERROR([OpenSSL libssl not found])])
+  AC_CHECK_LIB([crypto], [SHA1], [CRYPTO_LIBS="-lcrypto"], [AC_MSG_ERROR([OpenSSL libcrypto not found])])
+  AC_SUBST([SSL_LIBS])
+  AC_SUBST([CRYPTO_LIBS])
+  LIBS="$SSL_LIBS $CRYPTO_LIBS $LIBS"
+])
+
 dnl Finally really generate all output files:
 AC_CONFIG_FILES([Makefile ircd/Makefile ircd/test/Makefile])
 AC_OUTPUT

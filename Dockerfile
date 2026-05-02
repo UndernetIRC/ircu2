@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     automake \
     libc6-dev \
     pkg-config \
+    libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build/ircu2
@@ -28,6 +29,7 @@ FROM debian:bookworm-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     perl \
+    libssl3 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN useradd -r -m -d /opt/ircu ircu

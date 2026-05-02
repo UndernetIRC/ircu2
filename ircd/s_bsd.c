@@ -59,6 +59,7 @@
 #include "sys.h"
 #include "uping.h"
 #include "version.h"
+#include "websocket.h"
 
 /* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <errno.h>
@@ -528,7 +529,7 @@ void add_connection(struct Listener* listener, int fd) {
       close(fd);
       return;
     }
-    new_client = make_client(0, STAT_UNKNOWN_USER);
+    new_client = make_client(0, listener_websocket(listener) ? STAT_WEBSOCKET : STAT_UNKNOWN_USER);
     SetIPChecked(new_client);
   }
 
@@ -591,9 +592,10 @@ static int read_packet(struct Client *cptr, int socket_ready)
   unsigned int dolen = 0;
   unsigned int length = 0;
 
+  int is_ws_handshake = (IsWebsocketPort(cptr) && !IsWebsocket(cptr));
+  unsigned int flood_limit = is_ws_handshake ? WEBSOCKET_MAX_HEADER : GetMaxFlood(cptr);
   if (socket_ready &&
-      !(IsUser(cptr) &&
-        DBufLength(&(cli_recvQ(cptr))) > GetMaxFlood(cptr))) {
+      !(IsUser(cptr) && DBufLength(&(cli_recvQ(cptr))) > flood_limit)) {
     switch (os_recv_nonb(cli_fd(cptr), readbuf, sizeof(readbuf), &length)) {
     case IO_SUCCESS:
       if (length)
@@ -614,6 +616,31 @@ static int read_packet(struct Client *cptr, int socket_ready)
     }
   }
 
+  // WebSocket handshake: accumulate all data in con_ws_handshake buffer
+  if (is_ws_handshake) {
+    struct Connection *con = cli_connect(cptr);
+    if (length > 0) {
+      size_t copylen = length;
+      if (con->con_ws_handshake_len + copylen > WEBSOCKET_MAX_HEADER)
+        return exit_client(cptr, cptr, &me, "Excess Flood");
+      if (copylen > 0) {
+        memcpy(con->con_ws_handshake + con->con_ws_handshake_len, readbuf, copylen);
+        con->con_ws_handshake_len += copylen;
+        con->con_ws_handshake[con->con_ws_handshake_len] = '\0';
+      }
+    }
+    int ret = websocket_handshake_handler(cptr);
+    if (IsWebsocket(cptr)) {
+      // Handshake complete, clear buffer
+      con->con_ws_handshake[0] = '\0';
+      con->con_ws_handshake_len = 0;
+
+      /* Start DNS and ident queries. */
+      start_dns_ident(cptr);
+    }
+    return ret;
+  }
+
   /*
    * For server connections, we process as many as we can without
    * worrying about the time of day or anything :)
@@ -624,6 +651,42 @@ static int read_packet(struct Client *cptr, int socket_ready)
     return connect_dopacket(cptr, readbuf, length);
   else
   {
+    /* Parse websocket frames */
+    if (IsWebsocket(cptr)) {
+      if (length > 0) {
+        size_t offset = 0;
+        int ret;
+        while (offset < length) {
+          ret = websocket_parse_frame(cptr, readbuf + offset, length - offset);
+          if (ret > 0) {
+            offset += ret;
+
+            Debug((DEBUG_DEBUG, "dbuf: %u maxfl: %u", DBufLength(&(cli_recvQ(cptr))), GetMaxFlood(cptr)));
+            if (DBufLength(&(cli_recvQ(cptr))) > GetMaxFlood(cptr))
+              return exit_client(cptr, cptr, &me, "Excess Flood");
+
+            dolen = dbuf_getframe(&(cli_recvQ(cptr)), cli_buffer(cptr), BUFSIZE);
+            if (dolen == 0) {
+              if (DBufLength(&(cli_recvQ(cptr))) > 510) {
+                /* More than 510 bytes in the line - drop the input and yell
+                * at the client.
+                */
+                DBufClear(&(cli_recvQ(cptr)));
+                send_reply(cptr, ERR_INPUTTOOLONG);
+              }
+            } else if (client_dopacket(cptr, dolen) == CPTR_KILLED)
+              return CPTR_KILLED;
+
+          } else if (ret == 0) {
+            break; // need more data
+          } else {
+            return exit_client(cptr, cptr, &me, "dbuf_put fail");
+          }
+        }
+      }
+      return 1;
+    }
+
     /*
      * Before we even think of parsing what we just read, stick
      * it on the end of the receive queue and do it when its
@@ -913,7 +976,7 @@ static void client_sock_callback(struct Event* ev)
     if (!IsDead(cptr)) {
       Debug((DEBUG_DEBUG, "Reading data from %C", cptr));
       if (read_packet(cptr, 1) == 0) /* error while reading packet */
-	fallback = "EOF from client";
+	      fallback = "EOF from client";
     }
     break;
 

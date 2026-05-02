@@ -40,7 +40,17 @@ struct Client;
 struct StatDesc;
 
 struct Msg;
-struct MsgBuf;
+
+/** Buffer for a single message. */
+struct MsgBuf {
+  struct MsgBuf *next;           /**< next msg in global queue */
+  struct MsgBuf **prev_p;        /**< what points to us in linked list */
+  struct MsgBuf *real;           /**< the actual MsgBuf we're attaching */
+  unsigned int ref;              /**< reference count */
+  unsigned int length;           /**< length of message */
+  unsigned int power;            /**< size of buffer (power of 2) */
+  char msg[1];                   /**< the message */
+};
 
 /** Queue of individual messages. */
 struct MsgQList {
@@ -75,6 +85,7 @@ extern void msgq_delete(struct MsgQ *mq, unsigned int length);
 extern int msgq_mapiov(const struct MsgQ *mq, struct iovec *iov, int count,
 		       unsigned int *len);
 extern struct MsgBuf *msgq_make(struct Client *dest, const char *format, ...);
+extern struct MsgBuf *msgq_raw_alloc(struct Client *dest, unsigned int minbytes);
 extern struct MsgBuf *msgq_vmake(struct Client *dest, const char *format,
 				 va_list args);
 extern void msgq_append(struct Client *dest, struct MsgBuf *mb,

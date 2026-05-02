@@ -526,9 +526,9 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   time_t           recv_time;
   time_t           ghost;
 
-  if (IsUserPort(cptr))
+  if (IsUserPort(cptr) || IsWebsocketPort(cptr))
     return exit_client_msg(cptr, cptr, &me,
-                           "Cannot connect a server to a user port");
+                           "Cannot connect a server to a user or websocket port");
 
   if (parc < 8)
   {

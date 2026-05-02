@@ -400,7 +400,7 @@ int exit_client(struct Client *cptr,
     /* This intentionally excludes WebIRC ports to make port scanning
      * for it a little harder.
      */
-    if (IsUser(victim) || IsUserPort(victim))
+    if (IsUser(victim) || IsUserPort(victim) || IsWebsocketPort(victim))
       auth_send_exit(victim);
 
     if (IsUser(victim))
