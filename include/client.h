@@ -41,6 +41,9 @@
 #ifndef INCLUDED_res_h
 #include "res.h"
 #endif
+#ifndef INCLUDED_websocket_h
+#include "websocket.h"
+#endif
 #ifndef INCLUDED_sys_types_h
 #include <sys/types.h>          /* time_t, size_t */
 #define INCLUDED_sys_types_h
@@ -198,6 +201,11 @@ struct Connection
   int                 con_error;     /**< last socket level error for client */
   int                 con_sentalong; /**< sentalong marker for connection */
   unsigned int        con_snomask;   /**< mask for server messages */
+  enum ws_mode_t {
+    WS_NONE = 0,
+    WS_TEXT = 1, 
+    WS_BINARY = 2
+  }                   ws_mode;       /**< WebSocket mode */
   HandlerType         con_handler;   /**< Message index into command table
                                         for parsing. */
   time_t              con_nextnick;  /**< Next time a nick change is allowed */
@@ -231,6 +239,9 @@ struct Connection
                                         clients socket to close. */
   struct Socket       con_socket;    /**< socket descriptor for
                                       client */
+  char con_ws_handshake[WEBSOCKET_MAX_HEADER + 1]; /**< Buffer for accumulating WebSocket handshake data */
+  size_t con_ws_handshake_len;       /**< Length of handshake buffer */
+  time_t con_ws_last_keepalive;      /**< Last time we sent RFC6455 Ping (not IRC PING); 0 = not set */
   struct Timer        con_proc;      /**< process latent messages from
                                       client */
   struct Privs        con_privs;     /**< Oper privileges */
@@ -395,6 +406,8 @@ struct Client {
 #define cli_sasl(cli)           con_sasl(cli_connect(cli))
 /** Get SASL timeout timer for client. */
 #define cli_sasl_timer(cli)     (&con_sasl_timer(cli_connect(cli)))
+/** Get the WebSocket mode for the client. */
+#define cli_ws_mode(cli)      con_ws_mode(cli_connect(cli))
 
 /** Verify that a connection is valid. */
 #define con_verify(con)		((con)->con_magic == CONNECTION_MAGIC)
@@ -482,6 +495,8 @@ struct Client {
 #define con_sasl(con)           ((con)->con_sasl)
 /** Get the SASL timeout timer for the connection. */
 #define con_sasl_timer(con)     ((con)->con_sasl_timer)
+/** Get the WebSocket mode for the connection. */
+#define con_ws_mode(con)      ((con)->ws_mode)
 
 #define STAT_CONNECTING         0x001 /**< connecting to another server */
 #define STAT_HANDSHAKE          0x002 /**< pass - server sent */
@@ -492,7 +507,7 @@ struct Client {
 #define STAT_SERVER             0x040 /**< fully registered server */
 #define STAT_USER               0x080 /**< fully registered user */
 #define STAT_WEBIRC             0x100 /**< connection on a webirc port */
-
+#define STAT_WEBSOCKET          0x200 /**< connection on a websocket port */
 /*
  * status macros.
  */
@@ -508,7 +523,7 @@ struct Client {
 #define IsMe(x)                 (cli_status(x) == STAT_ME)
 /** Return non-zero if the client has not yet registered. */
 #define IsUnknown(x)            (cli_status(x) & \
-        (STAT_UNKNOWN | STAT_UNKNOWN_USER | STAT_UNKNOWN_SERVER | STAT_WEBIRC))
+        (STAT_UNKNOWN | STAT_UNKNOWN_USER | STAT_UNKNOWN_SERVER | STAT_WEBIRC | STAT_WEBSOCKET))
 /** Return non-zero if the client is an unregistered connection on a
  * server port. */
 #define IsServerPort(x)         (cli_status(x) == STAT_UNKNOWN_SERVER )
@@ -518,10 +533,13 @@ struct Client {
 /** Return non-zero if the client is an unregistered connection on a
  * WebIRC port that has not yet sent WEBIRC. */
 #define IsWebircPort(x)         (cli_status(x) == STAT_WEBIRC)
+/** Return non-zero if the client is an unregistered connection on a
+ * websocket port that has not yet completed the handshake. */
+#define IsWebsocketPort(x)      (cli_status(x) == STAT_WEBSOCKET)
 /** Return non-zero if the client is a real client connection. */
 #define IsClient(x)             (cli_status(x) & \
         (STAT_HANDSHAKE | STAT_ME | STAT_UNKNOWN |\
-         STAT_UNKNOWN_USER | STAT_UNKNOWN_SERVER | STAT_SERVER | STAT_USER))
+         STAT_UNKNOWN_USER | STAT_UNKNOWN_SERVER | STAT_SERVER | STAT_USER | STAT_WEBSOCKET))
 /** Return non-zero if the client ignores flood limits. */
 #define IsTrusted(x)            (cli_status(x) & \
         (STAT_CONNECTING | STAT_HANDSHAKE | STAT_ME | STAT_SERVER))
@@ -615,6 +633,8 @@ struct Client {
 /** Return non-zero if the client has an active PING request. */
 #define IsPingSent(x)           HasFlag(x, FLAG_PINGSENT)
 
+/** Return non-zero if the client has completed the handshake for a WebSocket connection. */
+#define IsWebsocket(x)           (cli_ws_mode(x) != WS_NONE)
 /** Return non-zero if the client has operator or server privileges. */
 #define IsPrivileged(x)         (IsAnOper(x) || IsServer(x))
 /** Return non-zero if the client's host is hidden. */
@@ -774,4 +794,3 @@ extern void client_set_privs(struct Client *client, struct ConfItem *oper,
 extern int client_report_privs(struct Client* to, struct Client* client);
 
 #endif /* INCLUDED_client_h */
-

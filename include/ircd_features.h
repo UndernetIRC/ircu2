@@ -99,6 +99,7 @@ enum Feature {
   FEAT_IRCD_RES_RETRIES,
   FEAT_IRCD_RES_TIMEOUT,
   FEAT_AUTH_TIMEOUT,
+  FEAT_WEBSOCKET_KEEPALIVE,
   FEAT_ANNOUNCE_INVITES,
 
   /* features that affect all operators */

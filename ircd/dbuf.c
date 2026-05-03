@@ -330,6 +330,21 @@ static unsigned int dbuf_flush(struct DBuf *dyn)
   return dyn->length;
 }
 
+/** Extract the entire buffer as a single frame (for WebSocket).
+ * Copies up to 'length' bytes from the buffer, regardless of EOL.
+ * Deletes the bytes from the buffer after copying.
+ * Returns the number of bytes copied.
+ */
+unsigned int dbuf_getframe(struct DBuf *dyn, char *buf, unsigned int length)
+{
+  unsigned int to_copy = (length < dyn->length) ? length : dyn->length;
+  if (to_copy == 0)
+    return 0;
+  unsigned int copied = dbuf_get(dyn, buf, to_copy);
+  buf[copied] = '\0';
+  return copied;
+}
+
 /** Copy a single line from a data buffer.
  * If the output buffer cannot hold the whole line, or if there is no
  * EOL in the buffer, return 0.

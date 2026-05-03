@@ -35,6 +35,8 @@
 #include "list.h"
 #include "match.h"
 #include "msg.h"
+#include "msgq.h"
+#include "websocket.h"
 #include "numnicks.h"
 #include "parse.h"
 #include "s_bsd.h"
@@ -189,7 +191,7 @@ void send_queued(struct Client *to)
       msgq_delete(&(cli_sendQ(to)), len);
       cli_lastsq(to) = MsgQLength(&(cli_sendQ(to))) / 1024;
       if (IsBlocked(to)) {
-	update_write(to);
+        update_write(to);
         return;
       }
     }
@@ -237,6 +239,20 @@ void send_buffer(struct Client* to, struct MsgBuf* buf, int prio)
   }
 
   Debug((DEBUG_SEND, "Sending [%p] to %s", buf, cli_name(to)));
+
+
+  /* For websocket clients, replace IRC MsgBuf with a framed one before queueing.
+   * Do not msgq_clean(buf): callers (sendrawto_one, sendcmdto_one, ...) always
+   * msgq_clean their msgq_make buffer after send_buffer; cleaning here would
+   * double-free and abort in msgq_clean. */
+  if (IsWebsocket(to)) {
+    struct MsgBuf *framed = websocket_frame_msgbuf(to, buf->msg, buf->length);
+    if (!framed) {
+      dead_link(to, "Websocket frame error");
+      return;
+    }
+    buf = framed;
+  }
 
   msgq_add(&(cli_sendQ(to)), buf, prio);
   client_add_sendq(cli_connect(to), &send_queues);
