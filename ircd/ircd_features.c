@@ -364,6 +364,7 @@ static struct FeatureDesc {
   F_I(IRCD_RES_RETRIES, 0, 2, 0),
   F_I(IRCD_RES_TIMEOUT, 0, 4, 0),
   F_I(AUTH_TIMEOUT, 0, 9, 0),
+  F_I(WEBSOCKET_KEEPALIVE, 0, 0, 0),
   F_B(ANNOUNCE_INVITES, 0, 0, 0),
 
   /* features that affect all operators */

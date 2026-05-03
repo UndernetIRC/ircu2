@@ -828,6 +828,15 @@ This is the maximum number of seconds to wait for the ident lookup and
 the DNS query to succeed.  On older (pre 2.10.11.06) servers this was
 hard coded to 60 seconds.
 
+WEBSOCKET_KEEPALIVE
+ * Type: integer
+ * Default: 0 (disabled)
+
+If greater than zero, the server sends an RFC 6455 WebSocket Ping frame
+to registered clients on WebSocket listener connections at this interval
+(in seconds).  This is for transport / idle TCP keepalive only; it does
+not replace IRC PING/PONG (see PINGFREQUENCY and related settings).
+
 IPCHECK_CLONE_LIMIT
  * Type: integer
  * Default: 4

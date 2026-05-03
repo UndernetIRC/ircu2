@@ -634,6 +634,7 @@ static int read_packet(struct Client *cptr, int socket_ready)
       // Handshake complete, clear buffer
       con->con_ws_handshake[0] = '\0';
       con->con_ws_handshake_len = 0;
+      con->con_ws_last_keepalive = CurrentTime;
 
       /* Start DNS and ident queries. */
       start_dns_ident(cptr);

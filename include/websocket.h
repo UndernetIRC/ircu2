@@ -29,5 +29,7 @@
 int websocket_handshake_handler(struct Client *cptr);
 int websocket_parse_frame(struct Client *cptr, const char *buf, size_t buflen);
 struct MsgBuf *websocket_frame_msgbuf(struct Client *cptr, const char *line, size_t linelen);
+/** RFC 6455 Ping (not IRC PING); 0 on success, -1 on write failure. */
+int websocket_send_keepalive_ping(struct Client *cptr);
 
 #endif /* INCLUDED_WEBSOCKET_H */

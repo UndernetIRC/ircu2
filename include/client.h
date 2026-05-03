@@ -241,6 +241,7 @@ struct Connection
                                       client */
   char con_ws_handshake[WEBSOCKET_MAX_HEADER + 1]; /**< Buffer for accumulating WebSocket handshake data */
   size_t con_ws_handshake_len;       /**< Length of handshake buffer */
+  time_t con_ws_last_keepalive;      /**< Last time we sent RFC6455 Ping (not IRC PING); 0 = not set */
   struct Timer        con_proc;      /**< process latent messages from
                                       client */
   struct Privs        con_privs;     /**< Oper privileges */

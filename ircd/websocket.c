@@ -327,6 +327,34 @@ sanitize_utf8(const char *in, size_t inlen, char *out, size_t outsz)
 #undef PUT_REPL
 }
 
+/** Server→client RFC6455 Ping (empty payload, unmasked). Not IRC PING. */
+int websocket_send_keepalive_ping(struct Client *cptr) {
+    static const unsigned char frm[2] = { 0x89, 0x00 };
+    int fd = cli_fd(cptr);
+    ssize_t n;
+
+    if (fd < 0)
+        return -1;
+    n = write(fd, frm, sizeof frm);
+    return n == (ssize_t)sizeof frm ? 0 : -1;
+}
+
+/** Send unmasked Pong with same application data as peer's Ping (RFC6455). */
+static int websocket_write_pong(struct Client *cptr, const unsigned char *payload, size_t plen) {
+    unsigned char out[2 + 125];
+    int fd = cli_fd(cptr);
+    ssize_t nw;
+
+    if (plen > 125 || fd < 0)
+        return -1;
+    out[0] = 0x8A;
+    out[1] = (unsigned char)plen;
+    if (plen)
+        memcpy(out + 2, payload, plen);
+    nw = write(fd, out, 2 + plen);
+    return nw == (ssize_t)(2 + plen) ? 0 : -1;
+}
+
 /*
  * Parse one WebSocket frame; payload (text/binary) is pushed into recvQ for line reassembly.
  * Return value: >0 bytes consumed from buf, 0 if more data needed, <0 on dbuf_put failure.
@@ -347,7 +375,7 @@ int websocket_parse_frame(struct Client *cptr, const char *buf, size_t buflen) {
         header_len = 4;
     } else if (payload_len == 127) {
         if (buflen < 10) return 0;
-        // Only support up to 32-bit length for simplicity
+        /* Only support up to 32-bit length for simplicity */
         payload_len = (buf[6] << 24) | (buf[7] << 16) | (buf[8] << 8) | buf[9];
         header_len = 10;
     }
@@ -358,11 +386,22 @@ int websocket_parse_frame(struct Client *cptr, const char *buf, size_t buflen) {
     }
     if (buflen < header_len + payload_len) return 0;
 
-    // Only handle text (0x1) and binary (0x2) frames
-    if (opcode != 0x1 && opcode != 0x2) {
-        // For now, ignore other opcodes (ping/pong/close)
-        return header_len + payload_len; // skip this frame
+    /* Control frames (RFC6455): max 125 byte payload; reply to Ping with Pong */
+    if (opcode & 0x08) {
+        if (payload_len > 125)
+            return header_len + payload_len;
+        if (opcode == 0x9 && mask) {
+            unsigned char udata[125];
+            for (i = 0; i < payload_len; ++i)
+                udata[i] = (unsigned char)buf[header_len + i] ^ masking_key[i % 4];
+            (void)websocket_write_pong(cptr, udata, payload_len);
+        }
+        /* else: unmasked client Ping is invalid; Close/Pong consumed only */
+        return header_len + payload_len;
     }
+
+    if (opcode != 0x1 && opcode != 0x2)
+        return header_len + payload_len;
 
     char irc_line[513];
     size_t copy_len = payload_len < sizeof(irc_line) - 1 ? payload_len : sizeof(irc_line) - 1;
