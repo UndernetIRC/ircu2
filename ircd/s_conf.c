@@ -40,6 +40,7 @@
 #include "ircd_reply.h"
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
+#include "ircd_tls.h"
 #include "list.h"
 #include "listener.h"
 #include "match.h"
@@ -1001,6 +1002,7 @@ int rehash(struct Client *cptr, int sig)
     restart_resolver();
 
   log_reopen(); /* reopen log files */
+  ircd_tls_init();
 
   auth_close_unused();
   close_listeners();
