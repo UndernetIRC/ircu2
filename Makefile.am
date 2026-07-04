@@ -1,5 +1,7 @@
 SUBDIRS = ircd ircd/test
 
+ACLOCAL_AMFLAGS = -I m4
+
 distdir = $(PACKAGE).$(VERSION)
 
 MAINTAINERCLEANFILES = \

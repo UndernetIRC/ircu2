@@ -24,6 +24,7 @@ dnl Make sure we are in the correct directory (someone could have run
 dnl 'configure' with a wrong '--srcdir').
 AC_INIT([ircu2], [10.12.19])
 AC_CONFIG_SRCDIR([ircd/ircd.c])
+AC_CONFIG_MACRO_DIRS([m4])
 
 dnl Set the default prefix
 AC_PREFIX_DEFAULT([$HOME])
