@@ -1187,7 +1187,8 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc,
   if (!FlagHas(&setflags, FLAG_HIDDENHOST) && do_host_hiding && allow_modes != ALLOWMODES_DEFAULT)
     hide_hostmask(sptr, FLAG_HIDDENHOST);
 
-  if (feature_bool(FEAT_TLS_BURST_FINGERPRINT) && tls_fingerprint && tls_fingerprint[0] != '_') {
+  if (IsServer(cptr) && feature_bool(FEAT_TLS_BURST_FINGERPRINT) &&
+      tls_fingerprint && tls_fingerprint[0] != '_') {
     ircd_strncpy(cli_tls_fingerprint(sptr), tls_fingerprint, 64);
     Debug((DEBUG_DEBUG, "Received TLS fingerprint in user mode; "
           "fingerprint \"%s\"", cli_tls_fingerprint(sptr)));

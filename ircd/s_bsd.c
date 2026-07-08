@@ -913,12 +913,12 @@ static void client_sock_callback(struct Event* ev)
   case ET_DESTROY:
     con_freeflag(con) &= ~FREEFLAG_SOCKET;
 
-    if (!con_freeflag(con) && !cptr)
-      free_connection(con);
     if (s_tls(&con_socket(con))) {
       ircd_tls_close(s_tls(&con_socket(con)), NULL);
       s_tls(&con_socket(con)) = NULL;
     }
+    if (!con_freeflag(con) && !cptr)
+      free_connection(con);
     break;
 
   case ET_CONNECT: /* socket connection completed */
