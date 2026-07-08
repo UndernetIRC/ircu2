@@ -867,6 +867,7 @@ portblock: PORT {
   free_slist(&hosts);
   MyFree(pass);
   MyFree(tls_ciphers);
+  tls_ciphers = NULL;
   memset(&listen_flags, 0, sizeof(listen_flags));
   pass = NULL;
   port = 0;

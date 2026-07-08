@@ -89,6 +89,8 @@ static struct Listener* make_listener(int port, const struct irc_in_addr *addr)
 static void free_listener(struct Listener* listener)
 {
   assert(0 != listener);
+  ircd_tls_listen_free(listener);
+  MyFree(listener->tls_ciphers);
   MyFree(listener);
 }
 
@@ -334,9 +336,15 @@ void add_listener(int port, const char* vhost_ip, const char* mask,
   } else
     listener->mask_bits = 0;
   if (!EmptyString(tls_ciphers))
+  {
+    MyFree(listener->tls_ciphers);
     DupString(listener->tls_ciphers, tls_ciphers);
+  }
   else
+  {
+    MyFree(listener->tls_ciphers);
     listener->tls_ciphers = NULL;
+  }
 
 #ifdef IPV6
   if (FlagHas(&listener->flags, LISTEN_IPV6)
@@ -370,12 +378,19 @@ void add_listener(int port, const char* vhost_ip, const char* mask,
     listener->fd_v4 = -1;
   }
 
-  if (okay
-      && FlagHas(flags, LISTEN_TLS)
-      && ircd_tls_listen(listener))
-    okay = 0;
+  if (okay && FlagHas(flags, LISTEN_TLS) && ircd_tls_listen(listener))
+  {
+    if (new_listener)
+      okay = 0;
+  }
+  else if (!FlagHas(flags, LISTEN_TLS))
+  {
+    ircd_tls_listen_free(listener);
+    MyFree(listener->tls_ciphers);
+    listener->tls_ciphers = NULL;
+  }
 
-  if (!okay)
+  if (!okay && new_listener)
     free_listener(listener);
   else if (new_listener) {
     listener->next   = ListenerPollList;

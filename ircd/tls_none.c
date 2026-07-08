@@ -51,7 +51,13 @@ void ircd_tls_close(void *ctx, const char *message)
 
 int ircd_tls_listen(struct Listener *listener)
 {
+  (void)listener;
   return 0;
+}
+
+void ircd_tls_listen_free(struct Listener *listener)
+{
+  (void)listener;
 }
 
 int ircd_tls_negotiate(struct Client *cptr)

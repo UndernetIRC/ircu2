@@ -243,6 +243,11 @@ int ircd_tls_listen(struct Listener *listener)
   return 0;
 }
 
+void ircd_tls_listen_free(struct Listener *listener)
+{
+  (void)listener;
+}
+
 int ircd_tls_negotiate(struct Client *cptr)
 {
   gnutls_session_t tls;

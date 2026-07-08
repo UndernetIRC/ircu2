@@ -105,6 +105,11 @@ void ircd_tls_close(void *ctx, const char *message);
  */
 int ircd_tls_listen(struct Listener *listener);
 
+/** ircd_tls_listen_free() releases listener-specific TLS state in
+ * \a listener->tls_ctx, if any.
+ */
+void ircd_tls_listen_free(struct Listener *listener);
+
 /** ircd_tls_negotiate() attempts to continue an initial TLS handshake
  * for \a cptr.  If the handshake completes, this function calls
  * \a ClearNegotiatingTLS(cptr) and returns 1.  If the handshake failed,

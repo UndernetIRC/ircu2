@@ -184,6 +184,7 @@ void *ircd_tls_connect(struct ConfItem *aconf, int fd)
   if (!tls)
   {
     log_write(LS_SYSTEM, L_ERROR, 0, "tls_client() failed");
+    tls_config_free(cfg);
     return NULL;
   }
 
@@ -191,10 +192,12 @@ void *ircd_tls_connect(struct ConfItem *aconf, int fd)
   {
     log_write(LS_SYSTEM, L_ERROR, 0, "tls_configure failed for client: %s",
               tls_error(tls));
+    tls_config_free(cfg);
   fail:
     tls_free(tls);
     return NULL;
   }
+  tls_config_free(cfg);
 
   if (tls_connect_socket(tls, fd, aconf->name) < 0)
   {
@@ -267,6 +270,15 @@ int ircd_tls_listen(struct Listener *listener)
 
   tls_config_free(cfg);
   return 0;
+}
+
+void ircd_tls_listen_free(struct Listener *listener)
+{
+  if (listener && listener->tls_ctx)
+  {
+    tls_free((struct tls *)listener->tls_ctx);
+    listener->tls_ctx = NULL;
+  }
 }
 
 int ircd_tls_negotiate(struct Client *cptr)

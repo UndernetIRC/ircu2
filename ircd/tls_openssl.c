@@ -339,6 +339,11 @@ int ircd_tls_listen(struct Listener *listener)
   return 0;
 }
 
+void ircd_tls_listen_free(struct Listener *listener)
+{
+  (void)listener;
+}
+
 static void clear_tls_rexmit(struct Connection *con)
 {
   if (con && con->con_rexmit) {
@@ -429,12 +434,12 @@ int ircd_tls_negotiate(struct Client *cptr)
       len = sizeof(buf);
       res = X509_digest(cert, fp_digest, buf, &len);
       X509_free(cert);
-      if (res)
+      if (res != 1)
       {
         log_write(LS_SYSTEM, L_ERROR, 0, "X509_digest failed for %C: %d",
           cptr, res);
       }
-      if (len == 32) {
+      else if (len == 32) {
         /* Convert fingerprint to lowercase hex */
         char *p = cli_tls_fingerprint(cptr);
         for (unsigned int i = 0; i < len; i++) {
@@ -445,7 +450,7 @@ int ircd_tls_negotiate(struct Client *cptr)
       }
       else {
         memset(cli_tls_fingerprint(cptr), 0, 65);
-        Debug((DEBUG_DEBUG, "Invalid length"));
+        Debug((DEBUG_DEBUG, "Invalid fingerprint length: %u", len));
       }
     }
     ClearNegotiatingTLS(cptr);
