@@ -16,6 +16,7 @@ from p10_server import P10Server
 from tls_certs import client_ssl_context
 from tls.helpers import (
     collect_until_error_or_close,
+    connect_link,
     is_error,
     oper_up,
     wait_for_server_link,
@@ -228,7 +229,7 @@ async def test_s2s_plaintext_rejected_on_tls_server_port(ircd_tls_network):
 
 
 async def test_s2s_outbound_hub_links_leaf_via_fingerprint(ircd_tls_network):
-    """Hub autoconnects to tls-leaf using tls fingerprint pinning."""
+    """Hub initiates an outbound TLS link to tls-leaf using fingerprint pinning."""
     hub = ircd_tls_network["hub"]
     op = IRCClient()
     await op.connect(hub["host"], hub["port"])
@@ -236,13 +237,14 @@ async def test_s2s_outbound_hub_links_leaf_via_fingerprint(ircd_tls_network):
     try:
         msg = await oper_up(op)
         assert msg.command == "381"
-        await wait_for_server_link(op, "tls-leaf.test.net", timeout=45.0)
+        # Hub's Connect block for tls-leaf pins a fingerprint on port 4401.
+        await connect_link(op, "tls-leaf.test.net", 4401, timeout=45.0)
     finally:
         await op.disconnect()
 
 
 async def test_s2s_outbound_leaf_links_hub_via_ca_verify(ircd_tls_network):
-    """Leaf autoconnects to hub TLS port with CA peer verification."""
+    """Leaf initiates an outbound TLS link to the hub with CA peer verification."""
     leaf = ircd_tls_network["leaf"]
     op = IRCClient()
     await op.connect(leaf["host"], leaf["port"])
@@ -250,7 +252,8 @@ async def test_s2s_outbound_leaf_links_hub_via_ca_verify(ircd_tls_network):
     try:
         msg = await oper_up(op)
         assert msg.command == "381"
-        await wait_for_server_link(op, "tls-hub.test.net", timeout=45.0)
+        # Leaf's Connect block for the hub uses CA verify on port 4441.
+        await connect_link(op, "tls-hub.test.net", 4441, timeout=45.0)
     finally:
         await op.disconnect()
 
@@ -265,6 +268,6 @@ async def test_s2s_bidirectional_traffic_after_tls_link(ircd_tls_network):
     await oper_up(op)
 
     try:
-        await wait_for_server_link(op, "tls-leaf.test.net", timeout=45.0)
+        await connect_link(op, "tls-leaf.test.net", 4401, timeout=45.0)
     finally:
         await op.disconnect()

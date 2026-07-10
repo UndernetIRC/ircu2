@@ -45,6 +45,22 @@ async def wait_for_server_link(
     raise TimeoutError(f"Server link to {server_name!r} not seen in LINKS")
 
 
+async def connect_link(
+    client: IRCClient, peer: str, port: int, timeout: float = 30.0
+) -> None:
+    """As an operator, initiate an outbound server link and wait for it.
+
+    Drives linking explicitly via CONNECT rather than relying on autoconnect.
+    The test configs disable autoconnect on these blocks because both servers
+    autoconnecting at once collides and, with connectfreq at production
+    values, does not recover within the test window. If the link already
+    exists (a prior test brought it up in the shared session), CONNECT is a
+    harmless no-op and the link is observed immediately.
+    """
+    await client.send(f"CONNECT {peer} {port}")
+    await wait_for_server_link(client, peer, timeout=timeout)
+
+
 async def collect_until_error_or_close(reader, timeout: float = 5.0) -> str:
     """Read one line from a raw asyncio stream."""
     try:
