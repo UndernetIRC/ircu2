@@ -1090,7 +1090,7 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc,
       case 'z':
         if (what == MODE_ADD) {
           SetTLS(sptr);
-          if (feature_bool(FEAT_TLS_BURST_FINGERPRINT))
+          if (feature_bool(FEAT_TLS_BURST_FINGERPRINT) && *(p + 1))
             tls_fingerprint = *(++p);
         }
         /* There is no -z */

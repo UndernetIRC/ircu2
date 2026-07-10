@@ -54,6 +54,19 @@ void ircd_tls_conf_free(struct ConfItem *aconf)
   (void)aconf;
 }
 
+int ircd_tls_conf_reload(struct ConfItem *aconf)
+{
+  (void)aconf;
+  return 0;
+}
+
+int ircd_tls_check_peer_hostname(struct Client *cptr, const char *name)
+{
+  (void)cptr;
+  (void)name;
+  return 0;
+}
+
 int ircd_tls_listen(struct Listener *listener)
 {
   (void)listener;

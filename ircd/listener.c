@@ -129,6 +129,24 @@ void count_listener_memory(int* count_out, size_t* size_out)
   *size_out  = count * sizeof(struct Listener);
 }
 
+/** Reload TLS state for all active TLS listeners. */
+int reload_listeners_tls(void)
+{
+  struct Listener *listener;
+  int res;
+
+  for (listener = ListenerPollList; listener; listener = listener->next)
+  {
+    if (!listener_tls(listener))
+      continue;
+    res = ircd_tls_listen(listener);
+    if (res)
+      return res;
+  }
+
+  return 0;
+}
+
 /** Report listening ports to a client.
  * @param[in] sptr Client requesting statistics.
  * @param[in] sd Stats descriptor for request (ignored).

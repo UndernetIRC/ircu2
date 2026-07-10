@@ -38,6 +38,7 @@
 #include <openssl/err.h>
 #include <openssl/rand.h>
 #include <openssl/ssl.h>
+#include <openssl/x509v3.h>
 #include <sys/uio.h> /* IOV_MAX */
 #include <unistd.h> /* write() on failure of ssl_accept() */
 
@@ -572,9 +573,48 @@ void *ircd_tls_connect(struct ConfItem *aconf, int fd)
     openssl_apply_verify_policy(tls,
       ircd_tls_connect_peer_cert_required(aconf),
       ircd_tls_connect_verify_ca(aconf));
+
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L
+    if (ircd_tls_connect_verify_hostname(aconf) && !EmptyString(aconf->name))
+    {
+      if (SSL_set1_host(tls, aconf->name) != 1)
+      {
+        ssl_log_error("unable to set TLS peer hostname");
+        SSL_free(tls);
+        return NULL;
+      }
+    }
+#endif
   }
 
   return tls;
+}
+
+int ircd_tls_check_peer_hostname(struct Client *cptr, const char *name)
+{
+  SSL *tls;
+  X509 *cert;
+  int res;
+
+  if (!cptr || EmptyString(name))
+    return 0;
+
+  tls = s_tls(&cli_socket(cptr));
+  if (!tls)
+    return 1;
+
+  cert = SSL_get_peer_certificate(tls);
+  if (!cert)
+    return 1;
+
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L
+  res = X509_check_host(cert, name, 0, 0, NULL);
+  X509_free(cert);
+  return res == 1 ? 0 : 1;
+#else
+  X509_free(cert);
+  return 1;
+#endif
 }
 
 void ircd_tls_conf_free(struct ConfItem *aconf)
@@ -586,22 +626,49 @@ void ircd_tls_conf_free(struct ConfItem *aconf)
   }
 }
 
+int ircd_tls_conf_reload(struct ConfItem *aconf)
+{
+  SSL_CTX *new_ctx;
+
+  if (!aconf || !conf_tls_needs_custom_ctx(aconf))
+    return 0;
+
+  new_ctx = openssl_create_client_ctx(aconf->tls_ciphers,
+                                      aconf->tls_cacertfile,
+                                      aconf->tls_cacertdir,
+                                      ircd_tls_connect_peer_cert_required(aconf),
+                                      ircd_tls_connect_verify_ca(aconf),
+                                      aconf->tls_systemca);
+  if (!new_ctx)
+    return 1;
+
+  ircd_tls_conf_free(aconf);
+  aconf->tls_ctx = new_ctx;
+  return 0;
+}
+
 int ircd_tls_listen(struct Listener *listener)
 {
+  SSL_CTX *new_ctx;
+
   if (!listener)
     return 1;
 
   if (!listener_needs_custom_ctx(listener))
     return 0;
 
+  new_ctx = openssl_create_server_ctx(listener->tls_ciphers,
+                                    listener->tls_cacertfile,
+                                    listener->tls_cacertdir,
+                                    ircd_tls_listener_peer_cert_required(listener),
+                                    ircd_tls_listener_verify_ca(listener),
+                                    listener->tls_systemca);
+  if (!new_ctx)
+    return 1;
+
   ircd_tls_listen_free(listener);
-  listener->tls_ctx = openssl_create_server_ctx(listener->tls_ciphers,
-                                                listener->tls_cacertfile,
-                                                listener->tls_cacertdir,
-                                                ircd_tls_listener_peer_cert_required(listener),
-                                                ircd_tls_listener_verify_ca(listener),
-                                                listener->tls_systemca);
-  return listener->tls_ctx ? 0 : 1;
+  listener->tls_ctx = new_ctx;
+  return 0;
 }
 
 int ircd_tls_listener_ready(const struct Listener *listener)

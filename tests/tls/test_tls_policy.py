@@ -109,3 +109,24 @@ async def test_s2s_ca_port_rejects_expired_cert(ircd_tls_network):
     hub = ircd_tls_network["hub"]
     ctx = client_ssl_context(cert="expired")
     await _expect_tls_handshake_fails(hub["host"], hub["server_tls_ca_port"], ctx)
+
+
+async def test_s2s_ca_inbound_rejects_hostname_mismatch(ircd_tls_network):
+    """Connect tls verifypeer rejects inbound SERVER when cert CN/SAN mismatches."""
+    hub = ircd_tls_network["hub"]
+    srv = P10Server(name="tlspeer-ca.test.net", numeric=48, password="testpass")
+    ctx = client_ssl_context(cert="tlspeer")
+    await srv.connect_tls(hub["host"], hub["server_tls_ca_port"], ctx)
+    try:
+        with pytest.raises(
+            (
+                ConnectionError,
+                TimeoutError,
+                asyncio.TimeoutError,
+                ConnectionResetError,
+                ssl.SSLError,
+            )
+        ):
+            await srv.handshake(timeout=8.0)
+    finally:
+        await srv.disconnect()

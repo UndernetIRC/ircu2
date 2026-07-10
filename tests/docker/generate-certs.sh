@@ -19,7 +19,7 @@ gen_signed() {
   rm -f "${out}.csr"
 }
 
-gen_signed hub.test.net hub
+gen_signed tls-hub.test.net hub
 gen_signed tls-leaf.test.net leaf
 gen_signed tlspeer.test.net tlspeer
 gen_signed tlspeer-ca.test.net tlspeer-ca

@@ -377,6 +377,40 @@ void ircd_tls_conf_free(struct ConfItem *aconf)
   }
 }
 
+int ircd_tls_conf_reload(struct ConfItem *aconf)
+{
+  struct tls_config *new_cfg;
+
+  if (!aconf || !conf_tls_needs_custom_ctx(aconf))
+    return 0;
+
+  new_cfg = make_tls_config(aconf->tls_ciphers, aconf->tls_cacertdir,
+                            aconf->tls_cacertfile,
+                            ircd_tls_connect_peer_cert_required(aconf),
+                            ircd_tls_connect_verify_ca(aconf),
+                            aconf->tls_systemca, 0);
+  if (!new_cfg)
+    return 1;
+
+  ircd_tls_conf_free(aconf);
+  aconf->tls_ctx = new_cfg;
+  return 0;
+}
+
+int ircd_tls_check_peer_hostname(struct Client *cptr, const char *name)
+{
+  struct tls *tls;
+
+  if (!cptr || EmptyString(name))
+    return 0;
+
+  tls = s_tls(&cli_socket(cptr));
+  if (!tls)
+    return 1;
+
+  return tls_peer_cert_contains_name(tls, name) == 1 ? 0 : 1;
+}
+
 void ircd_tls_close(void *ctx, const char *message)
 {
   /* TODO: handle TLS_WANT_POLL{IN,OUT} from tls_close() */
@@ -405,6 +439,7 @@ int ircd_tls_listen(struct Listener *listener)
 {
   struct tls_config *cfg;
   struct tls *server_ctx;
+  int had_ctx;
 
   cfg = make_tls_config(listener->tls_ciphers, listener->tls_cacertdir,
                         listener->tls_cacertfile,
@@ -414,7 +449,8 @@ int ircd_tls_listen(struct Listener *listener)
   if (!cfg)
     return 1;
 
-  if (listener->tls_ctx)
+  had_ctx = listener->tls_ctx != NULL;
+  if (had_ctx)
     server_ctx = (struct tls *)listener->tls_ctx;
   else
   {
@@ -434,10 +470,13 @@ int ircd_tls_listen(struct Listener *listener)
     fprintf(stderr, "TLS configure failed: %s\n", error ? error : "unknown error");
     log_write(LS_SYSTEM, L_ERROR, 0, "unable to configure TLS server context: %s",
               error ? error : "unknown error");
-    tls_free(server_ctx);
-    listener->tls_ctx = NULL;
+    if (!had_ctx)
+    {
+      tls_free(server_ctx);
+      listener->tls_ctx = NULL;
+    }
     tls_config_free(cfg);
-    return 3;  /* Return error when configuration fails */
+    return 3;
   }
 
   tls_config_free(cfg);

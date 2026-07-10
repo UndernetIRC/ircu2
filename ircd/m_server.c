@@ -617,6 +617,17 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
                            "Access denied. Bad TLS fingerprint for server %s", cli_name(cptr));
   }
 
+  if (IsTLS(cptr) && ircd_tls_connect_verify_hostname(aconf)
+      && ircd_tls_check_peer_hostname(cptr, aconf->name)) {
+    ++ServerStats->is_wrong_server;
+    sendto_opmask_butone(0, SNO_OLDSNO,
+                         "Access denied (TLS hostname mismatch) %s",
+                         cli_name(cptr));
+    return exit_client_msg(cptr, cptr, &me,
+                           "Access denied. Bad TLS hostname for server %s",
+                           cli_name(cptr));
+  }
+
   if (*aconf->passwd && !!strcmp(aconf->passwd, cli_passwd(cptr))) {
     ++ServerStats->is_bad_server;
     sendto_opmask_butone(0, SNO_OLDSNO, "Access denied (passwd mismatch) %s",

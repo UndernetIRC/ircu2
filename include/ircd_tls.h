@@ -79,6 +79,14 @@ extern const char *ircd_tls_version;
  */
 int ircd_tls_init(void);
 
+/** ircd_tls_rehash() reloads global TLS state and all listener and
+ * Connect block contexts.  Called on "REHASH s" and after a full
+ * configuration rehash.
+ *
+ * \returns Zero on success, non-zero to indicate failure.
+ */
+int ircd_tls_rehash(void);
+
 /** ircd_tls_accept() creates an inbound TLS session.
  *
  * If \a listener is NULL, the client connected on a plaintext port and
@@ -133,9 +141,22 @@ int ircd_tls_connect_peer_cert_required(const struct ConfItem *aconf);
 /** Return non-zero if outbound Connect block requires PKIX validation. */
 int ircd_tls_connect_verify_ca(const struct ConfItem *aconf);
 
+/** Return non-zero if Connect block requires peer hostname verification. */
+int ircd_tls_connect_verify_hostname(const struct ConfItem *aconf);
+
+/** Check whether the peer certificate matches \a name for \a cptr.
+ * \returns Zero on success, non-zero on mismatch or error.
+ */
+int ircd_tls_check_peer_hostname(struct Client *cptr, const char *name);
+
 /** ircd_tls_conf_free() releases outbound TLS state cached in \a aconf.
  */
 void ircd_tls_conf_free(struct ConfItem *aconf);
+
+/** ircd_tls_conf_reload() rebuilds outbound TLS state cached in \a aconf.
+ * \returns Zero on success, non-zero to indicate failure.
+ */
+int ircd_tls_conf_reload(struct ConfItem *aconf);
 
 /** ircd_tls_listen() configures any listener-specific TLS parameters.
  * \a listener->tls_ciphers is populated on entry.  \a listener->tls_ctx

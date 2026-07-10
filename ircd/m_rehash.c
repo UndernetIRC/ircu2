@@ -120,7 +120,7 @@ int mo_rehash(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       return 0;
     } else if (*parv[1] == 's') {
       send_reply(sptr, SND_EXPLICIT | RPL_REHASHING, ":Reloading TLS files");
-      if (ircd_tls_init()) {
+      if (ircd_tls_rehash()) {
         sendto_opmask_butone(0, SNO_OLDSNO,
                              "TLS reload failed");
         send_reply(sptr, SND_EXPLICIT | RPL_REHASHING,

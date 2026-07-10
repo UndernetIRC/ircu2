@@ -168,6 +168,12 @@ int ircd_tls_connect_peer_cert_required(const struct ConfItem *aconf)
                    || !EmptyString(aconf->tls_fingerprint));
 }
 
+/** Return non-zero if Connect block requires peer hostname verification. */
+int ircd_tls_connect_verify_hostname(const struct ConfItem *aconf)
+{
+  return ircd_tls_connect_verify_ca(aconf);
+}
+
 /** Return non-zero if inbound listener connections require PKIX validation. */
 int ircd_tls_listener_verify_ca(const struct Listener *listener)
 {
@@ -178,6 +184,34 @@ int ircd_tls_listener_verify_ca(const struct Listener *listener)
 int ircd_tls_listener_peer_cert_required(const struct Listener *listener)
 {
   return listener && (listener_server(listener) || listener->tls_verifypeer == 1);
+}
+
+/** Reload global TLS state and all listener and Connect block contexts. */
+int ircd_tls_rehash(void)
+{
+  struct ConfItem *aconf;
+  int res;
+
+  res = ircd_tls_init();
+  if (res)
+    return res;
+
+  res = reload_listeners_tls();
+  if (res)
+    return res;
+
+  for (aconf = GlobalConfList; aconf; aconf = aconf->next)
+  {
+    if (!(aconf->status & CONF_SERVER))
+      continue;
+    if (!conf_tls_needs_custom_ctx(aconf))
+      continue;
+    res = ircd_tls_conf_reload(aconf);
+    if (res)
+      return res;
+  }
+
+  return 0;
 }
 
 /** Return non-zero if peer certificate verification is enabled for \a cptr. */
@@ -1089,7 +1123,7 @@ int rehash(struct Client *cptr, int sig)
     restart_resolver();
 
   log_reopen(); /* reopen log files */
-  if (ircd_tls_init()) {
+  if (ircd_tls_rehash()) {
     sendto_opmask_butone(0, SNO_OLDSNO, "TLS initialization failed during rehash");
     if (MyUser(cptr) && IsAnOper(cptr))
       send_reply(cptr, SND_EXPLICIT | RPL_REHASHING,

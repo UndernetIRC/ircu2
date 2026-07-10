@@ -109,5 +109,10 @@ extern void        show_ports(struct Client* client, const struct StatDesc* sd,
                        char* param);
 extern void        release_listener(struct Listener* listener);
 
+/** Reload TLS state for all active TLS listeners.
+ * \returns Zero on success, non-zero to indicate failure.
+ */
+extern int         reload_listeners_tls(void);
+
 #endif /* INCLUDED_listener_h */
 

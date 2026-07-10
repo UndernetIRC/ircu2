@@ -26,6 +26,7 @@
 #include "ircd.h"
 #include "ircd_log.h"
 #include "ircd_string.h"
+#include "client.h"
 #include "s_auth.h"
 #include "send.h"
 #include "s_conf.h"
@@ -319,6 +320,59 @@ void ircd_tls_conf_free(struct ConfItem *aconf)
   }
 }
 
+int ircd_tls_conf_reload(struct ConfItem *aconf)
+{
+  gnutls_certificate_credentials_t new_cred;
+
+  if (!aconf || !conf_tls_needs_custom_ctx(aconf))
+    return 0;
+
+  new_cred = gnutls_create_credentials(aconf->tls_cacertfile,
+                                       aconf->tls_cacertdir,
+                                       aconf->tls_verifypeer,
+                                       aconf->tls_systemca);
+  if (!new_cred)
+    return 1;
+
+  ircd_tls_conf_free(aconf);
+  aconf->tls_ctx = new_cred;
+  return 0;
+}
+
+int ircd_tls_check_peer_hostname(struct Client *cptr, const char *name)
+{
+  gnutls_session_t tls;
+  const gnutls_datum_t *datum;
+  gnutls_x509_crt_t crt;
+  int res;
+
+  if (!cptr || EmptyString(name))
+    return 0;
+
+  tls = s_tls(&cli_socket(cptr));
+  if (!tls)
+    return 1;
+
+  datum = gnutls_certificate_get_peers(tls, NULL);
+  if (!datum || datum->size == 0)
+    return 1;
+
+  res = gnutls_x509_crt_init(&crt);
+  if (res != GNUTLS_E_SUCCESS)
+    return 1;
+
+  res = gnutls_x509_crt_import(crt, datum, GNUTLS_X509_FMT_DER);
+  if (res != GNUTLS_E_SUCCESS)
+  {
+    gnutls_x509_crt_deinit(crt);
+    return 1;
+  }
+
+  res = gnutls_x509_crt_check_hostname(crt, name);
+  gnutls_x509_crt_deinit(crt);
+  return res ? 0 : 1;
+}
+
 void ircd_tls_close(void *ctx, const char *message)
 {
   gnutls_bye(ctx, GNUTLS_SHUT_RDWR);
@@ -327,18 +381,24 @@ void ircd_tls_close(void *ctx, const char *message)
 
 int ircd_tls_listen(struct Listener *listener)
 {
+  gnutls_certificate_credentials_t new_cred;
+
   if (!listener)
     return 1;
 
   if (!listener_needs_custom_ctx(listener))
     return 0;
 
+  new_cred = gnutls_create_credentials(listener->tls_cacertfile,
+                                       listener->tls_cacertdir,
+                                       listener->tls_verifypeer,
+                                       listener->tls_systemca);
+  if (!new_cred)
+    return 1;
+
   ircd_tls_listen_free(listener);
-  listener->tls_ctx = gnutls_create_credentials(listener->tls_cacertfile,
-                                                listener->tls_cacertdir,
-                                                listener->tls_verifypeer,
-                                                listener->tls_systemca);
-  return listener->tls_ctx ? 0 : 1;
+  listener->tls_ctx = new_cred;
+  return 0;
 }
 
 int ircd_tls_listener_ready(const struct Listener *listener)
@@ -399,8 +459,15 @@ int ircd_tls_negotiate(struct Client *cptr)
     if (ircd_tls_verifypeer_enabled(cptr) && gnutls_auth_get_type(tls) == GNUTLS_CRT_X509)
     {
       unsigned int vstatus = 0;
+      const char *hostname = NULL;
+      struct ConfItem *aconf;
 
-      res = gnutls_certificate_verify_peers3(tls, NULL, &vstatus);
+      if (IsConnecting(cptr)
+          && (aconf = find_conf_byname(cli_confs(cptr), cli_name(cptr), CONF_SERVER))
+          && ircd_tls_connect_verify_hostname(aconf))
+        hostname = aconf->name;
+
+      res = gnutls_certificate_verify_peers3(tls, hostname, &vstatus);
       if (res < 0)
       {
         Debug((DEBUG_DEBUG,
