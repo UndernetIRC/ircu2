@@ -133,6 +133,7 @@ static gnutls_certificate_credentials_t gnutls_create_credentials(
 static int listener_needs_custom_ctx(const struct Listener *listener)
 {
   return listener && (
+    listener_server(listener) ||
     !EmptyString(listener->tls_ciphers) ||
     !EmptyString(listener->tls_cacertfile) ||
     !EmptyString(listener->tls_cacertdir) ||
@@ -216,7 +217,8 @@ int ircd_tls_init(void)
 }
 
 static void *tls_create(int flag, int fd, const char *name, const char *tls_ciphers,
-                        gnutls_certificate_credentials_t cred, int verifypeer)
+                        gnutls_certificate_credentials_t cred,
+                        int require_peer, int verify_ca)
 {
   gnutls_session_t tls;
   gnutls_certificate_credentials_t use_cred = cred ? cred : tls_cert;
@@ -268,9 +270,9 @@ static void *tls_create(int flag, int fd, const char *name, const char *tls_ciph
   if (flag & GNUTLS_SERVER)
   {
     gnutls_certificate_server_set_request(tls,
-      verifypeer == 1 ? GNUTLS_CERT_REQUIRE : GNUTLS_CERT_REQUEST);
+      require_peer ? GNUTLS_CERT_REQUIRE : GNUTLS_CERT_IGNORE);
   }
-  else if (verifypeer == 1 && name)
+  else if (verify_ca && name)
     gnutls_session_set_verify_cert(tls, name, 0);
 
   gnutls_handshake_set_timeout(tls, GNUTLS_DEFAULT_HANDSHAKE_TIMEOUT);
@@ -290,7 +292,8 @@ void *ircd_tls_accept(struct Listener *listener, int fd)
     return NULL;
   return tls_create(GNUTLS_SERVER, fd, NULL,
                     listener ? listener->tls_ciphers : NULL, cred,
-                    listener && listener->tls_verifypeer == 1);
+                    listener && ircd_tls_listener_peer_cert_required(listener),
+                    listener && ircd_tls_listener_verify_ca(listener));
 }
 
 void *ircd_tls_connect(struct ConfItem *aconf, int fd)
@@ -300,8 +303,10 @@ void *ircd_tls_connect(struct ConfItem *aconf, int fd)
   ensure_conf_tls(aconf);
   if (aconf && aconf->tls_ctx)
     cred = (gnutls_certificate_credentials_t)aconf->tls_ctx;
-  return tls_create(GNUTLS_CLIENT, fd, aconf->name, aconf->tls_ciphers, cred,
-                    aconf && aconf->tls_verifypeer == 1);
+  return tls_create(GNUTLS_CLIENT, fd, aconf ? aconf->name : NULL,
+                    aconf ? aconf->tls_ciphers : NULL, cred,
+                    aconf && ircd_tls_connect_peer_cert_required(aconf),
+                    aconf && ircd_tls_connect_verify_ca(aconf));
 }
 
 void ircd_tls_conf_free(struct ConfItem *aconf)
@@ -326,16 +331,7 @@ int ircd_tls_listen(struct Listener *listener)
     return 1;
 
   if (!listener_needs_custom_ctx(listener))
-  {
-    if (!tls_cert)
-    {
-      log_write(LS_SYSTEM, L_ERROR, 0,
-                "TLS listen on port %u: no server TLS credentials",
-                listener->addr.port);
-      return 1;
-    }
     return 0;
-  }
 
   ircd_tls_listen_free(listener);
   listener->tls_ctx = gnutls_create_credentials(listener->tls_cacertfile,
@@ -391,27 +387,39 @@ int ircd_tls_negotiate(struct Client *cptr)
     return 0;
 
   case GNUTLS_E_SUCCESS:
+    datum = gnutls_certificate_get_peers(tls, NULL);
+    if (ircd_tls_peer_cert_required(cptr) && (!datum || datum->size == 0))
+    {
+      Debug((DEBUG_DEBUG,
+             "TLS peer certificate required but not presented for %s",
+             cli_name(cptr)));
+      return -1;
+    }
+
     if (ircd_tls_verifypeer_enabled(cptr) && gnutls_auth_get_type(tls) == GNUTLS_CRT_X509)
     {
       unsigned int vstatus = 0;
 
       res = gnutls_certificate_verify_peers3(tls, NULL, &vstatus);
-      if (res < 0 || vstatus != 0)
+      if (res < 0)
       {
-        log_write(LS_SYSTEM, L_ERROR, 0,
-                  "TLS peer certificate verification failed for %s: %s (0x%x)",
-                  cli_name(cptr), gnutls_strerror(res), vstatus);
+        Debug((DEBUG_DEBUG,
+               "TLS peer certificate verification failed for %s: %s",
+               cli_name(cptr), gnutls_strerror(res)));
+        return -1;
+      }
+      if (vstatus != 0)
+      {
+        Debug((DEBUG_DEBUG,
+               "TLS peer certificate verification failed for %s (0x%x)",
+               cli_name(cptr), vstatus));
         return -1;
       }
     }
 
-    ClearNegotiatingTLS(cptr);
-
-    datum = gnutls_certificate_get_peers(tls, NULL);
     if (!datum)
     {
-      log_write(LS_SYSTEM, L_ERROR, 0, "gnutls_certificate_get_peers failed for %s",
-        cli_name(cptr));
+      ClearNegotiatingTLS(cptr);
       return 1;
     }
 
@@ -420,7 +428,7 @@ int ircd_tls_negotiate(struct Client *cptr)
     {
       log_write(LS_SYSTEM, L_ERROR, 0, "gnutls_x509_crt_init failed for %s: %d",
         cli_name(cptr), res);
-        return 1;
+        return -1;
     }
 
     /* Complete the fingerprint extraction - convert buf to hex */
@@ -456,7 +464,8 @@ int ircd_tls_negotiate(struct Client *cptr)
       memset(cli_tls_fingerprint(cptr), 0, 65);
       Debug((DEBUG_DEBUG, "Invalid fingerprint length: %zu", len));
     }
-    
+
+    ClearNegotiatingTLS(cptr);
     return 1;
 
   default:

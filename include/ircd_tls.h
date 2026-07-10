@@ -118,6 +118,21 @@ int conf_tls_needs_custom_ctx(const struct ConfItem *aconf);
 /** Return non-zero if peer certificate verification is enabled for \a cptr. */
 int ircd_tls_verifypeer_enabled(const struct Client *cptr);
 
+/** Return non-zero if the peer must present a certificate during TLS. */
+int ircd_tls_peer_cert_required(const struct Client *cptr);
+
+/** Return non-zero if inbound listener connections must present a cert. */
+int ircd_tls_listener_peer_cert_required(const struct Listener *listener);
+
+/** Return non-zero if inbound listener connections require PKIX validation. */
+int ircd_tls_listener_verify_ca(const struct Listener *listener);
+
+/** Return non-zero if outbound Connect block requires a peer certificate. */
+int ircd_tls_connect_peer_cert_required(const struct ConfItem *aconf);
+
+/** Return non-zero if outbound Connect block requires PKIX validation. */
+int ircd_tls_connect_verify_ca(const struct ConfItem *aconf);
+
 /** ircd_tls_conf_free() releases outbound TLS state cached in \a aconf.
  */
 void ircd_tls_conf_free(struct ConfItem *aconf);

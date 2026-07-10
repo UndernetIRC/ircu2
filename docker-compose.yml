@@ -42,6 +42,41 @@ services:
     depends_on:
       - ircd-hub
 
+  ircd-tls-hub:
+    build:
+      context: .
+      args:
+        IRCD_CONF: tests/docker/ircd-tls-hub.conf
+        TLS_BACKEND: ${TLS_BACKEND:-openssl}
+    container_name: ircu-tls-hub
+    ports:
+      - "16677:6677"
+      - "16697:6697"
+      - "16698:6698"
+      - "14440:4440"
+      - "14441:4441"
+    networks:
+      ircu-test-net:
+        ipv4_address: 10.55.0.20
+
+  ircd-tls-leaf:
+    build:
+      context: .
+      args:
+        IRCD_CONF: tests/docker/ircd-tls-leaf.conf
+        TLS_BACKEND: ${TLS_BACKEND:-openssl}
+    container_name: ircu-tls-leaf
+    ports:
+      - "16678:6678"
+      - "16680:6680"
+      - "14411:4401"
+      - "14412:4402"
+    networks:
+      ircu-test-net:
+        ipv4_address: 10.55.0.21
+    depends_on:
+      - ircd-tls-hub
+
 networks:
   ircu-test-net:
     driver: bridge

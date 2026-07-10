@@ -901,6 +901,36 @@ void init_server_identity(void)
   SetYXXServerName(&me, conf->numeric);
 }
 
+/** Notify operators of inbound TLS failures on server ports. */
+static void tls_negotiation_failed(struct Client *cptr)
+{
+  if (IsServerPort(cptr))
+    sendto_opmask_butone(0, SNO_OLDSNO,
+                         "TLS negotiation failed from unknown server");
+}
+
+/** Run ircd_tls_negotiate() and handle a fatal result. */
+static int tls_negotiate_client(struct Client *cptr, char **fmt, char **fallback)
+{
+  int res = ircd_tls_negotiate(cptr);
+
+  if (res < 0)
+  {
+    tls_negotiation_failed(cptr);
+    SetFlag(cptr, FLAG_DEADSOCKET);
+    ClrFlag(cptr, FLAG_NEGOTIATING_TLS);
+    if (s_tls(&cli_socket(cptr)))
+    {
+      ircd_tls_close(s_tls(&cli_socket(cptr)), "TLS negotiation failed");
+      s_tls(&cli_socket(cptr)) = NULL;
+    }
+    *fmt = "TLS negotiation failed: %s";
+    *fallback = "TLS negotiation failed";
+  }
+
+  return res;
+}
+
 /** Process events on a client socket.
  * @param ev Socket event structure that has a struct Connection as
  *   its associated data.
@@ -974,19 +1004,9 @@ static void client_sock_callback(struct Event* ev)
 
   case ET_WRITE: /* socket is writable */
     if (IsNegotiatingTLS(cptr)) {
-      int res = ircd_tls_negotiate(cptr);
-      if (res < 0) {
-        SetFlag(cptr, FLAG_DEADSOCKET);
-        ClrFlag(cptr, FLAG_NEGOTIATING_TLS);
-        /* Clean up TLS context if it still exists */
-        if (s_tls(&cli_socket(cptr))) {
-          ircd_tls_close(s_tls(&cli_socket(cptr)), "TLS negotiation failed");
-          s_tls(&cli_socket(cptr)) = NULL;
-        }
-        fmt = "TLS negotiation failed: %s";
-        fallback = "TLS negotiation failed";
+      int res = tls_negotiate_client(cptr, &fmt, &fallback);
+      if (res < 0)
         break;
-      }
       if (res == 0) {
         /* Still negotiating */
         break;
@@ -1006,19 +1026,9 @@ static void client_sock_callback(struct Event* ev)
     if (!IsDead(cptr)) {
       Debug((DEBUG_DEBUG, "Reading data from %C", cptr));
       if (IsNegotiatingTLS(cptr)) {
-        int res = ircd_tls_negotiate(cptr);
-        if (res < 0) {
-          SetFlag(cptr, FLAG_DEADSOCKET);
-          ClrFlag(cptr, FLAG_NEGOTIATING_TLS);
-          /* Clean up TLS context if it still exists */
-          if (s_tls(&cli_socket(cptr))) {
-            ircd_tls_close(s_tls(&cli_socket(cptr)), "TLS negotiation failed");
-            s_tls(&cli_socket(cptr)) = NULL;
-          }
-          fmt = "TLS negotiation failed: %s";
-          fallback = "TLS negotiation failed";
+        int res = tls_negotiate_client(cptr, &fmt, &fallback);
+        if (res < 0)
           break;
-        }
         if (res == 0) {
           /* Still negotiating */
           break;

@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import ssl
 from collections import namedtuple
 
 Message = namedtuple("Message", ["prefix", "command", "params"])
@@ -54,9 +55,33 @@ class IRCClient:
         self.connected = True
         self._logger.debug("Connected to %s:%d", host, port)
 
-    async def connect_tls(self, host: str, port: int, ssl_context=None):
+    async def connect_tls(
+        self,
+        host: str,
+        port: int,
+        ssl_context: ssl.SSLContext | None = None,
+    ):
         """Open a TLS connection to an IRC server."""
-        raise NotImplementedError("TLS support not yet implemented")
+        if ssl_context is None:
+            ssl_context = ssl.create_default_context()
+            ssl_context.check_hostname = False
+            ssl_context.verify_mode = ssl.CERT_NONE
+        self._reader, self._writer = await asyncio.open_connection(
+            host, port, ssl=ssl_context
+        )
+        self.connected = True
+        self._logger.debug("Connected with TLS to %s:%d", host, port)
+
+    async def read_raw_line(self, timeout: float = 5.0) -> str:
+        """Read a single raw line without IRC parsing or PING handling."""
+        if not self._reader:
+            raise ConnectionError("Not connected")
+        raw = await asyncio.wait_for(self._reader.readline(), timeout=timeout)
+        if not raw:
+            raise ConnectionError("Connection closed")
+        line = raw.decode("utf-8", errors="replace").strip()
+        self._logger.debug("<< %s", line)
+        return line
 
     async def disconnect(self):
         """Close the connection."""
