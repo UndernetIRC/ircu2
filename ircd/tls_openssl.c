@@ -118,16 +118,199 @@ static void ssl_set_ciphers(SSL_CTX *ctx, SSL *tls, const char *text)
   }
 }
 
-static int verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
+static int openssl_load_ca(SSL_CTX *ctx, const char *cacertfile,
+                           const char *cacertdir, int systemca)
 {
-  if (!preverify_ok && feature_bool(FEAT_TLS_ALLOW_SELFSIGNED))
+  int use_system = ircd_tls_use_system_ca(systemca, cacertfile, cacertdir);
+
+  if (use_system)
   {
-    int err = X509_STORE_CTX_get_error(ctx);
-    if (err == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT ||
-        err == X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN)
-      return 1;
+    if (SSL_CTX_set_default_verify_paths(ctx) != 1)
+    {
+      ssl_log_error("unable to load default CA certificates");
+      return 0;
+    }
   }
-  return preverify_ok;
+
+  if (!EmptyString(cacertdir))
+  {
+    if (SSL_CTX_load_verify_locations(ctx, NULL, cacertdir) != 1)
+    {
+      ssl_log_error("unable to load CA certificates from directory");
+      return 0;
+    }
+  }
+
+  if (!EmptyString(cacertfile))
+  {
+    if (SSL_CTX_load_verify_locations(ctx, cacertfile, NULL) != 1)
+    {
+      ssl_log_error("unable to load CA certificates from file");
+      return 0;
+    }
+  }
+
+  return 1;
+}
+
+static void openssl_set_verify(SSL_CTX *ctx, int verifypeer)
+{
+  if (verifypeer == 1)
+    SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER | SSL_VERIFY_CLIENT_ONCE, NULL);
+  else
+    SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
+}
+
+static int openssl_configure_server_ctx(SSL_CTX *ctx, const char *ciphers,
+                                        const char *cacertfile,
+                                        const char *cacertdir,
+                                        int verifypeer, int systemca)
+{
+  const char *str;
+
+  if (!(SSL_CTX_use_certificate_chain_file(ctx, ircd_tls_certfile) == 1))
+  {
+    ssl_log_error("unable to load certificate file");
+    return 0;
+  }
+
+  if (!(SSL_CTX_use_PrivateKey_file(ctx, ircd_tls_keyfile, SSL_FILETYPE_PEM) == 1))
+  {
+    ssl_log_error("unable to load private key");
+    return 0;
+  }
+
+  if (!(SSL_CTX_check_private_key(ctx) == 1))
+  {
+    ssl_log_error("certificate and private key do not match");
+    return 0;
+  }
+
+  if (!openssl_load_ca(ctx, cacertfile, cacertdir, systemca))
+    return 0;
+
+  SSL_CTX_set_min_proto_version(ctx, TLS1_2_VERSION);
+  openssl_set_verify(ctx, verifypeer);
+  SSL_CTX_set_mode(ctx, SSL_MODE_ENABLE_PARTIAL_WRITE
+                   | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
+
+  str = ciphers;
+  if (EmptyString(str))
+    str = feature_str(FEAT_TLS_CIPHERS);
+  ssl_set_ciphers(ctx, NULL, str);
+
+  return 1;
+}
+
+static int openssl_configure_client_ctx(SSL_CTX *ctx, const char *ciphers,
+                                      const char *cacertfile,
+                                      const char *cacertdir,
+                                      int verifypeer, int systemca)
+{
+  const char *str;
+
+  if (!(SSL_CTX_use_certificate_chain_file(ctx, ircd_tls_certfile) == 1))
+  {
+    ssl_log_error("unable to load certificate file");
+    return 0;
+  }
+
+  if (!(SSL_CTX_use_PrivateKey_file(ctx, ircd_tls_keyfile, SSL_FILETYPE_PEM) == 1))
+  {
+    ssl_log_error("unable to load private key");
+    return 0;
+  }
+
+  if (!(SSL_CTX_check_private_key(ctx) == 1))
+  {
+    ssl_log_error("certificate and private key do not match");
+    return 0;
+  }
+
+  if (!openssl_load_ca(ctx, cacertfile, cacertdir, systemca))
+    return 0;
+
+  SSL_CTX_set_min_proto_version(ctx, TLS1_2_VERSION);
+  openssl_set_verify(ctx, verifypeer);
+  SSL_CTX_set_mode(ctx, SSL_MODE_ENABLE_PARTIAL_WRITE
+                   | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
+
+  str = ciphers;
+  if (EmptyString(str))
+    str = feature_str(FEAT_TLS_CIPHERS);
+  ssl_set_ciphers(ctx, NULL, str);
+
+  return 1;
+}
+
+static int listener_needs_custom_ctx(const struct Listener *listener)
+{
+  return listener && (
+    !EmptyString(listener->tls_ciphers) ||
+    !EmptyString(listener->tls_cacertfile) ||
+    !EmptyString(listener->tls_cacertdir) ||
+    listener->tls_verifypeer == 1 ||
+    listener->tls_systemca != LISTENER_TLS_SYSTEMCA_DEFAULT);
+}
+
+static SSL_CTX *openssl_create_server_ctx(const char *ciphers,
+                                          const char *cacertfile,
+                                          const char *cacertdir,
+                                          int verifypeer, int systemca)
+{
+  SSL_CTX *ctx;
+
+  ctx = SSL_CTX_new(TLS_server_method());
+  if (!ctx)
+  {
+    ssl_log_error("SSL_CTX_new failed for server");
+    return NULL;
+  }
+
+  if (!openssl_configure_server_ctx(ctx, ciphers, cacertfile, cacertdir,
+                                    verifypeer, systemca))
+  {
+    SSL_CTX_free(ctx);
+    return NULL;
+  }
+
+  return ctx;
+}
+
+static SSL_CTX *openssl_create_client_ctx(const char *ciphers,
+                                         const char *cacertfile,
+                                         const char *cacertdir,
+                                         int verifypeer, int systemca)
+{
+  SSL_CTX *ctx;
+
+  ctx = SSL_CTX_new(TLS_client_method());
+  if (!ctx)
+  {
+    ssl_log_error("SSL_CTX_new failed for client");
+    return NULL;
+  }
+
+  if (!openssl_configure_client_ctx(ctx, ciphers, cacertfile, cacertdir,
+                                  verifypeer, systemca))
+  {
+    SSL_CTX_free(ctx);
+    return NULL;
+  }
+
+  return ctx;
+}
+
+static void ensure_conf_tls(struct ConfItem *aconf)
+{
+  if (!aconf || aconf->tls_ctx || !conf_tls_needs_custom_ctx(aconf))
+    return;
+
+  aconf->tls_ctx = openssl_create_client_ctx(aconf->tls_ciphers,
+                                             aconf->tls_cacertfile,
+                                             aconf->tls_cacertdir,
+                                             aconf->tls_verifypeer,
+                                             aconf->tls_systemca);
 }
 
 int ircd_tls_init(void)
@@ -135,8 +318,7 @@ int ircd_tls_init(void)
   static int openssl_init;
   SSL_CTX *new_server_ctx = NULL;
   SSL_CTX *new_client_ctx = NULL;
-  const char *str, *s_2;
-  int res;
+  const char *str;
 
   /* Early out if no private key or certificate file was given. */
   if (EmptyString(ircd_tls_keyfile) || EmptyString(ircd_tls_certfile))
@@ -196,48 +378,19 @@ int ircd_tls_init(void)
     goto fail;
   }
 
-  /* Configure CA certificates */
-  str = feature_str(FEAT_TLS_CACERTFILE);
-  s_2 = feature_str(FEAT_TLS_CACERTDIR);
-  if (!EmptyString(str) || !EmptyString(s_2))
-  {
-    if (!EmptyString(s_2))
-    {
-      if (!(SSL_CTX_load_verify_locations(new_server_ctx, NULL, s_2) == 1 &&
-            SSL_CTX_load_verify_locations(new_client_ctx, NULL, s_2) == 1))
-      {
-        ssl_log_error("unable to load CA certificates from directory");
-        goto fail;
-      }
-    }
-
-    if (!EmptyString(str))
-    {
-      if (!(SSL_CTX_load_verify_locations(new_server_ctx, str, NULL) == 1 &&
-            SSL_CTX_load_verify_locations(new_client_ctx, str, NULL) == 1))
-      {
-        ssl_log_error("unable to load CA certificates from file");
-        goto fail;
-      }
-    }
-  }
-  else
-  {
-    if (!(SSL_CTX_set_default_verify_paths(new_server_ctx) == 1 &&
-          SSL_CTX_set_default_verify_paths(new_client_ctx) == 1))
-    {
-      ssl_log_error("unable to load default CA certificates");
-      goto fail;
-    }
-  }
+  if (!openssl_load_ca(new_server_ctx, NULL, NULL,
+                      LISTENER_TLS_SYSTEMCA_DEFAULT) ||
+      !openssl_load_ca(new_client_ctx, NULL, NULL,
+                       LISTENER_TLS_SYSTEMCA_DEFAULT))
+    goto fail;
 
   /* Set protocol versions. */
   SSL_CTX_set_min_proto_version(new_server_ctx, TLS1_2_VERSION);
   SSL_CTX_set_min_proto_version(new_client_ctx, TLS1_2_VERSION);
 
   /* Configure verification */
-  SSL_CTX_set_verify(new_server_ctx, SSL_VERIFY_PEER|SSL_VERIFY_CLIENT_ONCE, verify_callback);
-  SSL_CTX_set_verify(new_client_ctx, SSL_VERIFY_PEER|SSL_VERIFY_CLIENT_ONCE, verify_callback);
+  openssl_set_verify(new_server_ctx, 0);
+  openssl_set_verify(new_client_ctx, 0);
 
   SSL_CTX_set_mode(new_server_ctx, SSL_MODE_ENABLE_PARTIAL_WRITE | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
   SSL_CTX_set_mode(new_client_ctx, SSL_MODE_ENABLE_PARTIAL_WRITE | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
@@ -294,15 +447,25 @@ static void ssl_set_fd(SSL *tls, int fd)
 void *ircd_tls_accept(struct Listener *listener, int fd)
 {
   SSL *tls;
+  SSL_CTX *ctx = server_ctx;
 
-  tls = SSL_new(server_ctx);
+  if (listener && listener->tls_ctx)
+    ctx = (SSL_CTX *)listener->tls_ctx;
+
+  if (!ctx)
+  {
+    ssl_log_error("no TLS server context");
+    return NULL;
+  }
+
+  tls = SSL_new(ctx);
   if (!tls)
   {
     ssl_log_error("unable to create SSL session");
     return NULL;
   }
 
-  if (listener && listener->tls_ciphers)
+  if (listener && listener->tls_ciphers && !listener->tls_ctx)
     ssl_set_ciphers(NULL, tls, listener->tls_ciphers);
 
   ssl_set_fd(tls, fd);
@@ -315,15 +478,19 @@ void *ircd_tls_accept(struct Listener *listener, int fd)
 void *ircd_tls_connect(struct ConfItem *aconf, int fd)
 {
   SSL *tls;
+  SSL_CTX *ctx;
 
-  tls = SSL_new(client_ctx);
+  ensure_conf_tls(aconf);
+  ctx = (aconf && aconf->tls_ctx) ? (SSL_CTX *)aconf->tls_ctx : client_ctx;
+
+  tls = SSL_new(ctx);
   if (!tls)
   {
     ssl_log_error("unable to create SSL session");
     return NULL;
   }
 
-  if (aconf->tls_ciphers)
+  if (aconf && aconf->tls_ciphers && !aconf->tls_ctx)
     ssl_set_ciphers(NULL, tls, aconf->tls_ciphers);
 
   ssl_set_fd(tls, fd);
@@ -333,15 +500,54 @@ void *ircd_tls_connect(struct ConfItem *aconf, int fd)
   return tls;
 }
 
+void ircd_tls_conf_free(struct ConfItem *aconf)
+{
+  if (aconf && aconf->tls_ctx)
+  {
+    SSL_CTX_free((SSL_CTX *)aconf->tls_ctx);
+    aconf->tls_ctx = NULL;
+  }
+}
+
 int ircd_tls_listen(struct Listener *listener)
 {
-  /* noop for OpenSSL */
-  return 0;
+  if (!listener)
+    return 1;
+
+  if (!listener_needs_custom_ctx(listener))
+  {
+    if (!server_ctx)
+    {
+      log_write(LS_SYSTEM, L_ERROR, 0,
+                "TLS listen on port %u: no server TLS context",
+                listener->addr.port);
+      return 1;
+    }
+    return 0;
+  }
+
+  ircd_tls_listen_free(listener);
+  listener->tls_ctx = openssl_create_server_ctx(listener->tls_ciphers,
+                                                listener->tls_cacertfile,
+                                                listener->tls_cacertdir,
+                                                listener->tls_verifypeer,
+                                                listener->tls_systemca);
+  return listener->tls_ctx ? 0 : 1;
+}
+
+int ircd_tls_listener_ready(const struct Listener *listener)
+{
+  return server_ctx != NULL
+    || (listener && listener->tls_ctx != NULL);
 }
 
 void ircd_tls_listen_free(struct Listener *listener)
 {
-  (void)listener;
+  if (listener && listener->tls_ctx)
+  {
+    SSL_CTX_free((SSL_CTX *)listener->tls_ctx);
+    listener->tls_ctx = NULL;
+  }
 }
 
 static void clear_tls_rexmit(struct Connection *con)
@@ -417,15 +623,28 @@ int ircd_tls_negotiate(struct Client *cptr)
     return -1;
   }
 
-  /* For client connections, use SSL_connect */
-  if (SSL_get_SSL_CTX(tls) == client_ctx)
-    res = SSL_connect(tls);
-  /* For server connections, use SSL_accept */
-  else
+  /* For client connections, use SSL_connect; for server, SSL_accept. */
+  if (SSL_is_server(tls))
     res = SSL_accept(tls);
+  else
+    res = SSL_connect(tls);
 
   if (res == 1)
   {
+    if (ircd_tls_verifypeer_enabled(cptr))
+    {
+      long vr = SSL_get_verify_result(tls);
+
+      if (vr != X509_V_OK)
+      {
+        log_write(LS_SYSTEM, L_ERROR, 0,
+                  "TLS peer certificate verification failed for %C: %ld",
+                  cptr, vr);
+        write(cli_fd(cptr), error_ssl, strlen(error_ssl));
+        return -1;
+      }
+    }
+
     Debug((DEBUG_DEBUG, "SSL handshake success for fd=%d", cli_fd(cptr)));
     cert = SSL_get_peer_certificate(tls);
     if (cert)

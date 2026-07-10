@@ -60,6 +60,9 @@ enum ListenerFlag {
   LISTEN_LAST_FLAG
 };
 
+/** Not set in the Port/Connect block; use TLS_SYSTEMCA feature rules. */
+#define LISTENER_TLS_SYSTEMCA_DEFAULT (-1)
+
 DECLARE_FLAGSET(ListenerFlags, LISTEN_LAST_FLAG);
 
 /** Describes a single listening port. */
@@ -73,6 +76,10 @@ struct Listener {
   int              index;              /**< index into poll array */
   time_t           last_accept;        /**< last time listener accepted */
   char*            tls_ciphers;        /**< ciphers to use for TLS */
+  char*            tls_cacertfile;     /**< CA certificate file for TLS */
+  char*            tls_cacertdir;      /**< CA certificate directory for TLS */
+  int              tls_verifypeer;     /**< verify peer certs: 0=no, 1=yes */
+  int              tls_systemca;       /**< load OS CA store: 0=no, 1=yes, -1=unset */
   void*            tls_ctx;            /**< TLS context for the listener */
   struct irc_sockaddr addr;            /**< virtual address and port */
   struct irc_in_addr mask;             /**< listener hostmask */
@@ -88,13 +95,17 @@ struct Listener {
 extern void        add_listener(int port, const char* vaddr_ip, 
                                 const char* mask,
                                 const char* tls_ciphers,
+                                const char* tls_cacertfile,
+                                const char* tls_cacertdir,
+                                int tls_verifypeer,
+                                int tls_systemca,
                                 const struct ListenerFlags *flags);
 extern void        close_listener(struct Listener* listener);
 extern void        close_listeners(void);
 extern void        count_listener_memory(int* count_out, size_t* size_out);
 extern const char* get_listener_name(const struct Listener* listener);
 extern void        mark_listeners_closing(void);
-extern void show_ports(struct Client* client, const struct StatDesc* sd,
+extern void        show_ports(struct Client* client, const struct StatDesc* sd,
                        char* param);
 extern void        release_listener(struct Listener* listener);
 

@@ -56,10 +56,105 @@ const char *ircd_tls_version = "gnutls " GNUTLS_VERSION;
 static gnutls_priority_t tls_priority;
 static gnutls_certificate_credentials_t tls_cert;
 
+static int gnutls_load_ca(gnutls_certificate_credentials_t cred,
+                          const char *cacertfile, const char *cacertdir,
+                          int systemca)
+{
+  int use_system = ircd_tls_use_system_ca(systemca, cacertfile, cacertdir);
+  int res;
+
+  if (use_system)
+  {
+    res = gnutls_certificate_set_x509_system_trust(cred);
+    if (res < 0)
+    {
+      log_write(LS_SYSTEM, L_ERROR, 0, "Unable to load system CA certs: %s",
+                gnutls_strerror(res));
+      return 0;
+    }
+  }
+
+  if (!EmptyString(cacertdir))
+  {
+    res = gnutls_certificate_set_x509_trust_dir(cred, cacertdir,
+                                                GNUTLS_X509_FMT_PEM);
+    if (res < 0)
+    {
+      log_write(LS_SYSTEM, L_ERROR, 0, "Unable to read CA certs from"
+                " %s: %s", cacertdir, gnutls_strerror(res));
+      return 0;
+    }
+  }
+
+  if (!EmptyString(cacertfile))
+  {
+    res = gnutls_certificate_set_x509_trust_file(cred, cacertfile,
+                                                 GNUTLS_X509_FMT_PEM);
+    if (res < 0)
+    {
+      log_write(LS_SYSTEM, L_ERROR, 0, "Unable to read CA certs from"
+                " %s: %s", cacertfile, gnutls_strerror(res));
+      return 0;
+    }
+  }
+
+  return 1;
+}
+
+static gnutls_certificate_credentials_t gnutls_create_credentials(
+    const char *cacertfile, const char *cacertdir, int verifypeer,
+    int systemca)
+{
+  gnutls_certificate_credentials_t cred;
+  int res;
+
+  gnutls_certificate_allocate_credentials(&cred);
+  res = gnutls_certificate_set_x509_key_file2(cred,
+    ircd_tls_certfile, ircd_tls_keyfile, GNUTLS_X509_FMT_PEM, "",
+    GNUTLS_PKCS_PLAIN | GNUTLS_PKCS_NULL_PASSWORD);
+  if (res < 0)
+  {
+    log_write(LS_SYSTEM, L_ERROR, 0, "Unable to load TLS keyfile and/or"
+      " certificate: %s", gnutls_strerror(res));
+    gnutls_certificate_free_credentials(cred);
+    return NULL;
+  }
+
+  if (!gnutls_load_ca(cred, cacertfile, cacertdir, systemca))
+  {
+    gnutls_certificate_free_credentials(cred);
+    return NULL;
+  }
+
+  (void)verifypeer;
+  return cred;
+}
+
+static int listener_needs_custom_ctx(const struct Listener *listener)
+{
+  return listener && (
+    !EmptyString(listener->tls_ciphers) ||
+    !EmptyString(listener->tls_cacertfile) ||
+    !EmptyString(listener->tls_cacertdir) ||
+    listener->tls_verifypeer == 1 ||
+    listener->tls_systemca != LISTENER_TLS_SYSTEMCA_DEFAULT);
+}
+
+static void ensure_conf_tls(struct ConfItem *aconf)
+{
+  if (!aconf || aconf->tls_ctx || !conf_tls_needs_custom_ctx(aconf))
+    return;
+
+  aconf->tls_ctx = gnutls_create_credentials(aconf->tls_cacertfile,
+                                             aconf->tls_cacertdir,
+                                             aconf->tls_verifypeer,
+                                             aconf->tls_systemca);
+}
+
 int ircd_tls_init(void)
 {
   static int once;
-  const char *str, *s_2;
+  const char *str;
   int res;
 
   /* Early out? */
@@ -107,46 +202,10 @@ int ircd_tls_init(void)
   {
     gnutls_certificate_credentials_t new_cert;
 
-    gnutls_certificate_allocate_credentials(&new_cert);
-    res = gnutls_certificate_set_x509_key_file2(new_cert,
-      ircd_tls_certfile, ircd_tls_keyfile, GNUTLS_X509_FMT_PEM, "",
-      GNUTLS_PKCS_PLAIN | GNUTLS_PKCS_NULL_PASSWORD);
-    if (res < 0) /* may return a positive index */
-    {
-      log_write(LS_SYSTEM, L_ERROR, 0, "Unable to load TLS keyfile and/or"
-        " certificate: %s", gnutls_strerror(res));
-      gnutls_certificate_free_credentials(new_cert);
+    new_cert = gnutls_create_credentials(NULL, NULL, 0,
+                                         LISTENER_TLS_SYSTEMCA_DEFAULT);
+    if (!new_cert)
       return 2;
-    }
-
-    str = feature_str(FEAT_TLS_CACERTFILE);
-    s_2 = feature_str(FEAT_TLS_CACERTDIR);
-    if (!EmptyString(str) || !EmptyString(s_2))
-    {
-      if (!EmptyString(s_2))
-      {
-        res = gnutls_certificate_set_x509_trust_dir(new_cert, s_2,
-                                                    GNUTLS_X509_FMT_PEM);
-        if (res < 0)
-        {
-          log_write(LS_SYSTEM, L_ERROR, 0, "Unable to read CA certs from"
-                    " %s: %s", s_2, gnutls_strerror(res));
-        }
-      }
-
-      if (!EmptyString(str))
-      {
-        res = gnutls_certificate_set_x509_trust_file(new_cert, str,
-                                                     GNUTLS_X509_FMT_PEM);
-        if (res < 0)
-        {
-          log_write(LS_SYSTEM, L_ERROR, 0, "Unable to read CA certs from"
-                    " %s: %s", str, gnutls_strerror(res));
-        }
-      }
-    }
-    else
-      (void)gnutls_certificate_set_x509_system_trust(new_cert);
 
     if (tls_cert)
       gnutls_certificate_free_credentials(tls_cert);
@@ -156,27 +215,22 @@ int ircd_tls_init(void)
   return 0;
 }
 
-static void *tls_create(int flag, int fd, const char *name, const char *tls_ciphers)
+static void *tls_create(int flag, int fd, const char *name, const char *tls_ciphers,
+                        gnutls_certificate_credentials_t cred, int verifypeer)
 {
   gnutls_session_t tls;
+  gnutls_certificate_credentials_t use_cred = cred ? cred : tls_cert;
   int res;
 
   res = gnutls_init(&tls, flag | TLS_SESSION_FLAGS);
   if (res != GNUTLS_E_SUCCESS)
     return NULL;
 
-  res = gnutls_credentials_set(tls, GNUTLS_CRD_CERTIFICATE, tls_cert);
+  res = gnutls_credentials_set(tls, GNUTLS_CRD_CERTIFICATE, use_cred);
   if (res != GNUTLS_E_SUCCESS)
   {
     gnutls_deinit(tls);
     return NULL;
-  }
-
-  /* Set verification callback if we allow self-signed certificates */
-  if (feature_bool(FEAT_TLS_ALLOW_SELFSIGNED)) {
-    Debug((DEBUG_DEBUG, "GnuTLS: Allowing self-signed certificates for %s", name ? name : "server"));
-    /* Disable strict CA verification to allow self-signed certificates */
-    gnutls_certificate_set_verify_flags(tls_cert, GNUTLS_VERIFY_DISABLE_CA_SIGN);
   }
 
   /* gnutls does not appear to allow an application to select which
@@ -212,7 +266,12 @@ static void *tls_create(int flag, int fd, const char *name, const char *tls_ciph
   }
 
   if (flag & GNUTLS_SERVER)
-    gnutls_certificate_server_set_request(tls, GNUTLS_CERT_REQUEST);
+  {
+    gnutls_certificate_server_set_request(tls,
+      verifypeer == 1 ? GNUTLS_CERT_REQUIRE : GNUTLS_CERT_REQUEST);
+  }
+  else if (verifypeer == 1 && name)
+    gnutls_session_set_verify_cert(tls, name, 0);
 
   gnutls_handshake_set_timeout(tls, GNUTLS_DEFAULT_HANDSHAKE_TIMEOUT);
 
@@ -223,12 +282,36 @@ static void *tls_create(int flag, int fd, const char *name, const char *tls_ciph
 
 void *ircd_tls_accept(struct Listener *listener, int fd)
 {
-  return tls_create(GNUTLS_SERVER, fd, NULL, listener->tls_ciphers);
+  gnutls_certificate_credentials_t cred = NULL;
+
+  if (listener && listener->tls_ctx)
+    cred = (gnutls_certificate_credentials_t)listener->tls_ctx;
+  else if (!tls_cert)
+    return NULL;
+  return tls_create(GNUTLS_SERVER, fd, NULL,
+                    listener ? listener->tls_ciphers : NULL, cred,
+                    listener && listener->tls_verifypeer == 1);
 }
 
 void *ircd_tls_connect(struct ConfItem *aconf, int fd)
 {
-  return tls_create(GNUTLS_CLIENT, fd, aconf->name, aconf->tls_ciphers);
+  gnutls_certificate_credentials_t cred = NULL;
+
+  ensure_conf_tls(aconf);
+  if (aconf && aconf->tls_ctx)
+    cred = (gnutls_certificate_credentials_t)aconf->tls_ctx;
+  return tls_create(GNUTLS_CLIENT, fd, aconf->name, aconf->tls_ciphers, cred,
+                    aconf && aconf->tls_verifypeer == 1);
+}
+
+void ircd_tls_conf_free(struct ConfItem *aconf)
+{
+  if (aconf && aconf->tls_ctx)
+  {
+    gnutls_certificate_free_credentials(
+      (gnutls_certificate_credentials_t)aconf->tls_ctx);
+    aconf->tls_ctx = NULL;
+  }
 }
 
 void ircd_tls_close(void *ctx, const char *message)
@@ -239,13 +322,43 @@ void ircd_tls_close(void *ctx, const char *message)
 
 int ircd_tls_listen(struct Listener *listener)
 {
-  /* noop for gnutls */
-  return 0;
+  if (!listener)
+    return 1;
+
+  if (!listener_needs_custom_ctx(listener))
+  {
+    if (!tls_cert)
+    {
+      log_write(LS_SYSTEM, L_ERROR, 0,
+                "TLS listen on port %u: no server TLS credentials",
+                listener->addr.port);
+      return 1;
+    }
+    return 0;
+  }
+
+  ircd_tls_listen_free(listener);
+  listener->tls_ctx = gnutls_create_credentials(listener->tls_cacertfile,
+                                                listener->tls_cacertdir,
+                                                listener->tls_verifypeer,
+                                                listener->tls_systemca);
+  return listener->tls_ctx ? 0 : 1;
+}
+
+int ircd_tls_listener_ready(const struct Listener *listener)
+{
+  return tls_cert != NULL
+    || (listener && listener->tls_ctx != NULL);
 }
 
 void ircd_tls_listen_free(struct Listener *listener)
 {
-  (void)listener;
+  if (listener && listener->tls_ctx)
+  {
+    gnutls_certificate_free_credentials(
+      (gnutls_certificate_credentials_t)listener->tls_ctx);
+    listener->tls_ctx = NULL;
+  }
 }
 
 int ircd_tls_negotiate(struct Client *cptr)
@@ -278,6 +391,20 @@ int ircd_tls_negotiate(struct Client *cptr)
     return 0;
 
   case GNUTLS_E_SUCCESS:
+    if (ircd_tls_verifypeer_enabled(cptr) && gnutls_auth_get_type(tls) == GNUTLS_CRT_X509)
+    {
+      unsigned int vstatus = 0;
+
+      res = gnutls_certificate_verify_peers3(tls, NULL, &vstatus);
+      if (res < 0 || vstatus != 0)
+      {
+        log_write(LS_SYSTEM, L_ERROR, 0,
+                  "TLS peer certificate verification failed for %s: %s (0x%x)",
+                  cli_name(cptr), gnutls_strerror(res), vstatus);
+        return -1;
+      }
+    }
+
     ClearNegotiatingTLS(cptr);
 
     datum = gnutls_certificate_get_peers(tls, NULL);

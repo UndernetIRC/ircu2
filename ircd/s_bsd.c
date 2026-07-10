@@ -522,6 +522,8 @@ void add_connection(struct Listener* listener, int fd) {
        /* 12345678901234567890123456789012345679012345678901234567890123456 */
   const char* const register_message =
          "ERROR :Unable to complete your registration\r\n";
+  const char* const tls_required_message =
+         "ERROR :TLS required on this port\r\n";
 
   assert(0 != listener);
 
@@ -545,6 +547,19 @@ void add_connection(struct Listener* listener, int fd) {
    * source route, and the normal routing takes over.
    */
   os_disable_options(fd);
+
+  tls = NULL;
+  if (listener_tls(listener))
+  {
+    tls = ircd_tls_accept(listener, fd);
+    if (!tls)
+    {
+      ++ServerStats->is_bad_socket;
+      write(fd, tls_required_message, strlen(tls_required_message));
+      close(fd);
+      return;
+    }
+  }
 
   if (listener_server(listener))
   {
@@ -596,7 +611,6 @@ void add_connection(struct Listener* listener, int fd) {
   cli_listener(new_client) = listener;
   ++listener->ref_count;
 
-  tls = listener_tls(listener) ? ircd_tls_accept(listener, fd) : NULL;
   s_tls(&cli_socket(new_client)) = tls;
   if (tls)
   {

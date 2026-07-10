@@ -12,6 +12,9 @@
 #include <sys/types.h>
 #define INCLUDED_sys_types_h
 #endif
+#ifndef INCLUDED_ircd_string_h
+#include "ircd_string.h"
+#endif
 #include "client.h"
 
 struct Client;
@@ -72,6 +75,11 @@ struct ConfItem
                          this one. */
   char *tls_ciphers;  /**< TLS cipher preference list. */
   char *tls_fingerprint; /**< Peer must have this TLS cert fingerprint. */
+  char *tls_cacertfile; /**< TLS CA certificate file. */
+  char *tls_cacertdir;  /**< TLS CA certificate directory. */
+  int tls_verifypeer;   /**< verify peer certs: 0=no, 1=yes */
+  int tls_systemca;     /**< load OS CA store: 0=no, 1=yes, -1=unset */
+  void *tls_ctx;        /**< cached outbound TLS state, if any */
   time_t hold;        /**< Earliest time to attempt an outbound
                          connect on this ConfItem. */
   int dns_pending;    /**< A dns request is pending. */

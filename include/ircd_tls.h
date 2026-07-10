@@ -23,6 +23,22 @@
 #define INCLUDED_ircd_tls_h
 
 #include "ircd_osdep.h"
+#include "ircd_string.h"
+#include "ircd_features.h"
+#include "listener.h"
+
+/** Resolve whether to load the OS trust store for TLS verification. */
+static inline int ircd_tls_use_system_ca(int systemca, const char *cafile,
+                                         const char *cadir)
+{
+  if (systemca == 1)
+    return 1;
+  if (systemca == 0)
+    return 0;
+  if (!EmptyString(cafile) || !EmptyString(cadir))
+    return 0;
+  return feature_bool(FEAT_TLS_SYSTEMCA);
+}
 
 struct Client;
 struct ConfItem;
@@ -96,6 +112,16 @@ void *ircd_tls_connect(struct ConfItem *aconf, int fd);
  */
 void ircd_tls_close(void *ctx, const char *message);
 
+/** Return non-zero if \a aconf needs its own outbound TLS context. */
+int conf_tls_needs_custom_ctx(const struct ConfItem *aconf);
+
+/** Return non-zero if peer certificate verification is enabled for \a cptr. */
+int ircd_tls_verifypeer_enabled(const struct Client *cptr);
+
+/** ircd_tls_conf_free() releases outbound TLS state cached in \a aconf.
+ */
+void ircd_tls_conf_free(struct ConfItem *aconf);
+
 /** ircd_tls_listen() configures any listener-specific TLS parameters.
  * \a listener->tls_ciphers is populated on entry.  \a listener->tls_ctx
  * may be null or may have been previously set by the TLS implementation.
@@ -104,6 +130,10 @@ void ircd_tls_close(void *ctx, const char *message);
  * \returns Zero on success, non-zero to indicate failure.
  */
 int ircd_tls_listen(struct Listener *listener);
+
+/** Return non-zero if \a listener has TLS state needed to accept clients.
+ */
+int ircd_tls_listener_ready(const struct Listener *listener);
 
 /** ircd_tls_listen_free() releases listener-specific TLS state in
  * \a listener->tls_ctx, if any.

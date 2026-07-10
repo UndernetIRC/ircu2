@@ -49,7 +49,18 @@ void ircd_tls_close(void *ctx, const char *message)
   return;
 }
 
+void ircd_tls_conf_free(struct ConfItem *aconf)
+{
+  (void)aconf;
+}
+
 int ircd_tls_listen(struct Listener *listener)
+{
+  (void)listener;
+  return 0;
+}
+
+int ircd_tls_listener_ready(const struct Listener *listener)
 {
   (void)listener;
   return 0;

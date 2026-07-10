@@ -79,6 +79,8 @@
   int tping, tconn, maxflood, maxlinks, sendq, port, invert, stringno, flags;
   char *name, *pass, *host, *ip, *username, *origin, *hub_limit;
   char *tls_certfile, *tls_ciphers, *tls_fingerprint, *tls_keyfile;
+  char *tls_cacertfile, *tls_cacertdir;
+  int tls_verifypeer, tls_systemca;
   struct SLink *hosts;
   char *stringlist[MAX_STRINGS];
   struct ListenerFlags listen_flags;
@@ -228,9 +230,13 @@ static void free_slist(struct SLink **link) {
 %token TOKERR
 %token TLS
 %token CERTFILE
+%token CACERTFILE
+%token CACERTDIR
 %token CIPHERS
 %token FINGERPRINT
 %token KEYFILE
+%token VERIFYPEER
+%token SYSTEMCA
 /* and now a lot of privileges... */
 %token TPRIV_CHAN_LIMIT TPRIV_MODE_LCHAN TPRIV_DEOP_LCHAN TPRIV_WALK_LCHAN
 %token TPRIV_LOCAL_KILL TPRIV_REHASH TPRIV_RESTART TPRIV_DIE
@@ -565,6 +571,12 @@ connectblock: CONNECT
 {
  if (!permitted(BLOCK_CONNECT)) YYERROR;
  flags = CONF_AUTOCONNECT;
+ tls_verifypeer = 0;
+ tls_systemca = LISTENER_TLS_SYSTEMCA_DEFAULT;
+ MyFree(tls_cacertfile);
+ tls_cacertfile = NULL;
+ MyFree(tls_cacertdir);
+ tls_cacertdir = NULL;
 } '{' connectitems '}' ';'
 {
  struct ConfItem *aconf = NULL;
@@ -590,6 +602,11 @@ connectblock: CONNECT
    aconf->host = host;
    aconf->tls_ciphers = tls_ciphers;
    aconf->tls_fingerprint = tls_fingerprint;
+   aconf->tls_cacertfile = tls_cacertfile;
+   aconf->tls_cacertdir = tls_cacertdir;
+   aconf->tls_verifypeer = tls_verifypeer;
+   aconf->tls_systemca = tls_systemca;
+   tls_cacertfile = tls_cacertdir = NULL;
    /* If the user specified a hub allowance, but not maximum links,
     * allow an effectively unlimited number of hops.
     */
@@ -606,9 +623,14 @@ connectblock: CONNECT
    MyFree(hub_limit);
    MyFree(tls_ciphers);
    MyFree(tls_fingerprint);
+   MyFree(tls_cacertfile);
+   MyFree(tls_cacertdir);
  }
  name = pass = host = origin = hub_limit = NULL;
  tls_ciphers = tls_fingerprint = NULL;
+ tls_cacertfile = tls_cacertdir = NULL;
+ tls_verifypeer = 0;
+ tls_systemca = LISTENER_TLS_SYSTEMCA_DEFAULT;
  c_class = NULL;
  port = flags = maxlinks = 0;
 };
@@ -616,7 +638,8 @@ connectitems: connectitem connectitems | connectitem;
 connectitem: connectname | connectpass | connectclass | connecthost
               | connectport | connectvhost | connectleaf | connecthub
               | connecthublimit | connectmaxhops | connectauto
-              | connecttls | tlsfingerprint | tlsciphers;
+              | connecttls | tlsfingerprint | tlsciphers
+              | tlsverifypeer | tlssystemca | tlscertfile | tlscertdir;
 connectname: NAME '=' QSTRING ';'
 {
  MyFree(name);
@@ -818,6 +841,20 @@ tlsciphers: TLS CIPHERS '=' QSTRING ';'
   MyFree(tls_ciphers);
   tls_ciphers = $4;
 };
+tlscertfile: TLS CACERTFILE '=' QSTRING ';'
+{
+  MyFree(tls_cacertfile);
+  tls_cacertfile = $4;
+};
+tlscertdir: TLS CACERTDIR '=' QSTRING ';'
+{
+  MyFree(tls_cacertdir);
+  tls_cacertdir = $4;
+};
+tlsverifypeer: TLS VERIFYPEER '=' YES ';' { tls_verifypeer = 1; }
+| TLS VERIFYPEER '=' NO ';' { tls_verifypeer = 0; };
+tlssystemca: TLS SYSTEMCA '=' YES ';' { tls_systemca = 1; }
+| TLS SYSTEMCA '=' NO ';' { tls_systemca = 0; };
 
 /* not a recursive definition because some pedant will just come along
  * and whine that the parser accepts "ipv4 ipv4 ipv4 ipv4"
@@ -833,6 +870,12 @@ address_family:
 /* The port block... */
 portblock: PORT {
   if (!permitted(BLOCK_PORT)) YYERROR;
+  tls_verifypeer = 0;
+  tls_systemca = LISTENER_TLS_SYSTEMCA_DEFAULT;
+  MyFree(tls_cacertfile);
+  tls_cacertfile = NULL;
+  MyFree(tls_cacertdir);
+  tls_cacertdir = NULL;
 } '{' portitems '}' ';' {
   struct ListenerFlags flags_here;
   struct SLink *link;
@@ -844,8 +887,11 @@ portblock: PORT {
     link->next = hosts;
     hosts = link;
   }
-  if (!FlagHas(&listen_flags, LISTEN_TLS))
+  if (!FlagHas(&listen_flags, LISTEN_TLS)) {
     MyFree(tls_ciphers);
+    MyFree(tls_cacertfile);
+    MyFree(tls_cacertdir);
+  }
   for (link = hosts; link != NULL; link = link->next) {
     memcpy(&flags_here, &listen_flags, sizeof(flags_here));
     switch (link->flags & (USE_IPV4 | USE_IPV6)) {
@@ -862,19 +908,27 @@ portblock: PORT {
     }
     if (link->flags & 65535)
       port = link->flags & 65535;
-    add_listener(port, link->value.cp, pass, tls_ciphers, &flags_here);
+    add_listener(port, link->value.cp, pass, tls_ciphers,
+                 tls_cacertfile, tls_cacertdir, tls_verifypeer, tls_systemca,
+                 &flags_here);
   }
   free_slist(&hosts);
   MyFree(pass);
   MyFree(tls_ciphers);
+  MyFree(tls_cacertfile);
+  MyFree(tls_cacertdir);
   tls_ciphers = NULL;
+  tls_cacertfile = tls_cacertdir = NULL;
+  tls_verifypeer = 0;
+  tls_systemca = LISTENER_TLS_SYSTEMCA_DEFAULT;
   memset(&listen_flags, 0, sizeof(listen_flags));
   pass = NULL;
   port = 0;
 };
 portitems: portitem portitems | portitem;
 portitem: portnumber | portvhost | portvhostnumber | portmask | portserver
-  | portwebirc | porthidden | porttls | tlsciphers;
+  | portwebirc | porthidden | porttls | tlsciphers | tlsverifypeer | tlssystemca
+  | tlscertfile | tlscertdir;
 portnumber: PORT '=' address_family NUMBER ';'
 {
   if ($4 < 1 || $4 > 65535) {

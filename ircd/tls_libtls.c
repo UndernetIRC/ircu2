@@ -44,12 +44,28 @@
 #define TOSTRING(x) STRINGIFY(x)
 const char *ircd_tls_version = "libtls " TOSTRING(TLS_API);
 
+static struct tls_config *client_cfg;
+
+static struct tls_config *make_tls_config(const char *ciphers,
+                                          const char *cacertdir,
+                                          const char *cacertfile,
+                                          int verifypeer, int systemca,
+                                          int is_server);
+
 int ircd_tls_init(void)
 {
   static int libtls_init;
+  struct tls_config *new_cfg;
 
   if (EmptyString(ircd_tls_keyfile) || EmptyString(ircd_tls_certfile))
+  {
+    if (client_cfg)
+    {
+      tls_config_free(client_cfg);
+      client_cfg = NULL;
+    }
     return 0;
+  }
 
   if (!libtls_init)
   {
@@ -61,10 +77,146 @@ int ircd_tls_init(void)
     }
   }
 
+  new_cfg = make_tls_config(NULL, NULL, NULL, 0, LISTENER_TLS_SYSTEMCA_DEFAULT, 0);
+  if (!new_cfg)
+    return 2;
+
+  if (client_cfg)
+    tls_config_free(client_cfg);
+  client_cfg = new_cfg;
+
   return 0;
 }
 
-static struct tls_config *make_tls_config(const char *ciphers)
+static void tls_config_set_verify(struct tls_config *cfg, int verifypeer,
+                                  int is_server)
+{
+  if (verifypeer == 1)
+  {
+    if (is_server)
+      tls_config_verify_client(cfg);
+    else
+      tls_config_verify(cfg);
+  }
+  else
+  {
+    if (is_server)
+      tls_config_verify_client_optional(cfg);
+    tls_config_insecure_noverifycert(cfg);
+  }
+}
+
+static int libtls_set_ca_from_file(struct tls_config *cfg, const char *path)
+{
+  if (tls_config_set_ca_file(cfg, path) < 0)
+  {
+    log_write(LS_SYSTEM, L_ERROR, 0, "unable to set CA file to %s: %s",
+              path, tls_config_error(cfg));
+    return 0;
+  }
+  return 1;
+}
+
+static int libtls_set_ca_from_files(struct tls_config *cfg,
+                                    const char *file1, const char *file2)
+{
+  size_t len1 = 0, len2 = 0, total;
+  char *buf1 = NULL, *buf2 = NULL, *combined = NULL;
+  int ok = 0;
+
+  if (!EmptyString(file1))
+  {
+    buf1 = tls_load_file(file1, &len1, NULL);
+    if (!buf1)
+    {
+      log_write(LS_SYSTEM, L_ERROR, 0, "unable to load CA file %s", file1);
+      return 0;
+    }
+  }
+  if (!EmptyString(file2))
+  {
+    buf2 = tls_load_file(file2, &len2, NULL);
+    if (!buf2)
+    {
+      log_write(LS_SYSTEM, L_ERROR, 0, "unable to load CA file %s", file2);
+      goto out;
+    }
+  }
+
+  if (!buf1 && !buf2)
+    return 1;
+
+  total = len1 + len2;
+  combined = malloc(total);
+  if (!combined)
+    goto out;
+
+  if (buf1)
+    memcpy(combined, buf1, len1);
+  if (buf2)
+    memcpy(combined + len1, buf2, len2);
+
+  if (tls_config_set_ca_mem(cfg, combined, total) < 0)
+  {
+    log_write(LS_SYSTEM, L_ERROR, 0, "unable to install CA bundle: %s",
+              tls_config_error(cfg));
+    goto out;
+  }
+
+  ok = 1;
+
+out:
+  free(combined);
+  if (buf1)
+    tls_unload_file(buf1, len1);
+  if (buf2)
+    tls_unload_file(buf2, len2);
+  return ok;
+}
+
+static int libtls_load_ca(struct tls_config *cfg, const char *cacertfile,
+                          const char *cacertdir, int systemca)
+{
+  const char *systemfile = NULL;
+  int use_system = ircd_tls_use_system_ca(systemca, cacertfile, cacertdir);
+
+  if (use_system)
+    systemfile = tls_default_ca_cert_file();
+
+  if (!EmptyString(cacertdir))
+  {
+    if (tls_config_set_ca_path(cfg, cacertdir) < 0)
+    {
+      log_write(LS_SYSTEM, L_ERROR, 0, "unable to set CA path to %s: %s",
+                cacertdir, tls_config_error(cfg));
+      return 0;
+    }
+  }
+
+  if (!EmptyString(systemfile) && !EmptyString(cacertfile))
+  {
+    if (!libtls_set_ca_from_files(cfg, systemfile, cacertfile))
+      return 0;
+  }
+  else if (!EmptyString(systemfile))
+  {
+    if (!libtls_set_ca_from_file(cfg, systemfile))
+      return 0;
+  }
+  else if (!EmptyString(cacertfile))
+  {
+    if (!libtls_set_ca_from_file(cfg, cacertfile))
+      return 0;
+  }
+
+  return 1;
+}
+
+static struct tls_config *make_tls_config(const char *ciphers,
+                                          const char *cacertdir,
+                                          const char *cacertfile,
+                                          int verifypeer, int systemca,
+                                          int is_server)
 {
   struct tls_config *new_cfg;
   uint32_t protos;
@@ -84,33 +236,10 @@ static struct tls_config *make_tls_config(const char *ciphers)
     goto fail;
   }
 
-  str = feature_str(FEAT_TLS_CACERTDIR);
-  if (!EmptyString(str))
-  {
-    if (tls_config_set_ca_path(new_cfg, str) < 0)
-    {
-      log_write(LS_SYSTEM, L_ERROR, 0, "unable to set CA path to %s: %s",
-                str, tls_config_error(new_cfg));
-      goto fail;
-    }
-  }
+  if (!libtls_load_ca(new_cfg, cacertfile, cacertdir, systemca))
+    goto fail;
 
-  str = feature_str(FEAT_TLS_CACERTFILE);
-  if (!EmptyString(str))
-  {
-    if (tls_config_set_ca_file(new_cfg, str) < 0)
-    {
-      log_write(LS_SYSTEM, L_ERROR, 0, "unable to set CA file to %s: %s",
-                str, tls_config_error(new_cfg));
-      goto fail;
-    }
-  }
-
-  /* Configure verification based on self-signed certificate feature */
-  if (feature_bool(FEAT_TLS_ALLOW_SELFSIGNED)) {
-    tls_config_verify_client_optional(new_cfg);
-    tls_config_insecure_noverifycert(new_cfg);
-  }
+  tls_config_set_verify(new_cfg, verifypeer, is_server);
 
   protos = 0;
   /* Set minimum TLS version to 1.2 (like OpenSSL) and support 1.3 */
@@ -145,6 +274,16 @@ fail:
   return NULL;
 }
 
+static void ensure_conf_tls(struct ConfItem *aconf)
+{
+  if (!aconf || aconf->tls_ctx || !conf_tls_needs_custom_ctx(aconf))
+    return;
+
+  aconf->tls_ctx = make_tls_config(aconf->tls_ciphers, aconf->tls_cacertdir,
+                                    aconf->tls_cacertfile, aconf->tls_verifypeer,
+                                    aconf->tls_systemca, 0);
+}
+
 void *ircd_tls_accept(struct Listener *listener, int fd)
 {
   struct tls *tls;
@@ -174,17 +313,18 @@ void *ircd_tls_connect(struct ConfItem *aconf, int fd)
   struct tls_config *cfg;
   struct tls *tls;
 
-  cfg = make_tls_config(aconf->tls_ciphers);
+  ensure_conf_tls(aconf);
+  if (aconf && aconf->tls_ctx)
+    cfg = (struct tls_config *)aconf->tls_ctx;
+  else
+    cfg = client_cfg;
   if (!cfg)
-  {
     return NULL;
-  }
 
   tls = tls_client();
   if (!tls)
   {
     log_write(LS_SYSTEM, L_ERROR, 0, "tls_client() failed");
-    tls_config_free(cfg);
     return NULL;
   }
 
@@ -192,21 +332,28 @@ void *ircd_tls_connect(struct ConfItem *aconf, int fd)
   {
     log_write(LS_SYSTEM, L_ERROR, 0, "tls_configure failed for client: %s",
               tls_error(tls));
-    tls_config_free(cfg);
   fail:
     tls_free(tls);
     return NULL;
   }
-  tls_config_free(cfg);
 
-  if (tls_connect_socket(tls, fd, aconf->name) < 0)
+  if (tls_connect_socket(tls, fd, aconf ? aconf->name : NULL) < 0)
   {
     log_write(LS_SYSTEM, L_ERROR, 0, "tls_connect_socket failed for %s: %s",
-              aconf->name, tls_error(tls));
+              aconf ? aconf->name : "?", tls_error(tls));
     goto fail;
   }
 
   return tls;
+}
+
+void ircd_tls_conf_free(struct ConfItem *aconf)
+{
+  if (aconf && aconf->tls_ctx)
+  {
+    tls_config_free((struct tls_config *)aconf->tls_ctx);
+    aconf->tls_ctx = NULL;
+  }
 }
 
 void ircd_tls_close(void *ctx, const char *message)
@@ -238,7 +385,9 @@ int ircd_tls_listen(struct Listener *listener)
   struct tls_config *cfg;
   struct tls *server_ctx;
 
-  cfg = make_tls_config(listener->tls_ciphers);
+  cfg = make_tls_config(listener->tls_ciphers, listener->tls_cacertdir,
+                        listener->tls_cacertfile, listener->tls_verifypeer,
+                        listener->tls_systemca, 1);
   if (!cfg)
     return 1;
 
@@ -270,6 +419,11 @@ int ircd_tls_listen(struct Listener *listener)
 
   tls_config_free(cfg);
   return 0;
+}
+
+int ircd_tls_listener_ready(const struct Listener *listener)
+{
+  return listener && listener->tls_ctx != NULL;
 }
 
 void ircd_tls_listen_free(struct Listener *listener)

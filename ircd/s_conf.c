@@ -24,6 +24,7 @@
 #include "config.h"
 
 #include "s_conf.h"
+#include "ircd_tls.h"
 #include "IPcheck.h"
 #include "class.h"
 #include "client.h"
@@ -134,10 +135,41 @@ struct ConfItem* make_conf(int type)
   assert(0 != aconf);
   ++GlobalConfCount;
   memset(aconf, 0, sizeof(struct ConfItem));
+  aconf->tls_verifypeer = 0;
+  aconf->tls_systemca = LISTENER_TLS_SYSTEMCA_DEFAULT;
   aconf->status  = type;
   aconf->next    = GlobalConfList;
   GlobalConfList = aconf;
   return aconf;
+}
+
+/** Return non-zero if \a aconf needs its own outbound TLS context. */
+int conf_tls_needs_custom_ctx(const struct ConfItem *aconf)
+{
+  return aconf && (
+    !EmptyString(aconf->tls_cacertfile) ||
+    !EmptyString(aconf->tls_cacertdir) ||
+    !EmptyString(aconf->tls_ciphers) ||
+    aconf->tls_verifypeer == 1 ||
+    aconf->tls_systemca != LISTENER_TLS_SYSTEMCA_DEFAULT);
+}
+
+/** Return non-zero if peer certificate verification is enabled for \a cptr. */
+int ircd_tls_verifypeer_enabled(const struct Client *cptr)
+{
+  struct ConfItem *aconf;
+  struct Listener *listener;
+
+  if (!cptr)
+    return 0;
+
+  if ((aconf = find_conf_byname(cli_confs(cptr), cli_name(cptr), CONF_SERVER)))
+    return aconf->tls_verifypeer == 1;
+
+  if ((listener = cli_listener(cptr)))
+    return listener->tls_verifypeer == 1;
+
+  return 0;
 }
 
 /** Free a struct ConfItem and any resources it owns.
@@ -161,6 +193,9 @@ void free_conf(struct ConfItem *aconf)
   MyFree(aconf->hub_limit);
   MyFree(aconf->tls_ciphers);
   MyFree(aconf->tls_fingerprint);
+  MyFree(aconf->tls_cacertfile);
+  MyFree(aconf->tls_cacertdir);
+  ircd_tls_conf_free(aconf);
   MyFree(aconf);
   --GlobalConfCount;
 }
@@ -1002,7 +1037,12 @@ int rehash(struct Client *cptr, int sig)
     restart_resolver();
 
   log_reopen(); /* reopen log files */
-  ircd_tls_init();
+  if (ircd_tls_init()) {
+    sendto_opmask_butone(0, SNO_OLDSNO, "TLS initialization failed during rehash");
+    if (MyUser(cptr) && IsAnOper(cptr))
+      send_reply(cptr, SND_EXPLICIT | RPL_REHASHING,
+                 ":TLS initialization failed");
+  }
 
   auth_close_unused();
   close_listeners();
