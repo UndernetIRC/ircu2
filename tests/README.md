@@ -35,6 +35,31 @@ uv run pytest test_irc_client.py
 # By marker
 uv run pytest -m single_server    # tests needing only the hub
 uv run pytest -m multi_server     # tests needing hub + 2 leaves
+uv run pytest -m tls              # TLS trust / verification tests
+
+# TLS suite only
+uv run pytest tls/ -v
+
+## TLS integration tests (`tls/`)
+
+Dedicated Docker services `ircd-tls-hub` and `ircd-tls-leaf` exercise per-block
+TLS settings with a private test PKI under `tests/docker/certs/`.
+
+| Test area | What it covers |
+|-----------|----------------|
+| Client TLS | Plain and TLS user registration on hub/leaf |
+| Plaintext rejection | Non-TLS connect to TLS-only ports |
+| Inbound S2S fingerprint | Accept matching cert; reject mismatch/self-signed |
+| Inbound S2S CA verify | Accept CA-signed peer cert; reject self-signed/rogue CA |
+| Outbound S2S | Hub→leaf (fingerprint), leaf→hub (CA + verifypeer) |
+
+Regenerate certificates with `tests/docker/generate-certs.sh` after changing
+the PKI. Host ports use the `166xx`/`144xx` range to avoid clashing with
+standard IRC ports.
+
+**Note:** Docker images are built with OpenSSL (`--with-tls=openssl`). TLS
+listener ports in the test configs set `tls systemca = no` so each port gets
+its own listener TLS context at config parse time.
 
 # Verbose with output
 uv run pytest -v -s --timeout=60
@@ -73,6 +98,13 @@ Three ircd servers form a test network:
 | ircd-hub   | hub.test.net   | 6667        | 4400        | 1       |
 | ircd-leaf1 | leaf1.test.net | 6668        | 4401        | 2       |
 | ircd-leaf2 | leaf2.test.net | 6669        | 4402        | 3       |
+
+| ircd-tls-hub  | tls-hub.test.net  | 16677 / 16697 | 14440 / 14441 | 10        |
+| ircd-tls-leaf | tls-leaf.test.net | 16678 / 16680 | 14411 / 14412 | 11        |
+
+The TLS containers use certificates under `tests/docker/certs/` (regenerate
+with `tests/docker/generate-certs.sh`). Host port 14411 maps to leaf S2S
+port 4401; 14412 maps to 4402.
 
 The hub is a HUB server. Leaves autoconnect to the hub. All servers have `NODNS` enabled for fast client registration.
 

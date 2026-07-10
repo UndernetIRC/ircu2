@@ -12,6 +12,9 @@
 #include <sys/types.h>
 #define INCLUDED_sys_types_h
 #endif
+#ifndef INCLUDED_ircd_string_h
+#include "ircd_string.h"
+#endif
 #include "client.h"
 
 struct Client;
@@ -32,8 +35,14 @@ struct Message;
 #define CONF_OPERATOR           0x0020     /**< ConfItem describes an Operator block */
 #define CONF_UWORLD             0x8000     /**< ConfItem describes a Uworld server */
 
+/* These flags apply to Connect blocks: */
 #define CONF_AUTOCONNECT        0x0001     /**< Autoconnect to a server */
+#define CONF_CONNECT_TLS        0x0002     /**< Server connection uses TLS */
 
+/* These flags apply to Port blocks: */
+#define CONF_PORT_TLS           0x0001     /**< Port should use TLS */
+
+/* These flags apply to UWorld blocks: */
 #define CONF_UWORLD_OPER        0x0001     /**< UWorld server can remotely oper users */
 
 /** Indicates ConfItem types that count associated clients. */
@@ -64,6 +73,13 @@ struct ConfItem
   char *name;         /**< Name of peer */
   char *hub_limit;    /**< Mask that limits servers allowed behind
                          this one. */
+  char *tls_ciphers;  /**< TLS cipher preference list. */
+  char *tls_fingerprint; /**< Peer must have this TLS cert fingerprint. */
+  char *tls_cacertfile; /**< TLS CA certificate file. */
+  char *tls_cacertdir;  /**< TLS CA certificate directory. */
+  int tls_verifypeer;   /**< verify peer certs: 0=no, 1=yes */
+  int tls_systemca;     /**< load OS CA store: 0=no, 1=yes, -1=unset */
+  void *tls_ctx;        /**< cached outbound TLS state, if any */
   time_t hold;        /**< Earliest time to attempt an outbound
                          connect on this ConfItem. */
   int dns_pending;    /**< A dns request is pending. */

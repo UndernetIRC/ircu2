@@ -24,6 +24,7 @@
 #include "config.h"
 
 #include "s_conf.h"
+#include "ircd_tls.h"
 #include "IPcheck.h"
 #include "class.h"
 #include "client.h"
@@ -40,6 +41,7 @@
 #include "ircd_reply.h"
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
+#include "ircd_tls.h"
 #include "list.h"
 #include "listener.h"
 #include "match.h"
@@ -133,10 +135,127 @@ struct ConfItem* make_conf(int type)
   assert(0 != aconf);
   ++GlobalConfCount;
   memset(aconf, 0, sizeof(struct ConfItem));
+  aconf->tls_verifypeer = 0;
+  aconf->tls_systemca = LISTENER_TLS_SYSTEMCA_DEFAULT;
   aconf->status  = type;
   aconf->next    = GlobalConfList;
   GlobalConfList = aconf;
   return aconf;
+}
+
+/** Return non-zero if \a aconf needs its own outbound TLS context. */
+int conf_tls_needs_custom_ctx(const struct ConfItem *aconf)
+{
+  return aconf && (
+    !EmptyString(aconf->tls_cacertfile) ||
+    !EmptyString(aconf->tls_cacertdir) ||
+    !EmptyString(aconf->tls_ciphers) ||
+    !EmptyString(aconf->tls_fingerprint) ||
+    aconf->tls_verifypeer == 1 ||
+    aconf->tls_systemca != LISTENER_TLS_SYSTEMCA_DEFAULT);
+}
+
+/** Return non-zero if outbound Connect block requires PKIX validation. */
+int ircd_tls_connect_verify_ca(const struct ConfItem *aconf)
+{
+  return aconf && aconf->tls_verifypeer == 1;
+}
+
+/** Return non-zero if outbound Connect block requires a peer certificate. */
+int ircd_tls_connect_peer_cert_required(const struct ConfItem *aconf)
+{
+  return aconf && (aconf->tls_verifypeer == 1
+                   || !EmptyString(aconf->tls_fingerprint));
+}
+
+/** Return non-zero if Connect block requires peer hostname verification. */
+int ircd_tls_connect_verify_hostname(const struct ConfItem *aconf)
+{
+  return ircd_tls_connect_verify_ca(aconf);
+}
+
+/** Return non-zero if inbound listener connections require PKIX validation. */
+int ircd_tls_listener_verify_ca(const struct Listener *listener)
+{
+  return listener && listener->tls_verifypeer == 1;
+}
+
+/** Return non-zero if inbound listener connections must present a cert. */
+int ircd_tls_listener_peer_cert_required(const struct Listener *listener)
+{
+  return listener && (listener_server(listener) || listener->tls_verifypeer == 1);
+}
+
+/** Reload global TLS state and all listener and Connect block contexts. */
+int ircd_tls_rehash(void)
+{
+  struct ConfItem *aconf;
+  int res;
+
+  res = ircd_tls_init();
+  if (res)
+    return res;
+
+  res = reload_listeners_tls();
+  if (res)
+    return res;
+
+  for (aconf = GlobalConfList; aconf; aconf = aconf->next)
+  {
+    if (!(aconf->status & CONF_SERVER))
+      continue;
+    if (!conf_tls_needs_custom_ctx(aconf))
+      continue;
+    res = ircd_tls_conf_reload(aconf);
+    if (res)
+      return res;
+  }
+
+  return 0;
+}
+
+/** Return non-zero if peer certificate verification is enabled for \a cptr. */
+int ircd_tls_verifypeer_enabled(const struct Client *cptr)
+{
+  struct ConfItem *aconf;
+  struct Listener *listener;
+
+  if (!cptr)
+    return 0;
+
+  if (IsConnecting(cptr))
+  {
+    if ((aconf = find_conf_byname(cli_confs(cptr), cli_name(cptr), CONF_SERVER)))
+      return ircd_tls_connect_verify_ca(aconf);
+    return 0;
+  }
+
+  if ((listener = cli_listener(cptr)))
+    return ircd_tls_listener_verify_ca(listener);
+
+  return 0;
+}
+
+/** Return non-zero if the peer must present a certificate during TLS. */
+int ircd_tls_peer_cert_required(const struct Client *cptr)
+{
+  struct ConfItem *aconf;
+  struct Listener *listener;
+
+  if (!cptr)
+    return 0;
+
+  if (IsConnecting(cptr))
+  {
+    if ((aconf = find_conf_byname(cli_confs(cptr), cli_name(cptr), CONF_SERVER)))
+      return ircd_tls_connect_peer_cert_required(aconf);
+    return 0;
+  }
+
+  if ((listener = cli_listener(cptr)))
+    return ircd_tls_listener_peer_cert_required(listener);
+
+  return 0;
 }
 
 /** Free a struct ConfItem and any resources it owns.
@@ -158,6 +277,11 @@ void free_conf(struct ConfItem *aconf)
   MyFree(aconf->passwd);
   MyFree(aconf->name);
   MyFree(aconf->hub_limit);
+  MyFree(aconf->tls_ciphers);
+  MyFree(aconf->tls_fingerprint);
+  MyFree(aconf->tls_cacertfile);
+  MyFree(aconf->tls_cacertdir);
+  ircd_tls_conf_free(aconf);
   MyFree(aconf);
   --GlobalConfCount;
 }
@@ -999,6 +1123,12 @@ int rehash(struct Client *cptr, int sig)
     restart_resolver();
 
   log_reopen(); /* reopen log files */
+  if (ircd_tls_rehash()) {
+    sendto_opmask_butone(0, SNO_OLDSNO, "TLS initialization failed during rehash");
+    if (MyUser(cptr) && IsAnOper(cptr))
+      send_reply(cptr, SND_EXPLICIT | RPL_REHASHING,
+                 ":TLS initialization failed");
+  }
 
   auth_close_unused();
   close_listeners();

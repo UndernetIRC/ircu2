@@ -137,6 +137,7 @@ It's used for providing promotional space to providers as per CFV-202
 
 KILL_IPMISMATCH
  * Type: boolean
+
  * Default: FALSE
 
 When a client connects to your server, the IP address of the client is
@@ -926,6 +927,36 @@ This allows local users to set the +A and +U modes (admin and user
 passwords, respectively) on channels where they are marked as channel
 managers.  This feature must be disabled until all servers on the
 network are able to interpret and handle these modes correctly.
+
+TLS_SYSTEMCA
+ * Type: boolean
+ * Default: TRUE
+
+When TRUE, TLS connections whose Port or Connect block does not set
+"tls systemca" and does not set "tls cacertfile" or "tls cacertdir"
+will load the operating system's trusted CA certificate store.  Per-block
+TLS trust settings are documented in doc/example.conf.
+
+TLS_CIPHERS
+ * Type: string
+ * Default: ""
+
+This specifies the default list of ciphers to use.  This list is used
+for outbound connections to servers with no "tls ciphers" directive in
+their Connect blocks, and for inbound connections on TLS-only ports with
+no "tls ciphers" directive in their Port blocks.
+
+This cipher list is interpreted by, and thus depends on, the TLS library
+in use:
+
+ - For all libraries, an empty string represents use of the library's
+   default cipher suites.
+ - For OpenSSL, it is parsed as "L1 L2" (two lists, separated by spaces)
+   where L1 is used for TLSv1.2 and below (with SSL_set_cipher_list())
+   and L2 is used for TLSv1.3 (with SSL_set_ciphersuites()).
+ - For GnuTLS, it is parsed as a "priority string" by the function
+   gnutls_priority_init() and then applied to sessions.
+ - For OpenBSD's libtls, it is passed to tls_config_set_ciphers().
 
 ZANNELS
  * Type: boolean

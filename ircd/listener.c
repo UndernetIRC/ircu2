@@ -33,6 +33,7 @@
 #include "ircd_reply.h"
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
+#include "ircd_tls.h"
 #include "match.h"
 #include "numeric.h"
 #include "s_bsd.h"
@@ -72,6 +73,8 @@ static struct Listener* make_listener(int port, const struct irc_in_addr *addr)
 
   listener->fd_v4       = -1;
   listener->fd_v6       = -1;
+  listener->tls_verifypeer = 0;
+  listener->tls_systemca = LISTENER_TLS_SYSTEMCA_DEFAULT;
   listener->addr.port   = port;
   memcpy(&listener->addr.addr, addr, sizeof(listener->addr.addr));
 
@@ -88,6 +91,10 @@ static struct Listener* make_listener(int port, const struct irc_in_addr *addr)
 static void free_listener(struct Listener* listener)
 {
   assert(0 != listener);
+  ircd_tls_listen_free(listener);
+  MyFree(listener->tls_ciphers);
+  MyFree(listener->tls_cacertfile);
+  MyFree(listener->tls_cacertdir);
   MyFree(listener);
 }
 
@@ -122,6 +129,24 @@ void count_listener_memory(int* count_out, size_t* size_out)
   *size_out  = count * sizeof(struct Listener);
 }
 
+/** Reload TLS state for all active TLS listeners. */
+int reload_listeners_tls(void)
+{
+  struct Listener *listener;
+  int res;
+
+  for (listener = ListenerPollList; listener; listener = listener->next)
+  {
+    if (!listener_tls(listener))
+      continue;
+    res = ircd_tls_listen(listener);
+    if (res)
+      return res;
+  }
+
+  return 0;
+}
+
 /** Report listening ports to a client.
  * @param[in] sptr Client requesting statistics.
  * @param[in] sd Stats descriptor for request (ignored).
@@ -154,6 +179,10 @@ void show_ports(struct Client* sptr, const struct StatDesc* sd,
       if (!show_hidden)
         continue;
       flags[len++] = 'H';
+    }
+    if (FlagHas(&listener->flags, LISTEN_TLS))
+    {
+      flags[len++] = 'E';
     }
     if (FlagHas(&listener->flags, LISTEN_IPV4))
     {
@@ -284,9 +313,19 @@ static struct Listener* find_listener(int port, const struct irc_in_addr *addr)
  * @param[in] port Port number to listen on.
  * @param[in] vhost_ip Local address to listen on.
  * @param[in] mask Address mask to accept connections from.
+ * @param[in] tls_ciphers TLS cipher(s) to use.
+ * @param[in] tls_cacertfile TLS CA certificate file.
+ * @param[in] tls_cacertdir TLS CA certificate directory.
+ * @param[in] tls_verifypeer Whether to verify peer certificates.
+ * @param[in] tls_systemca Whether to load the OS CA trust store.
  * @param[in] flags Flags describing listener options.
  */
 void add_listener(int port, const char* vhost_ip, const char* mask,
+                  const char* tls_ciphers,
+                  const char* tls_cacertfile,
+                  const char* tls_cacertdir,
+                  int tls_verifypeer,
+                  int tls_systemca,
                   const struct ListenerFlags *flags)
 {
   struct Listener* listener;
@@ -299,6 +338,9 @@ void add_listener(int port, const char* vhost_ip, const char* mask,
    * if no port in conf line, don't bother
    */
   if (0 == port)
+    return;
+  /* if TLS requested but no implementation, skip this port */
+  if (FlagHas(flags, LISTEN_TLS) && !ircd_tls_version)
     return;
 
   memset(&vaddr, 0, sizeof(vaddr));
@@ -315,7 +357,6 @@ void add_listener(int port, const char* vhost_ip, const char* mask,
     listener = make_listener(port, &vaddr);
   }
   memcpy(&listener->flags, flags, sizeof(listener->flags));
-  FlagSet(&listener->flags, LISTEN_ACTIVE);
   if (mask) {
     if (ipmask_parse(mask, &listener->mask, &listener->mask_bits) < 1) {
       sendto_opmask_butone(NULL, SNO_TCPCOMMON, "Invalid IP mask for "
@@ -323,6 +364,60 @@ void add_listener(int port, const char* vhost_ip, const char* mask,
     }
   } else
     listener->mask_bits = 0;
+  if (!EmptyString(tls_ciphers))
+  {
+    MyFree(listener->tls_ciphers);
+    DupString(listener->tls_ciphers, tls_ciphers);
+  }
+  else
+  {
+    MyFree(listener->tls_ciphers);
+    listener->tls_ciphers = NULL;
+  }
+  if (!EmptyString(tls_cacertfile))
+  {
+    MyFree(listener->tls_cacertfile);
+    DupString(listener->tls_cacertfile, tls_cacertfile);
+  }
+  else
+  {
+    MyFree(listener->tls_cacertfile);
+    listener->tls_cacertfile = NULL;
+  }
+  if (!EmptyString(tls_cacertdir))
+  {
+    MyFree(listener->tls_cacertdir);
+    DupString(listener->tls_cacertdir, tls_cacertdir);
+  }
+  else
+  {
+    MyFree(listener->tls_cacertdir);
+    listener->tls_cacertdir = NULL;
+  }
+  listener->tls_verifypeer = tls_verifypeer;
+  listener->tls_systemca = tls_systemca;
+
+  if (FlagHas(flags, LISTEN_TLS))
+  {
+    if (ircd_tls_listen(listener))
+    {
+      if (new_listener)
+        free_listener(listener);
+      return;
+    }
+  }
+  else
+  {
+    ircd_tls_listen_free(listener);
+    MyFree(listener->tls_ciphers);
+    listener->tls_ciphers = NULL;
+    MyFree(listener->tls_cacertfile);
+    listener->tls_cacertfile = NULL;
+    MyFree(listener->tls_cacertdir);
+    listener->tls_cacertdir = NULL;
+    listener->tls_verifypeer = 0;
+    listener->tls_systemca = LISTENER_TLS_SYSTEMCA_DEFAULT;
+  }
 
 #ifdef IPV6
   if (FlagHas(&listener->flags, LISTEN_IPV6)
@@ -356,11 +451,15 @@ void add_listener(int port, const char* vhost_ip, const char* mask,
     listener->fd_v4 = -1;
   }
 
-  if (!okay)
-    free_listener(listener);
-  else if (new_listener) {
-    listener->next   = ListenerPollList;
-    ListenerPollList = listener;
+  if (!okay) {
+    if (new_listener)
+      free_listener(listener);
+  } else {
+    FlagSet(&listener->flags, LISTEN_ACTIVE);
+    if (new_listener) {
+      listener->next   = ListenerPollList;
+      ListenerPollList = listener;
+    }
   }
 }
 

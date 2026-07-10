@@ -149,6 +149,94 @@ else
   AC_MSG_ERROR([Cannot find a type with size of 64 bits])
 fi])
 
+dnl
+dnl Macro: unet_TLS
+dnl
+dnl Set unet_cv_with_tls and TLS_C to an available TLS implementation.
+dnl
+AC_DEFUN([unet_TLS],
+[dnl Perform some preliminary checks for system TLS libraries.
+AX_CHECK_OPENSSL(, [:])
+PKG_CHECK_MODULES([GNUTLS], [gnutls], , [:])
+
+dnl --with-tls allows selection of the TLS library.
+AC_MSG_CHECKING([for a TLS library])
+AC_ARG_WITH([tls],
+[  --with-tls=library      TLS library to use (none, openssl, gnutls, libtls)],
+[unet_cv_with_tls=$with_tls],
+[AC_CACHE_VAL(unet_cv_with_tls,
+[unet_cv_with_tls=yes])])
+TLS_C=""
+
+dnl If --with-tls or --with-tls=yes, try to autodetect: OpenSSL first.
+if test x"$unet_cv_with_tls" = xyes ; then
+  if test x"$OPENSSL_LIBS" != x ; then
+    unet_cv_with_tls=openssl
+  fi
+fi
+dnl Try gnutls next.
+if test x"$unet_cv_with_tls" = xyes ; then
+  if test x"$GNUTLS_LIBS" != x ; then
+    unet_cv_with_tls=gnutls
+  fi
+fi
+dnl Try libtls next.
+if test x"$unet_cv_with_tls" = xyes ; then
+  dnl Temporarily disable pkg-config to force fallback path
+  dnl PKG_CHECK_MODULES([LIBTLS], [libtls], [
+  dnl   unet_cv_with_tls=libtls
+  dnl ], [
+    dnl Fallback for OpenBSD base (no .pc): header + symbol link test.
+    AC_CHECK_HEADER([tls.h], [
+      AC_CHECK_LIB([tls], [tls_init], [
+        unet_cv_with_tls=libtls
+        LIBTLS_LIBS="-ltls"
+        LIBTLS_CFLAGS=""
+        LIBTLS_LDFLAGS=""
+      ])
+    ])
+  dnl ])
+fi
+
+case x"$unet_cv_with_tls" in
+xopenssl)
+    CFLAGS="$CFLAGS $OPENSSL_CFLAGS"
+    LDFLAGS="$LDFLAGS $OPENSSL_LDFLAGS"
+    LIBS="$LIBS $OPENSSL_LIBS"
+    TLS_C="tls_openssl.c"
+    ;;
+xgnutls)
+    CFLAGS="$CFLAGS $GNUTLS_CFLAGS"
+    LDFLAGS="$LDFLAGS $GNUTLS_LDFLAGS"
+    LIBS="$LIBS $GNUTLS_LIBS"
+    TLS_C="tls_gnutls.c"
+    ;;
+xlibtls)
+    # Ensure LIBTLS_LIBS is set even when explicitly specified
+    if test x"$LIBTLS_LIBS" = x ; then
+        LIBTLS_LIBS="-ltls"
+    fi
+    CFLAGS="$CFLAGS $LIBTLS_CFLAGS"
+    LDFLAGS="$LDFLAGS $LIBTLS_LDFLAGS"
+    LIBS="$LIBS $LIBTLS_LIBS"
+    TLS_C="tls_libtls.c"
+    ;;
+xyes|xno)
+    unet_cv_with_tls="none"
+    TLS_C="tls_none.c"
+    ;;
+esac
+if test x"$TLS_C" = x ; then
+  AC_MSG_WARN([Unknown TLS library $unet_cv_with_tls])
+  TLS_C="tls_none.c"
+fi
+AC_MSG_RESULT([$unet_cv_with_tls])
+AC_SUBST([TLS_C])
+
+if test x"$unet_cv_with_tls" = xopenssl ; then
+  AC_CHECK_FUNCS([SSL_set_ciphersuites])
+fi])
+
 dnl Written by John Hawkinson <jhawk@mit.edu>. This code is in the Public
 dnl Domain.
 dnl

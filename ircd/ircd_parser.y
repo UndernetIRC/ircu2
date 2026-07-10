@@ -39,6 +39,7 @@
 #include "ircd_reply.h"
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
+#include "ircd_tls.h"
 #include "list.h"
 #include "listener.h"
 #include "match.h"
@@ -77,6 +78,9 @@
   /* Now all the globals we need :/... */
   int tping, tconn, maxflood, maxlinks, sendq, port, invert, stringno, flags;
   char *name, *pass, *host, *ip, *username, *origin, *hub_limit;
+  char *tls_certfile, *tls_ciphers, *tls_fingerprint, *tls_keyfile;
+  char *tls_cacertfile, *tls_cacertdir;
+  int tls_verifypeer, tls_systemca;
   struct SLink *hosts;
   char *stringlist[MAX_STRINGS];
   struct ListenerFlags listen_flags;
@@ -224,6 +228,15 @@ static void free_slist(struct SLink **link) {
 %token FROM
 %token TEOF
 %token TOKERR
+%token TLS
+%token CERTFILE
+%token CACERTFILE
+%token CACERTDIR
+%token CIPHERS
+%token FINGERPRINT
+%token KEYFILE
+%token VERIFYPEER
+%token SYSTEMCA
 /* and now a lot of privileges... */
 %token TPRIV_CHAN_LIMIT TPRIV_MODE_LCHAN TPRIV_DEOP_LCHAN TPRIV_WALK_LCHAN
 %token TPRIV_LOCAL_KILL TPRIV_REHASH TPRIV_RESTART TPRIV_DIE
@@ -348,10 +361,30 @@ generalblock: GENERAL
     parse_error("Your General block must contain a name.");
   if (localConf.numeric == 0)
     parse_error("Your General block must contain a numeric (between 1 and 4095).");
+  MyFree(ircd_tls_keyfile);
+  MyFree(ircd_tls_certfile);
+  if (tls_certfile && !tls_keyfile)
+  {
+    parse_error("General block has tls certfile but no tls keyfile; disabling TLS");
+    MyFree(tls_certfile);
+  }
+  else if (tls_keyfile && !tls_certfile)
+  {
+    parse_error("General block has tls keyfile but no tls certfile; disabling TLS");
+    MyFree(tls_keyfile);
+  }
+  else if (tls_certfile && tls_keyfile)
+  {
+    ircd_tls_certfile = tls_certfile;
+    ircd_tls_keyfile = tls_keyfile;
+    tls_certfile = NULL;
+    tls_keyfile = NULL;
+  }
 };
 generalitems: generalitem generalitems | generalitem;
 generalitem: generalnumeric | generalname | generalvhost | generaldesc
-  | generaldnsvhost | generaldnsserver;
+  | generaldnsvhost | generaldnsserver
+  | generaltlscertfile | generaltlskeyfile;
 
 generalnumeric: NUMERIC '=' NUMBER ';'
 {
@@ -426,6 +459,16 @@ generaldnsserver: DNS SERVER '=' QSTRING ';'
 
   add_nameserver(server);
   MyFree(server);
+};
+
+generaltlscertfile: TLS CERTFILE '=' QSTRING ';'
+{
+  tls_certfile = $4;
+};
+
+generaltlskeyfile: TLS KEYFILE '=' QSTRING ';'
+{
+  tls_keyfile = $4;
 };
 
 adminblock: ADMIN
@@ -528,6 +571,12 @@ connectblock: CONNECT
 {
  if (!permitted(BLOCK_CONNECT)) YYERROR;
  flags = CONF_AUTOCONNECT;
+ tls_verifypeer = 0;
+ tls_systemca = LISTENER_TLS_SYSTEMCA_DEFAULT;
+ MyFree(tls_cacertfile);
+ tls_cacertfile = NULL;
+ MyFree(tls_cacertdir);
+ tls_cacertdir = NULL;
 } '{' connectitems '}' ';'
 {
  struct ConfItem *aconf = NULL;
@@ -551,6 +600,13 @@ connectblock: CONNECT
    aconf->conn_class = c_class;
    aconf->address.port = port;
    aconf->host = host;
+   aconf->tls_ciphers = tls_ciphers;
+   aconf->tls_fingerprint = tls_fingerprint;
+   aconf->tls_cacertfile = tls_cacertfile;
+   aconf->tls_cacertdir = tls_cacertdir;
+   aconf->tls_verifypeer = tls_verifypeer;
+   aconf->tls_systemca = tls_systemca;
+   tls_cacertfile = tls_cacertdir = NULL;
    /* If the user specified a hub allowance, but not maximum links,
     * allow an effectively unlimited number of hops.
     */
@@ -565,15 +621,25 @@ connectblock: CONNECT
    MyFree(host);
    MyFree(origin);
    MyFree(hub_limit);
+   MyFree(tls_ciphers);
+   MyFree(tls_fingerprint);
+   MyFree(tls_cacertfile);
+   MyFree(tls_cacertdir);
  }
  name = pass = host = origin = hub_limit = NULL;
+ tls_ciphers = tls_fingerprint = NULL;
+ tls_cacertfile = tls_cacertdir = NULL;
+ tls_verifypeer = 0;
+ tls_systemca = LISTENER_TLS_SYSTEMCA_DEFAULT;
  c_class = NULL;
  port = flags = maxlinks = 0;
 };
 connectitems: connectitem connectitems | connectitem;
 connectitem: connectname | connectpass | connectclass | connecthost
               | connectport | connectvhost | connectleaf | connecthub
-              | connecthublimit | connectmaxhops | connectauto;
+              | connecthublimit | connectmaxhops | connectauto
+              | connecttls | tlsfingerprint | tlsciphers
+              | tlsverifypeer | tlssystemca | tlscertfile | tlscertdir;
 connectname: NAME '=' QSTRING ';'
 {
  MyFree(name);
@@ -625,6 +691,14 @@ connectmaxhops: MAXHOPS '=' expr ';'
 };
 connectauto: AUTOCONNECT '=' YES ';' { flags |= CONF_AUTOCONNECT; }
  | AUTOCONNECT '=' NO ';' { flags &= ~CONF_AUTOCONNECT; };
+connecttls: TLS '=' YES ';'
+{
+  flags |= CONF_CONNECT_TLS;
+}
+| TLS '=' NO ';'
+{
+  flags &= ~CONF_CONNECT_TLS;
+};
 
 uworldblock: UWORLD {
   if (!permitted(BLOCK_UWORLD)) YYERROR;
@@ -668,9 +742,15 @@ operblock: OPER {
     aconf->conn_class = c_class;
     memcpy(&aconf->privs, &privs, sizeof(aconf->privs));
     memcpy(&aconf->privs_dirty, &privs_dirty, sizeof(aconf->privs_dirty));
+    if (tls_fingerprint)
+    {
+      aconf->tls_fingerprint = tls_fingerprint;
+      tls_fingerprint = NULL;
+    }
   }
   MyFree(name);
   MyFree(pass);
+  MyFree(tls_fingerprint);
   free_slist(&hosts);
   name = pass = NULL;
   c_class = NULL;
@@ -678,7 +758,8 @@ operblock: OPER {
   memset(&privs_dirty, 0, sizeof(privs_dirty));
 };
 operitems: operitem | operitems operitem;
-operitem: opername | operpass | operhost | operclass | priv;
+operitem: opername | operpass | operhost | operclass | priv
+  | tlsfingerprint;
 opername: NAME '=' QSTRING ';'
 {
   MyFree(name);
@@ -750,6 +831,31 @@ privtype: TPRIV_CHAN_LIMIT { $$ = PRIV_CHAN_LIMIT; } |
 
 yesorno: YES { $$ = 1; } | NO { $$ = 0; };
 
+tlsfingerprint: TLS FINGERPRINT '=' QSTRING ';'
+{
+  MyFree(tls_fingerprint);
+  tls_fingerprint = $4;
+};
+tlsciphers: TLS CIPHERS '=' QSTRING ';'
+{
+  MyFree(tls_ciphers);
+  tls_ciphers = $4;
+};
+tlscertfile: TLS CACERTFILE '=' QSTRING ';'
+{
+  MyFree(tls_cacertfile);
+  tls_cacertfile = $4;
+};
+tlscertdir: TLS CACERTDIR '=' QSTRING ';'
+{
+  MyFree(tls_cacertdir);
+  tls_cacertdir = $4;
+};
+tlsverifypeer: TLS VERIFYPEER '=' YES ';' { tls_verifypeer = 1; }
+| TLS VERIFYPEER '=' NO ';' { tls_verifypeer = 0; };
+tlssystemca: TLS SYSTEMCA '=' YES ';' { tls_systemca = 1; }
+| TLS SYSTEMCA '=' NO ';' { tls_systemca = 0; };
+
 /* not a recursive definition because some pedant will just come along
  * and whine that the parser accepts "ipv4 ipv4 ipv4 ipv4"
  */
@@ -764,6 +870,12 @@ address_family:
 /* The port block... */
 portblock: PORT {
   if (!permitted(BLOCK_PORT)) YYERROR;
+  tls_verifypeer = 0;
+  tls_systemca = LISTENER_TLS_SYSTEMCA_DEFAULT;
+  MyFree(tls_cacertfile);
+  tls_cacertfile = NULL;
+  MyFree(tls_cacertdir);
+  tls_cacertdir = NULL;
 } '{' portitems '}' ';' {
   struct ListenerFlags flags_here;
   struct SLink *link;
@@ -774,6 +886,11 @@ portblock: PORT {
     link->flags = 0;
     link->next = hosts;
     hosts = link;
+  }
+  if (!FlagHas(&listen_flags, LISTEN_TLS)) {
+    MyFree(tls_ciphers);
+    MyFree(tls_cacertfile);
+    MyFree(tls_cacertdir);
   }
   for (link = hosts; link != NULL; link = link->next) {
     memcpy(&flags_here, &listen_flags, sizeof(flags_here));
@@ -791,16 +908,27 @@ portblock: PORT {
     }
     if (link->flags & 65535)
       port = link->flags & 65535;
-    add_listener(port, link->value.cp, pass, &flags_here);
+    add_listener(port, link->value.cp, pass, tls_ciphers,
+                 tls_cacertfile, tls_cacertdir, tls_verifypeer, tls_systemca,
+                 &flags_here);
   }
   free_slist(&hosts);
   MyFree(pass);
+  MyFree(tls_ciphers);
+  MyFree(tls_cacertfile);
+  MyFree(tls_cacertdir);
+  tls_ciphers = NULL;
+  tls_cacertfile = tls_cacertdir = NULL;
+  tls_verifypeer = 0;
+  tls_systemca = LISTENER_TLS_SYSTEMCA_DEFAULT;
   memset(&listen_flags, 0, sizeof(listen_flags));
   pass = NULL;
   port = 0;
 };
 portitems: portitem portitems | portitem;
-portitem: portnumber | portvhost | portvhostnumber | portmask | portserver | portwebirc | porthidden;
+portitem: portnumber | portvhost | portvhostnumber | portmask | portserver
+  | portwebirc | porthidden | porttls | tlsciphers | tlsverifypeer | tlssystemca
+  | tlscertfile | tlscertdir;
 portnumber: PORT '=' address_family NUMBER ';'
 {
   if ($4 < 1 || $4 > 65535) {
@@ -867,6 +995,14 @@ portwebirc: WEBIRC '=' YES ';'
 } | WEBIRC '=' NO ';'
 {
   FlagClr(&listen_flags, LISTEN_WEBIRC);
+};
+
+porttls: TLS '=' YES ';'
+{
+  FlagSet(&listen_flags, LISTEN_TLS);
+} | TLS '=' NO ';'
+{
+  FlagClr(&listen_flags, LISTEN_TLS);
 };
 
 clientblock: CLIENT

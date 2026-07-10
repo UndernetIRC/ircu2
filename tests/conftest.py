@@ -47,6 +47,24 @@ HUB = {"host": "127.0.0.1", "port": 6667, "server_port": 4400, "name": "hub.test
 LEAF1 = {"host": "127.0.0.1", "port": 6668, "server_port": 4401, "name": "leaf1.test.net"}
 LEAF2 = {"host": "127.0.0.1", "port": 6669, "server_port": 4402, "name": "leaf2.test.net"}
 
+TLS_HUB = {
+    "host": "127.0.0.1",
+    "port": 16677,
+    "tls_port": 16697,
+    "tls_port_alt": 16698,
+    "server_port": 14440,
+    "server_tls_ca_port": 14441,
+    "name": "tls-hub.test.net",
+}
+TLS_LEAF = {
+    "host": "127.0.0.1",
+    "port": 16678,
+    "tls_port": 16680,
+    "server_port": 14411,
+    "server_tls_ca_port": 14412,
+    "name": "tls-leaf.test.net",
+}
+
 
 def _start_services(*services):
     """Stop any running containers, rebuild, and start fresh."""
@@ -84,6 +102,23 @@ def ircd_network():
         # Wait for servers to link
         time.sleep(3)
         yield {"hub": HUB, "leaf1": LEAF1, "leaf2": LEAF2}
+    finally:
+        docker_compose("down", check=False)
+
+
+@pytest.fixture(scope="session")
+def ircd_tls_network():
+    """Start TLS-enabled hub and leaf containers. Session-scoped."""
+    docker_compose("down", check=False)
+    _start_services("ircd-tls-hub", "ircd-tls-leaf")
+    try:
+        wait_for_port(TLS_HUB["host"], TLS_HUB["port"])
+        wait_for_port(TLS_HUB["host"], TLS_HUB["tls_port"])
+        wait_for_port(TLS_HUB["host"], TLS_HUB["server_port"])
+        wait_for_port(TLS_LEAF["host"], TLS_LEAF["server_port"])
+        # Allow autoconnect TLS links hub <-> tls-leaf
+        time.sleep(20)
+        yield {"hub": TLS_HUB, "leaf": TLS_LEAF}
     finally:
         docker_compose("down", check=False)
 

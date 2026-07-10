@@ -3,19 +3,11 @@
 Connects to an ircd as a server, completes the P10 handshake (PASS,
 SERVER, burst, EB/EA), and exposes methods to send S2S protocol
 messages like OPMODE and ACCOUNT.
-
-Usage:
-    server = P10Server("services.test.net", numeric=4, password="testpass")
-    await server.connect("127.0.0.1", 4400)
-    await server.handshake()
-    # Now send S2S commands:
-    await server.send_opmode(user_numnick, "+x")
-    await server.send_account(user_numnick, "AccountName")
-    await server.disconnect()
 """
 
 import asyncio
 import logging
+import ssl
 import time
 
 logger = logging.getLogger("p10_server")
@@ -99,19 +91,48 @@ class P10Server:
         self.connected = True
         logger.debug("Connected to %s:%d", host, port)
 
+    async def connect_tls(
+        self,
+        host: str,
+        port: int,
+        ssl_context: ssl.SSLContext | None = None,
+    ):
+        """Open a TLS connection to the ircd's server port."""
+        if ssl_context is None:
+            ssl_context = ssl.create_default_context()
+            ssl_context.check_hostname = False
+            ssl_context.verify_mode = ssl.CERT_NONE
+        self._reader, self._writer = await asyncio.open_connection(
+            host, port, ssl=ssl_context
+        )
+        self.connected = True
+        await asyncio.sleep(0.3)
+        logger.debug("Connected with TLS to %s:%d", host, port)
+
+    async def read_raw_line(self, timeout: float = 5.0) -> str:
+        """Read one raw line without PING handling."""
+        return await self._recv_raw(timeout=timeout)
+
     async def disconnect(self):
         """Send SQUIT and close the connection."""
         if self._writer:
             try:
-                await self._send(f"{self._num} SQ {self.name} 0 :Test done")
+                if self.burst_complete:
+                    await self._send(f"{self._num} SQ {self.name} 0 :Test done")
             except Exception:
                 pass
             try:
+                transport = self._writer.transport
                 self._writer.close()
-                await self._writer.wait_closed()
-            except Exception:
+                if transport is not None:
+                    transport.abort()
+                else:
+                    await self._writer.wait_closed()
+            except (ssl.SSLError, OSError, ConnectionError):
                 pass
         self.connected = False
+        self._reader = None
+        self._writer = None
 
     async def _send(self, line: str):
         """Send a raw line to the ircd."""

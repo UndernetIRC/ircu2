@@ -104,6 +104,7 @@ struct Socket {
   enum SocketState s_state;	/**< state socket's in */
   unsigned int	   s_events;	/**< events socket is interested in */
   int		   s_fd;	/**< file descriptor for socket */
+  void*		   s_tls;	/**< TLS state for socket */
 };
 
 #define SOCK_EVENT_READABLE	0x0001	/**< interested in readable */
@@ -132,6 +133,8 @@ struct Socket {
 #define s_ed_ptr(sock)	((sock)->s_header.gh_engdata.ed_ptr)
 /** Retrieve whether the Socket \a sock is active. */
 #define s_active(sock)	((sock)->s_header.gh_flags & GEN_ACTIVE)
+/** Retrieve TLS context for \a sock. */
+#define s_tls(sock) ((sock)->s_tls)
 
 /** Signal event generator. */
 struct Signal {

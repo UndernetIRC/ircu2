@@ -147,6 +147,19 @@ ircd_SOURCES = \
 	ircd_crypt_smd5.c \
 	ircd_crypt_native.c
 
+if TLS_OPENSSL
+ircd_SOURCES += tls_openssl.c
+endif
+if TLS_GNUTLS
+ircd_SOURCES += tls_gnutls.c
+endif
+if TLS_LIBTLS
+ircd_SOURCES += tls_libtls.c
+endif
+if TLS_NONE
+ircd_SOURCES += tls_none.c
+endif
+
 EXTRA_ircd_SOURCES = \
 	engine_devpoll.c \
 	engine_epoll.c \
