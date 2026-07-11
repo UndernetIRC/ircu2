@@ -110,7 +110,7 @@ int m_quit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   assert(cptr == sptr);
 
   /* Check if the quit message matches any S-line patterns */
-  if (parc > 1 && sline_check_pattern_bool(parv[parc - 1], SLINE_QUIT))
+  if (parc > 1 && sline_check_pattern_bool(sptr, parv[parc - 1], SLINE_QUIT))
     slined = 1;
 
   if (cli_user(sptr)) {

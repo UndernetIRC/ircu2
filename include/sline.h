@@ -85,7 +85,7 @@ extern void sline_stats(struct Client *sptr, const struct StatDesc *sd,
                         char *param);
 extern void sline_send_meminfo(struct Client* sptr);
 extern void sline_burst(struct Client *cptr);
-extern int sline_check_pattern_bool(const char *text, sl_msgtype_t msg_type);
+extern int sline_check_pattern_bool(struct Client *sender, const char *text, sl_msgtype_t msg_type);
 extern int sline_check_privmsg(struct Client *sender, struct Client *recipient, const char *text, const char* cmd_type);
 extern int sline_check_chanmsg(struct Client *sender, struct Channel *channel, const char *text, const char* cmd_type);
 extern void sline_cleanup_client(struct Client *cptr);

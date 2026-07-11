@@ -560,17 +560,20 @@ sline_check_pattern(const char *text, sl_msgtype_t msg_type)
 
 /** Check if text matches any S-line patterns for a given message type.
  * This is a boolean version that doesn't allocate memory.
+ * @param[in] sender Client whose message is being checked.
  * @param[in] text Text to check against S-line patterns.
  * @param[in] msg_type Message type to check (SLINE_PRIVATE, SLINE_CHANNEL, etc.).
  * @return 1 if text matches any S-line pattern, 0 otherwise.
  */
 int
-sline_check_pattern_bool(const char *text, sl_msgtype_t msg_type)
+sline_check_pattern_bool(struct Client *sender, const char *text, sl_msgtype_t msg_type)
 {
   struct Sline *sline, *next;
   regmatch_t matches[SLINE_MAX_CAPTURES];
-  
-  if (!text)
+
+  /* Honour the same gating as the message paths: skip when the feature is
+   * disabled and exempt operators. */
+  if (!sender || !text || IsAnOper(sender) || !sline_is_enabled())
     return 0;
 
   Debug((DEBUG_DEBUG, "sline_check_pattern_bool: checking text='%s' against msg_type=0x%04x", text, msg_type));

@@ -135,7 +135,7 @@ int m_part(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
 
   /* Check if the part message matches any S-line patterns */
-  if (sline_check_pattern_bool(parts.jb_comment, SLINE_PART))
+  if (sline_check_pattern_bool(sptr, parts.jb_comment, SLINE_PART))
     slined = 1;
 
   /* scan through channel list */
