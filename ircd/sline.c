@@ -1034,9 +1034,18 @@ sline_release_privmsg(struct HoldQueueEntry *entry)
   if (MyUser(entry->target.recipient))
     add_target(entry->target.recipient, entry->sender);
 
-  sendcmdto_one(entry->sender, entry->cmdtype == MSG_NOTICE ? CMD_NOTICE : CMD_PRIVATE, entry->target.recipient, "%C :%s", entry->target.recipient, entry->text);
-  if (CapHas(cli_active(entry->sender), CAP_ECHOMESSAGE))
-    sendcmdto_one(entry->sender, entry->cmdtype == MSG_NOTICE ? CMD_NOTICE : CMD_PRIVATE, cli_from(entry->sender), "%C :%s", entry->target.recipient, entry->text);
+  /* Deliver with the correct command. CMD_NOTICE/CMD_PRIVATE each expand to
+   * two arguments (cmd, tok), so they cannot be selected inside a ternary --
+   * branch explicitly instead. */
+  if (!strcmp(entry->cmdtype, MSG_NOTICE)) {
+    sendcmdto_one(entry->sender, CMD_NOTICE, entry->target.recipient, "%C :%s", entry->target.recipient, entry->text);
+    if (CapHas(cli_active(entry->sender), CAP_ECHOMESSAGE))
+      sendcmdto_one(entry->sender, CMD_NOTICE, cli_from(entry->sender), "%C :%s", entry->target.recipient, entry->text);
+  } else {
+    sendcmdto_one(entry->sender, CMD_PRIVATE, entry->target.recipient, "%C :%s", entry->target.recipient, entry->text);
+    if (CapHas(cli_active(entry->sender), CAP_ECHOMESSAGE))
+      sendcmdto_one(entry->sender, CMD_PRIVATE, cli_from(entry->sender), "%C :%s", entry->target.recipient, entry->text);
+  }
 
   Debug((DEBUG_DEBUG, "sline_release_privmsg: message delivered successfully"));
   return 1;
@@ -1062,7 +1071,7 @@ sline_release_chanmsg(struct HoldQueueEntry *entry)
          entry->token, cli_name(entry->sender), entry->target.channel->chname));
 
   /* Check if the sender and channel are still valid */
-  if (!IsUser(entry->sender) || !entry->target.channel->chname) {
+  if (!IsUser(entry->sender) || entry->target.channel->chname[0] == '\0') {
     Debug((DEBUG_DEBUG, "sline_release_chanmsg: sender or channel no longer valid"));
     return 0;
   }
@@ -1076,22 +1085,33 @@ sline_release_chanmsg(struct HoldQueueEntry *entry)
   /* Reveal delayed join if needed */
   RevealDelayedJoinIfNeeded(entry->sender, entry->target.channel);
 
-  /* Deliver the message */
-  if (entry->cmdtype == MSG_NOTICE || entry->cmdtype == MSG_PRIVATE) {
-    sendcmdto_channel_butone(entry->sender, entry->cmdtype == MSG_NOTICE ? CMD_NOTICE : CMD_PRIVATE,
-                             entry->target.channel, cli_from(entry->sender),
-                             SKIP_DEAF | SKIP_BURST, "%H :%s", entry->target.channel, entry->text);
-    if (CapHas(cli_active(entry->sender), CAP_ECHOMESSAGE))
-      sendcmdto_one(entry->sender, entry->cmdtype == MSG_NOTICE ? CMD_NOTICE : CMD_PRIVATE,
-                    cli_from(entry->sender), "%H :%s", entry->target.channel, entry->text);
-  } else if (entry->cmdtype == MSG_WALLVOICES) {
+  /* Deliver the message. cmdtype is a command string, so compare with
+   * strcmp rather than pointer equality, and branch explicitly because the
+   * CMD_* macros each expand to a (cmd, tok) pair. */
+  if (!strcmp(entry->cmdtype, MSG_NOTICE) || !strcmp(entry->cmdtype, MSG_PRIVATE)) {
+    if (!strcmp(entry->cmdtype, MSG_NOTICE)) {
+      sendcmdto_channel_butone(entry->sender, CMD_NOTICE,
+                               entry->target.channel, cli_from(entry->sender),
+                               SKIP_DEAF | SKIP_BURST, "%H :%s", entry->target.channel, entry->text);
+      if (CapHas(cli_active(entry->sender), CAP_ECHOMESSAGE))
+        sendcmdto_one(entry->sender, CMD_NOTICE,
+                      cli_from(entry->sender), "%H :%s", entry->target.channel, entry->text);
+    } else {
+      sendcmdto_channel_butone(entry->sender, CMD_PRIVATE,
+                               entry->target.channel, cli_from(entry->sender),
+                               SKIP_DEAF | SKIP_BURST, "%H :%s", entry->target.channel, entry->text);
+      if (CapHas(cli_active(entry->sender), CAP_ECHOMESSAGE))
+        sendcmdto_one(entry->sender, CMD_PRIVATE,
+                      cli_from(entry->sender), "%H :%s", entry->target.channel, entry->text);
+    }
+  } else if (!strcmp(entry->cmdtype, MSG_WALLVOICES)) {
     sendcmdto_channel_butone(entry->sender, CMD_WALLVOICES, entry->target.channel, cli_from(entry->sender),
                              SKIP_DEAF | SKIP_BURST | SKIP_NONVOICES, 
                              "%H :+ %s", entry->target.channel, entry->text);
     if (CapHas(cli_active(entry->sender), CAP_ECHOMESSAGE))
       sendcmdto_one(entry->sender, CMD_NOTICE, cli_from(entry->sender), // Sending CMD_NOTICE since CMD_WALLVOICES is translated into CMD_NOTICE in sendcmdto_channel_butone()
                     "@%H :+ %s", entry->target.channel, entry->text);
-  } else if (entry->cmdtype == MSG_WALLCHOPS) {
+  } else if (!strcmp(entry->cmdtype, MSG_WALLCHOPS)) {
     sendcmdto_channel_butone(entry->sender, CMD_WALLCHOPS, entry->target.channel, cli_from(entry->sender),
                              SKIP_DEAF | SKIP_BURST | SKIP_NONOPS,
                              "%H :@ %s", entry->target.channel, entry->text);
