@@ -294,11 +294,11 @@ sline_free(struct Sline *sline)
   if (sline->sl_next)
     sline->sl_next->sl_prev_p = sline->sl_prev_p;
 
-  /* Free compiled regex if present */
-  if (sline->sl_flags & SLINE_INVALID) {
+  /* Free the compiled regex, but only when it actually compiled. A regex_t
+   * left by a failed regcomp() (SLINE_INVALID) has unspecified contents and
+   * must not be passed to regfree(). */
+  if (!(sline->sl_flags & SLINE_INVALID))
     regfree(&sline->sl_regex);
-    sline->sl_flags &= ~SLINE_INVALID;
-  }
 
   MyFree(sline->sl_pattern); /* free up the memory */
   MyFree(sline);
