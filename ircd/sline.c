@@ -445,7 +445,9 @@ sline_send_meminfo(struct Client* sptr)
   struct HoldQueueEntry *entry;
   unsigned int hold_count = 0;
   size_t hold_size = 0;
-  
+  size_t sline_size = 0;
+  int sline_count;
+
   /* Count hold queue entries and calculate memory usage */
   for (entry = GlobalHoldQueue; entry; entry = entry->next) {
     hold_count++;
@@ -455,7 +457,11 @@ sline_send_meminfo(struct Client* sptr)
     if (entry->captures)
       hold_size += strlen(entry->captures) + 1;
   }
-  
+
+  sline_count = sline_memory_count(&sline_size);
+
+  send_reply(sptr, SND_EXPLICIT | RPL_STATSDEBUG,
+             ":S-lines: %d entries using %zu bytes", sline_count, sline_size);
   send_reply(sptr, SND_EXPLICIT | RPL_STATSDEBUG,
              ":S-line hold queue: %u entries using %zu bytes",
              hold_count, hold_size);
