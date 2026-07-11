@@ -600,9 +600,9 @@ sline_check_pattern_bool(struct Client *sender, const char *text, sl_msgtype_t m
       continue;
     }
 
-    /* Check if this S-line is active and valid and applies to the message type */
+    /* Check if this S-line is active and valid and applies to the message
+     * type (expiry is already handled by the free-on-expiry block above). */
     if (!(sline->sl_msgtype & msg_type)
-        || (sline->sl_expire > 0 && sline->sl_expire < TStime())
         || !(sline->sl_flags & SLINE_ACTIVE)
         || (sline->sl_flags & SLINE_INVALID))
       continue;
@@ -682,28 +682,29 @@ sline_notify_spamfilter(struct HoldQueueEntry *entry)
   return 1;
 }
 
-/** Add a private message to the hold queue.
+/** Allocate a hold queue entry and link it into the queue and hash table.
+ * Shared by the private- and channel-message hold paths so their lifecycle
+ * (token assignment, string duplication, list/hash insertion) stays in one
+ * place. Exactly one of @a recipient / @a channel is used, per @a msgtype.
  * @param[in] sender Client who sent the message.
- * @param[in] recipient Client who should receive the message.
+ * @param[in] msgtype SLINE_PRIVATE or SLINE_CHANNEL.
+ * @param[in] recipient Target client (SLINE_PRIVATE) or NULL.
+ * @param[in] channel Target channel (SLINE_CHANNEL) or NULL.
  * @param[in] text Message text.
  * @param[in] captures S-line regex captures (can be NULL).
- * @param[in] cmd_type Message type (MSG_PRIVATE, MSG_NOTICE).
+ * @param[in] cmd_type Command string (MSG_PRIVATE, MSG_NOTICE, ...).
  * @return Pointer to the created hold queue entry, or NULL on failure.
  */
 static struct HoldQueueEntry *
-sline_hold_privmsg(struct Client *sender, struct Client *recipient, 
-                   const char *text, const char *captures, const char* cmd_type)
+sline_hold_add(struct Client *sender, sl_msgtype_t msgtype,
+               struct Client *recipient, struct Channel *channel,
+               const char *text, const char *captures, const char *cmd_type)
 {
-  assert(sender);
-  assert(recipient);
-
   struct HoldQueueEntry *entry;
-  
-  if (!sender || !recipient || !text)
-    return NULL;
+  unsigned int idx;
 
-  Debug((DEBUG_DEBUG, "sline_hold_privmsg: holding %s from %s to %s: '%s'", 
-         cmd_type, cli_name(sender), cli_name(recipient), text));
+  if (!sender || !text)
+    return NULL;
 
   /* Allocate new hold queue entry */
   entry = (struct HoldQueueEntry *)MyMalloc(sizeof(struct HoldQueueEntry));
@@ -712,16 +713,20 @@ sline_hold_privmsg(struct Client *sender, struct Client *recipient,
 
   /* Initialize entry */
   entry->token = next_hold_token++;
-  entry->msgtype = SLINE_PRIVATE;
+  entry->msgtype = msgtype;
   entry->cmdtype = cmd_type;
   entry->sender = sender;
-  entry->target.recipient = recipient;
   entry->timestamp = TStime();
-  
-  /* Mark both sender and recipient as having messages on hold */
+
+  /* Mark the referenced clients as having messages on hold */
   SetSpamHold(sender);
-  SetSpamHold(recipient);
-  
+  if (msgtype == SLINE_PRIVATE) {
+    entry->target.recipient = recipient;
+    SetSpamHold(recipient);
+  } else {
+    entry->target.channel = channel;
+  }
+
   /* Duplicate strings */
   DupString(entry->text, text);
   if (captures)
@@ -739,13 +744,34 @@ sline_hold_privmsg(struct Client *sender, struct Client *recipient,
   /* Update statistics */
   sline_stats_counters.messages_held++;
 
-  Debug((DEBUG_DEBUG, "sline_hold_privmsg: assigned token %u", entry->token));
-
   /* Add to hash table */
-  unsigned int idx = sline_token_hash(entry->token);
+  idx = sline_token_hash(entry->token);
   entry->next_hash = sline_hold_table[idx];
   sline_hold_table[idx] = entry;
+
+  Debug((DEBUG_DEBUG, "sline_hold_add: assigned token %Lu", entry->token));
   return entry;
+}
+
+/** Add a private message to the hold queue.
+ * @param[in] sender Client who sent the message.
+ * @param[in] recipient Client who should receive the message.
+ * @param[in] text Message text.
+ * @param[in] captures S-line regex captures (can be NULL).
+ * @param[in] cmd_type Message type (MSG_PRIVATE, MSG_NOTICE).
+ * @return Pointer to the created hold queue entry, or NULL on failure.
+ */
+static struct HoldQueueEntry *
+sline_hold_privmsg(struct Client *sender, struct Client *recipient,
+                   const char *text, const char *captures, const char* cmd_type)
+{
+  assert(sender);
+  assert(recipient);
+
+  if (!recipient)
+    return NULL;
+
+  return sline_hold_add(sender, SLINE_PRIVATE, recipient, NULL, text, captures, cmd_type);
 }
 
 /** Add a channel message to the hold queue.
@@ -763,54 +789,10 @@ sline_hold_chanmsg(struct Client *sender, struct Channel *channel,
   assert(sender);
   assert(channel);
 
-  struct HoldQueueEntry *entry;
-  
-  if (!sender || !channel || !text)
+  if (!channel)
     return NULL;
 
-  Debug((DEBUG_DEBUG, "sline_hold_chanmsg: holding %s from %s to %s: '%s'", 
-         cmd_type, cli_name(sender), channel->chname, text));
-
-  /* Allocate new hold queue entry */
-  entry = (struct HoldQueueEntry *)MyMalloc(sizeof(struct HoldQueueEntry));
-  if (!entry)
-    return NULL;
-
-  /* Initialize entry */
-  entry->token = next_hold_token++;
-  entry->msgtype = SLINE_CHANNEL;
-  entry->cmdtype = cmd_type;
-  entry->sender = sender;
-  entry->target.channel = channel;
-  entry->timestamp = TStime();
-  
-  /* Mark sender as having messages on hold */
-  SetSpamHold(sender);
-  
-  /* Duplicate strings */
-  DupString(entry->text, text);
-  if (captures)
-    DupString(entry->captures, captures);
-  else
-    entry->captures = NULL;
-
-  /* Add to global hold queue */
-  entry->next = GlobalHoldQueue;
-  entry->prev_p = &GlobalHoldQueue;
-  if (GlobalHoldQueue)
-    GlobalHoldQueue->prev_p = &entry->next;
-  GlobalHoldQueue = entry;
-
-  /* Update statistics */
-  sline_stats_counters.messages_held++;
-
-  Debug((DEBUG_DEBUG, "sline_hold_chanmsg: assigned token %u", entry->token));
-
-  /* Add to hash table */
-  unsigned int idx = sline_token_hash(entry->token);
-  entry->next_hash = sline_hold_table[idx];
-  sline_hold_table[idx] = entry;
-  return entry;
+  return sline_hold_add(sender, SLINE_CHANNEL, NULL, channel, text, captures, cmd_type);
 }
 
 /** Check if a client has any messages on hold and clear FLAG_SPAMHOLD if not.
