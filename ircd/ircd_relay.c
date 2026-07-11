@@ -605,7 +605,9 @@ void relay_masked_message(struct Client* sptr, const char* mask, const char* tex
     sendcmdto_one(sptr, CMD_PRIVATE, cli_from(sptr), "%s :%s", mask, text);
 
 }
-//SPAM: Relevant here?
+
+/* Masked ($mask) messages are oper-only in the stock configuration and are
+ * intentionally not run through the S-line spam checks. */
 /** Relay a masked notice from a local user.
  * Sends an error response if there is no top-level domain label in \a
  * mask, or if that TLD contains a wildcard.
