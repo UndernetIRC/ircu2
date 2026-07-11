@@ -385,15 +385,15 @@ sline_stats(struct Client *sptr, const struct StatDesc *sd,
     count++;
   }
   
-  send_reply(sptr, SND_EXPLICIT | RPL_STATSSLINE, 
-    "S:line enabled: %s", sline_is_enabled() ? "yes" : "no");
+  send_reply(sptr, SND_EXPLICIT | RPL_STATSSLINE,
+    "S :S-line enabled: %s", sline_is_enabled() ? "yes" : "no");
   if (sline_is_enabled()) {
     send_reply(sptr, SND_EXPLICIT | RPL_STATSSLINE,
-      "spamfilter server configured: %s", netconf_str(NETCONF_SLINE_SERVER));
+      "S :spamfilter server configured: %s", netconf_str(NETCONF_SLINE_SERVER));
     send_reply(sptr, SND_EXPLICIT | RPL_STATSSLINE,
-      "hold timeout: %u", netconf_int(NETCONF_SLINE_HOLD_TIMEOUT));
+      "S :hold timeout: %u", netconf_int(NETCONF_SLINE_HOLD_TIMEOUT));
     send_reply(sptr, SND_EXPLICIT | RPL_STATSSLINE,
-      "hold timeout block: %s", netconf_bool(NETCONF_SLINE_HOLD_TIMEOUT_BLOCK) ? "yes" : "no");
+      "S :hold timeout block: %s", netconf_bool(NETCONF_SLINE_HOLD_TIMEOUT_BLOCK) ? "yes" : "no");
   }
 
   /* Send summary statistics */
@@ -633,9 +633,9 @@ sline_notify_spamfilter(struct HoldQueueEntry *entry)
   if (!entry || !entry->sender)
     return 0;
 
-  /* Get target name based on message type */
+  /* Get target name based on message type (used only for debug logging) */
   if (entry->msgtype == SLINE_PRIVATE && entry->target.recipient)
-    target_name = NumNick(entry->target.recipient);
+    target_name = cli_name(entry->target.recipient);
   else if (entry->msgtype == SLINE_CHANNEL && entry->target.channel)
     target_name = entry->target.channel->chname;
   else
