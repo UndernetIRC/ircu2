@@ -125,8 +125,10 @@ ms_sline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     return need_more_params(sptr, "SLINE");
 
   state = parv[1];
-  lastmod = atoi(parv[2]) == 0 ? TStime() : atoi(parv[2]);
-  expire = atoi(parv[3]);
+  lastmod = (time_t)strtoll(parv[2], NULL, 10);
+  if (lastmod == 0)
+    lastmod = TStime();
+  expire = (time_t)strtoll(parv[3], NULL, 10);
   type = parv[4];
   pattern = parv[5];
 
