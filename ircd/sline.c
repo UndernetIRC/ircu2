@@ -912,6 +912,15 @@ sline_check_privmsg(struct Client *sender, struct Client *recipient, const char 
 
   Debug((DEBUG_DEBUG, "sline_check_privmsg: S-line matched, captures: '%s'", captures));
 
+  /* If the spam filter service is not currently linked there is nobody to
+   * approve or reject a held message, so fail open and deliver it normally
+   * rather than holding it for the full timeout. */
+  if (!FindServer(netconf_str(NETCONF_SLINE_SERVER))) {
+    Debug((DEBUG_DEBUG, "sline_check_privmsg: spam server unavailable, delivering normally"));
+    MyFree(captures);
+    return 0;
+  }
+
   /* S-line matched, add to hold queue */
   entry = sline_hold_privmsg(sender, recipient, text, captures, cmd_type);
   if (!entry) {
@@ -961,6 +970,15 @@ sline_check_chanmsg(struct Client *sender, struct Channel *channel, const char *
   }
 
   Debug((DEBUG_DEBUG, "sline_check_chanmsg: S-line matched, captures: '%s'", captures));
+
+  /* If the spam filter service is not currently linked there is nobody to
+   * approve or reject a held message, so fail open and deliver it normally
+   * rather than holding it for the full timeout. */
+  if (!FindServer(netconf_str(NETCONF_SLINE_SERVER))) {
+    Debug((DEBUG_DEBUG, "sline_check_chanmsg: spam server unavailable, delivering normally"));
+    MyFree(captures);
+    return 0;
+  }
 
   /* S-line matched, add to hold queue */
   entry = sline_hold_chanmsg(sender, channel, text, captures, cmd_type);
