@@ -1338,11 +1338,12 @@ sline_hold_timeout_callback(struct Event* ev)
         Debug((DEBUG_DEBUG, "sline_hold_timeout_callback: releasing expired token %u", entry->token));
         sline_stats_counters.messages_released++; /* Increment released counter */
         
+        /* sline_release_hold() removes and frees the entry regardless of
+         * whether delivery succeeded, so we must not free it again here. */
         if (sline_release_hold(entry->token)) {
           Debug((DEBUG_DEBUG, "sline_hold_timeout_callback: successfully released expired token %u", entry->token));
         } else {
-          Debug((DEBUG_DEBUG, "sline_hold_timeout_callback: failed to release expired token %u, removing entry", entry->token));
-          sline_hold_free(entry);
+          Debug((DEBUG_DEBUG, "sline_hold_timeout_callback: expired token %u could not be delivered", entry->token));
         }
       }
     }
