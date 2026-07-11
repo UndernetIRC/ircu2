@@ -170,7 +170,7 @@ make_sline(char *pattern, time_t lastmod, time_t expire, sl_msgtype_t msgtype, s
  * @param[in] pattern Regex pattern to match against messages.
  * @param[in] lastmod Last modification time of S-line.
  * @param[in] msgtype Bitwise combination of SLINE_* flags.
- * @return Zero.
+ * @return 1 if the S-line was added, 0 if it was rejected.
  */
 int
 sline_add(struct Client *cptr, struct Client *sptr, char *pattern,
@@ -187,9 +187,14 @@ sline_add(struct Client *cptr, struct Client *sptr, char *pattern,
   Debug((DEBUG_DEBUG, "sline_add(\"%s\", \"%s\", \"%s\", %Tu, %Tu, 0x%04x, 0x%04x)",
 	 cli_name(cptr), cli_name(sptr), pattern, lastmod, expire, msgtype, flags));
 
-  /* Check pattern length */
-  if (strlen(pattern) >= SLINELEN)
-    return send_reply(sptr, ERR_LONGMASK);
+  /* Check pattern length. Reject without propagating; sptr is a server on
+   * the burst/propagation path, so notify opers rather than sending a
+   * client numeric down the link. */
+  if (strlen(pattern) >= SLINELEN) {
+    sendto_opmask_butone(0, SNO_GLINE, "%s SLINE for pattern \"%s\" rejected: pattern too long",
+                         cli_name(sptr), pattern);
+    return 0;
+  }
 
   /* make the sline */
   asline = make_sline(pattern, lastmod, expire, msgtype, flags);
@@ -209,7 +214,7 @@ sline_add(struct Client *cptr, struct Client *sptr, char *pattern,
   Debug((DEBUG_DEBUG, "S-line added successfully: pattern=%s, msgtype=0x%04x, lastmod=%Tu, expire=%Tu, flags=0x%04x",
          asline->sl_pattern, asline->sl_msgtype, asline->sl_lastmod, asline->sl_expire, asline->sl_flags));
 
-  return 0;
+  return 1;
 }
 
 void sline_modify(struct Client *sptr, struct Sline *sline, time_t lastmod, time_t expire, sl_msgtype_t msgtype, sl_flagtype_t flags, unsigned int updates)

@@ -194,10 +194,12 @@ ms_sline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     /* Modify S:line record. */
     sline_modify(sptr, asline, lastmod, expire, msgtype, *state == '+' ? SLINE_ACTIVE : 0, updates);
   } else {
-    sline_add(cptr, sptr, pattern, lastmod, expire, msgtype, *state == '+' ? SLINE_ACTIVE : 0);
+    /* If we rejected the S-line locally, do not propagate it. */
+    if (!sline_add(cptr, sptr, pattern, lastmod, expire, msgtype, *state == '+' ? SLINE_ACTIVE : 0))
+      return 0;
   }
 
-  /* Propagate. */  
+  /* Propagate. */
   sendcmdto_serv_butone(sptr, CMD_SLINE, cptr, "%c %Tu %Tu %s :%s",
     *state, lastmod, expire, sline_flags_to_string(msgtype), pattern);
 
