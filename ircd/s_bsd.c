@@ -572,20 +572,22 @@ void add_connection(struct Listener* listener, int fd) {
   }
   else
   {
-    /*
-     * Add this local client to the IPcheck registry.
-     *
-     * If they're throttled, murder them, but tell them why first.
-     */
-    if (!IPcheck_local_connect(&addr.addr, &next_target))
-    {
-      ++ServerStats->is_throttled;
-      write(fd, throttle_message, strlen(throttle_message));
-      close(fd);
-      return;
-    }
     new_client = make_client(0, listener_websocket(listener) ? STAT_WEBSOCKET : STAT_UNKNOWN_USER);
-    SetIPChecked(new_client);
+
+    /*
+     * Cloudflare websocket ports: defer IPcheck until CF-Connecting-IP is
+     * known at handshake; the socket peer is a Cloudflare edge node.
+     */
+    if (!(listener_websocket(listener) && listener_cloudflare(listener))) {
+      if (!IPcheck_local_connect(&addr.addr, &next_target))
+      {
+        ++ServerStats->is_throttled;
+        write(fd, throttle_message, strlen(throttle_message));
+        close(fd);
+        return;
+      }
+      SetIPChecked(new_client);
+    }
   }
 
   /*

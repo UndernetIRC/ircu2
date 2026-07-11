@@ -46,6 +46,7 @@
 #include "ircd_features.h"
 #include "ircd_log.h"
 #include "ircd_osdep.h"
+#include "listener.h"
 #include "ircd_reply.h"
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
@@ -1188,8 +1189,8 @@ void start_auth(struct Client* client)
     FlagSet(&auth->flags, AR_NEEDS_USER);
     FlagSet(&auth->flags, AR_NEEDS_NICK);
 
-    if (IsUserPort(client) || IsWebsocketPort(client)) {
-      /* Try to start iauth lookup. */
+    if ((IsUserPort(client) || IsWebsocketPort(client))
+        && !IsCloudflarePort(client)) {
       start_iauth_query(auth);
 
       /* Pass on fingerprint to iauth. */
@@ -1223,10 +1224,13 @@ void start_dns_ident(struct Client *client)
     /* Try to start DNS lookup. */
     start_dns_query(auth);
 
-    /* Try to start ident lookup. */
-    if (DoIdentLookups)
+    /* Ident queries the connecting host; skip behind Cloudflare. */
+    if (DoIdentLookups && !IsCloudflarePort(client))
       start_auth_query(auth);
   }
+
+  if (IsCloudflarePort(client) && !FlagHas(&auth->flags, AR_IAUTH_PENDING))
+    start_iauth_query(auth);
 
   /* Check which auth events remain pending. */
   check_auth_finished(auth, 0);

@@ -223,6 +223,7 @@ static void free_slist(struct SLink **link) {
 %token DNS
 %token WEBIRC
 %token WEBSOCKET
+%token CLOUDFLARE
 %token IPCHECK
 %token EXCEPT
 %token INCLUDE
@@ -895,6 +896,11 @@ portblock: PORT {
   }
   for (link = hosts; link != NULL; link = link->next) {
     memcpy(&flags_here, &listen_flags, sizeof(flags_here));
+    if (FlagHas(&flags_here, LISTEN_CLOUDFLARE)
+        && !FlagHas(&flags_here, LISTEN_WEBSOCKET)) {
+      parse_error("Port %d has cloudflare = yes but is not a websocket port", port);
+      break;
+    }
     switch (link->flags & (USE_IPV4 | USE_IPV6)) {
     case USE_IPV4:
       FlagSet(&flags_here, LISTEN_IPV4);
@@ -928,8 +934,8 @@ portblock: PORT {
 };
 portitems: portitem portitems | portitem;
 portitem: portnumber | portvhost | portvhostnumber | portmask | portserver
-  | portwebirc | portwebsocket | porthidden | porttls | tlsciphers | tlsverifypeer
-  | tlssystemca | tlscertfile | tlscertdir;
+  | portwebirc | portwebsocket | portcloudflare | porthidden | porttls | tlsciphers
+  | tlsverifypeer | tlssystemca | tlscertfile | tlscertdir;
 portnumber: PORT '=' address_family NUMBER ';'
 {
   if ($4 < 1 || $4 > 65535) {
@@ -1012,6 +1018,14 @@ porttls: TLS '=' YES ';'
 } | TLS '=' NO ';'
 {
   FlagClr(&listen_flags, LISTEN_TLS);
+};
+
+portcloudflare: CLOUDFLARE '=' YES ';'
+{
+  FlagSet(&listen_flags, LISTEN_CLOUDFLARE);
+} | CLOUDFLARE '=' NO ';'
+{
+  FlagClr(&listen_flags, LISTEN_CLOUDFLARE);
 };
 
 clientblock: CLIENT

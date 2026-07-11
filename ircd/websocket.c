@@ -23,6 +23,8 @@
 #include "client.h"
 #include "class.h"
 #include "ircd.h"
+#include "IPcheck.h"
+#include "listener.h"
 #include "s_debug.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
@@ -53,6 +55,50 @@ static const char websocket_guid[] = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
 /* Forward declaration */
 static int websocket_send_handshake(struct Client *cptr, const char *accept_key, const char *subprotocol);
+static void trim_http_field(char *str);
+static int websocket_apply_client_ip(struct Client *cptr, const char *ip);
+
+/** Trim leading/trailing whitespace from an HTTP header field value. */
+static void trim_http_field(char *str)
+{
+  char *start = str;
+  char *end;
+
+  while (*start == ' ' || *start == '\t')
+    ++start;
+  if (start != str)
+    memmove(str, start, strlen(start) + 1);
+  end = str + strlen(str);
+  while (end > str && (end[-1] == ' ' || end[-1] == '\t' || end[-1] == '\r'))
+    --end;
+  *end = '\0';
+}
+
+/** Replace a client's sock IP after verifying it parses and passes IPcheck. */
+static int websocket_apply_client_ip(struct Client *cptr, const char *ip)
+{
+  struct irc_in_addr addr;
+  time_t next_target = 0;
+
+  if (!ip || !*ip || !ipmask_parse(ip, &addr, NULL))
+    return 0;
+
+  if (IsIPChecked(cptr))
+    IPcheck_connect_fail(cptr, 0);
+
+  if (!IPcheck_local_connect(&addr, &next_target)) {
+    ++ServerStats->is_throttled;
+    return 0;
+  }
+  SetIPChecked(cptr);
+
+  memcpy(&cli_ip(cptr), &addr, sizeof(cli_ip(cptr)));
+  ircd_ntoa_r(cli_sock_ip(cptr), &cli_ip(cptr));
+  ircd_strncpy(cli_sockhost(cptr), cli_sock_ip(cptr), HOSTLEN);
+  if (next_target)
+    cli_nexttarget(cptr) = next_target;
+  return 1;
+}
 
 /* Parse HTTP headers, perform handshake, and transition client to IRC over WebSocket. */
 int websocket_handshake_handler(struct Client *cptr) {
@@ -63,8 +109,13 @@ int websocket_handshake_handler(struct Client *cptr) {
     char subprotocols[256] = "";
     char chosen_subprotocol[64] = "";
     char accept_key[128];
+    char cf_connecting_ip[SOCKIPLEN + 1] = "";
     int has_upgrade = 0, has_connection = 0, has_key = 0;
+    int trust_cloudflare = 0;
     char *line, *saveptr;
+
+    if (IsCloudflarePort(cptr))
+      trust_cloudflare = 1;
 
     /* Only process if we have a full HTTP header (ends with \r\n\r\n) */
     if (buflen < 4 || strstr(buf, "\r\n\r\n") == NULL) {
@@ -83,11 +134,18 @@ int websocket_handshake_handler(struct Client *cptr) {
         else if (strncasecmp(line, "Connection: Upgrade", 19) == 0)
             has_connection = 1;
         else if (strncasecmp(line, "Sec-WebSocket-Key:", 18) == 0) {
-            strncpy(sec_ws_key, line + 19, sizeof(sec_ws_key) - 1);
+            strncpy(sec_ws_key, line + 18, sizeof(sec_ws_key) - 1);
             sec_ws_key[sizeof(sec_ws_key) - 1] = '\0';
+            trim_http_field(sec_ws_key);
         } else if (strncasecmp(line, "Sec-WebSocket-Protocol:", 23) == 0) {
-            strncpy(subprotocols, line + 24, sizeof(subprotocols) - 1);
+            strncpy(subprotocols, line + 23, sizeof(subprotocols) - 1);
             subprotocols[sizeof(subprotocols) - 1] = '\0';
+            trim_http_field(subprotocols);
+        } else if (trust_cloudflare
+                   && strncasecmp(line, "CF-Connecting-IP:", 17) == 0) {
+            strncpy(cf_connecting_ip, line + 17, sizeof(cf_connecting_ip) - 1);
+            cf_connecting_ip[sizeof(cf_connecting_ip) - 1] = '\0';
+            trim_http_field(cf_connecting_ip);
         }
     }
     if (has_upgrade && has_connection && sec_ws_key[0])
@@ -95,6 +153,11 @@ int websocket_handshake_handler(struct Client *cptr) {
     if (!has_key) {
         Debug((DEBUG_DEBUG, "WebSocket handshake failed for %C", cptr));
         return 0; /* Fail handshake */
+    }
+
+    if (trust_cloudflare && !websocket_apply_client_ip(cptr, cf_connecting_ip)) {
+        Debug((DEBUG_DEBUG, "WebSocket Cloudflare IP rejected for %C", cptr));
+        return 0;
     }
 
     /* Negotiate subprotocol: respect client order of preference */
