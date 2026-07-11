@@ -12,6 +12,20 @@ import time
 
 logger = logging.getLogger("p10_server")
 
+# Network config / S-line updates are resolved last-writer-wins by a
+# whole-second time_t timestamp, and the ircd rejects any write that is not
+# strictly newer than the stored one. Consecutive test writes can land in the
+# same wall-clock second, so hand out a process-wide monotonically increasing
+# timestamp (never below real time) to keep every write authoritative.
+_last_ts = 0
+
+
+def _next_timestamp() -> int:
+    global _last_ts
+    _last_ts = max(_last_ts + 1, int(time.time()))
+    return _last_ts
+
+
 # P10 base64 character set
 _B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789[]"
 _B64_VAL = {c: i for i, c in enumerate(_B64)}
@@ -338,3 +352,61 @@ class P10Server:
                 await self._recv(timeout=timeout)
             except (asyncio.TimeoutError, TimeoutError):
                 break
+
+    # --- S:line / netconf / extension-reply helpers ---
+
+    async def send_sline(
+        self,
+        pattern: str,
+        msg_type: str = "A",
+        active: bool = True,
+        expire: int = 0,
+        lastmod: int | None = None,
+    ):
+        """Inject an S-line via the P10 SLINE (SL) command.
+
+        Wire format (from ms_sline):
+            <our_num> SL <state> <lastmod> <expire> <type> :<pattern>
+        where state is '+' (active) or '-' (inactive), and type is a
+        combination of A/P/C/L/Q.
+        """
+        if lastmod is None:
+            lastmod = _next_timestamp()
+        state = "+" if active else "-"
+        await self._send(
+            f"{self._num} SL {state} {lastmod} {expire} {msg_type} :{pattern}"
+        )
+
+    async def send_config(self, key: str, value: str, timestamp: int | None = None):
+        """Set a network configuration value via the P10 CONFIG (CF) command.
+
+        Wire format (from ms_config):
+            <our_num> CF <timestamp> <key> :<value>
+        """
+        if timestamp is None:
+            timestamp = _next_timestamp()
+        await self._send(f"{self._num} CF {timestamp} {key} :{value}")
+
+    async def send_xreply(self, target: str, routing: str, reply: str):
+        """Send an extension reply via the P10 XREPLY (XR) command.
+
+        Wire format (from ms_xreply):
+            <our_num> XR <target> <routing> :<reply>
+        <target> is the numeric of the server that issued the XQUERY
+        (the hub's server numeric), <routing> is e.g. "spam:<token>".
+        """
+        await self._send(f"{self._num} XR {target} {routing} :{reply}")
+
+    async def wait_for_token(self, token: str, timeout: float = 5.0) -> str:
+        """Read lines until one whose P10 token matches, and return it.
+
+        Handles PINGs and NICK tracking while waiting.
+        """
+        deadline = asyncio.get_event_loop().time() + timeout
+        while True:
+            remaining = deadline - asyncio.get_event_loop().time()
+            if remaining <= 0:
+                raise TimeoutError(f"Timed out waiting for token {token}")
+            line = await self._recv(timeout=remaining)
+            if self._get_token(line) == token:
+                return line

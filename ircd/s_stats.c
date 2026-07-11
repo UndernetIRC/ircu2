@@ -25,6 +25,7 @@
 #include "client.h"
 #include "gline.h"
 #include "hash.h"
+#include "sline.h"
 #include "ircd.h"
 #include "ircd_chattr.h"
 #include "ircd_netconf.h"
@@ -534,6 +535,7 @@ stats_meminfo(struct Client* to, const struct StatDesc* sd, char* param)
 
   class_send_meminfo(to);
   bans_send_meminfo(to);
+  sline_send_meminfo(to);
   send_listinfo(to, 0);
 }
 
@@ -627,6 +629,9 @@ struct StatDesc statsinfo[] = {
   { 'S', "sasl", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_S,
     sasl_stats, 0,
     "SASL authentication statistics." },
+  { 's', "slines", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_s,
+    sline_stats, 0,
+    "Regex pattern lines (S-lines)." },
   { 'T', "motds", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_T,
     motd_report, 0,
     "Configured Message Of The Day files." },

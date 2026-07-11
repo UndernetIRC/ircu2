@@ -143,6 +143,15 @@ int ms_rping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     }
     if ((destination = FindNServer(parv[1]))) {
       /*
+       * Update our lag approximation for the forwarding server from the
+       * RPING start time, mirroring the opportunistic updates done in
+       * m_nick.c / m_create.c. lag is purely informational (/MAP, /STATS).
+       */
+      int timestamp = atoi(parv[3]);
+      if (timestamp > 0)
+        cli_serv(sptr)->lag = TStime() - timestamp;
+
+      /*
        * if it's not for me, pass it on
        */
       if (IsMe(destination))
