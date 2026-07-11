@@ -275,7 +275,10 @@ sline_find(char *pattern)
   struct Sline *sline;
 
   for (sline = GlobalSlineList; sline; sline = sline->sl_next) {
-    if (ircd_strcmp(sline->sl_pattern, pattern) == 0)
+    /* Patterns are case-sensitive regexes; compare with strcmp, not the
+     * RFC1459 case-mapping ircd_strcmp (which would fold e.g. '[' and '{'
+     * and merge distinct patterns). */
+    if (strcmp(sline->sl_pattern, pattern) == 0)
       return sline;
   }
 
