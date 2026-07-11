@@ -157,11 +157,14 @@ int m_part(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
     assert(!IsZombie(member)); /* Local users should never zombie */
 
+    /* Keep check_target_limit() ahead of the NOPARTMSGS/slined terms so its
+     * side effects (target-slot registration and ERR_TARGETTOOFAST throttle)
+     * still run for delayed-join targets on those channels, as before. */
     if (!member_can_send_to_channel(member, 0)
         || ((member->channel->mode.mode & MODE_NOCOLOR) && colors)
+        || (IsDelayedTarget(member) && check_target_limit(sptr, NULL, chptr))
         || (member->channel->mode.mode & MODE_NOPARTMSGS)
-        || slined
-        || (IsDelayedTarget(member) && check_target_limit(sptr, NULL, chptr)))
+        || slined)
       flags |= CHFL_BANNED;
 
     if (IsDelayedJoin(member))
