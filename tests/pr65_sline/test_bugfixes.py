@@ -54,6 +54,23 @@ def _routing_from_xquery(xquery_line):
     return parts[0], routing
 
 
+async def _wait_command_containing(client, command, needle, timeout=5.0):
+    """Wait for a <command> message whose last param contains needle.
+
+    Unrelated server notices may arrive first, so scan rather than taking
+    the first matching command.
+    """
+    loop = asyncio.get_event_loop()
+    deadline = loop.time() + timeout
+    while True:
+        remaining = deadline - loop.time()
+        if remaining <= 0:
+            raise TimeoutError(f"no {command} containing {needle!r}")
+        msg = await client.wait_for(command, timeout=remaining)
+        if msg.params and needle in msg.params[-1]:
+            return msg
+
+
 # --------------------------------------------------------------------------
 # M5 - approved held NOTICE must be delivered as a NOTICE, not a broken verb
 # --------------------------------------------------------------------------
@@ -96,7 +113,9 @@ async def test_held_notice_released_as_notice(ircd_network, services):
 
         await services.send_xreply(hub_num, routing, "YES")
 
-        msg = await receiver.wait_for("NOTICE", timeout=5.0)
+        # Must arrive as a NOTICE (pre-fix the verb was the bare token "O").
+        msg = await _wait_command_containing(receiver, "NOTICE", "noticespam",
+                                             timeout=5.0)
         assert "noticespam" in msg.params[-1], (
             f"released NOTICE should carry original text, got {msg.params}"
         )
