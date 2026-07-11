@@ -836,20 +836,21 @@ sline_check_clear_spamhold(struct Client *cptr)
   Debug((DEBUG_DEBUG, "sline_check_clear_spamhold: cleared FLAG_SPAMHOLD for %s", cli_name(cptr)));
 }
 
-/** Remove and free a hold queue entry.
+/** Unlink a hold queue entry from the hash table and list and free it,
+ * WITHOUT re-evaluating FLAG_SPAMHOLD for the referenced clients.
+ * Callers that remove many entries at once should clear the flag themselves
+ * afterwards to avoid a per-entry rescan of the whole queue.
  * @param[in] entry Hold queue entry to remove.
  */
 static void
-sline_hold_free(struct HoldQueueEntry *entry)
+sline_hold_unlink_free(struct HoldQueueEntry *entry)
 {
   assert(entry);
 
-  struct Client *sender, *recipient;
-  
   if (!entry)
     return;
 
-  Debug((DEBUG_DEBUG, "sline_hold_free: removing token %u", entry->token));
+  Debug((DEBUG_DEBUG, "sline_hold_unlink_free: removing token %u", entry->token));
 
   /* Remove from hash table */
   unsigned int idx = sline_token_hash(entry->token);
@@ -862,25 +863,36 @@ sline_hold_free(struct HoldQueueEntry *entry)
     pp = &((*pp)->next_hash);
   }
 
-  /* Store references for FLAG_SPAMHOLD cleanup */
-  sender = entry->sender;
-  recipient = NULL;
-  if (entry->msgtype == SLINE_PRIVATE)
-    recipient = entry->target.recipient;
-
   /* Remove from linked list */
   *entry->prev_p = entry->next;
   if (entry->next)
     entry->next->prev_p = entry->prev_p;
 
-  /* Free allocated strings */
+  /* Free allocated strings and the entry itself */
   MyFree(entry->text);
   if (entry->captures)
     MyFree(entry->captures);
-  
-  /* Free the entry itself */
   MyFree(entry);
-  
+}
+
+/** Remove and free a hold queue entry.
+ * @param[in] entry Hold queue entry to remove.
+ */
+static void
+sline_hold_free(struct HoldQueueEntry *entry)
+{
+  struct Client *sender, *recipient;
+
+  assert(entry);
+  if (!entry)
+    return;
+
+  /* Remember the referenced clients before freeing. */
+  sender = entry->sender;
+  recipient = (entry->msgtype == SLINE_PRIVATE) ? entry->target.recipient : NULL;
+
+  sline_hold_unlink_free(entry);
+
   /* Check if FLAG_SPAMHOLD should be cleared for affected clients */
   if (sender)
     sline_check_clear_spamhold(sender);
@@ -1301,20 +1313,34 @@ sline_cleanup_client(struct Client *cptr)
   int cleaned = 0;
   
   Debug((DEBUG_DEBUG, "sline_cleanup_client: cleaning up hold queue for %s", cli_name(cptr)));
-  
+
   for (entry = GlobalHoldQueue; entry; entry = next_entry) {
     next_entry = entry->next;
-    
+
     /* Check if this entry references the disconnecting client */
-    if (entry->sender == cptr || 
+    if (entry->sender == cptr ||
         (entry->msgtype == SLINE_PRIVATE && entry->target.recipient == cptr)) {
-      
+
+      /* Determine the other referenced client before freeing. We only need
+       * to re-evaluate FLAG_SPAMHOLD for that other party; cptr is
+       * disconnecting and its flag is cleared once after the loop. Using
+       * the plain sline_hold_free() here would rescan the whole queue for
+       * cptr on every removed entry (O(n^2) during a flood). */
+      struct Client *other = (entry->sender == cptr)
+          ? ((entry->msgtype == SLINE_PRIVATE) ? entry->target.recipient : NULL)
+          : entry->sender;
+
       Debug((DEBUG_DEBUG, "sline_cleanup_client: removing hold entry token %u", entry->token));
-      sline_hold_free(entry);
+      sline_hold_unlink_free(entry);
+      if (other && other != cptr)
+        sline_check_clear_spamhold(other);
       cleaned++;
     }
   }
-  
+
+  /* cptr is disconnecting and no longer referenced by any entry. */
+  ClearSpamHold(cptr);
+
   if (cleaned > 0) {
     Debug((DEBUG_DEBUG, "sline_cleanup_client: cleaned %d hold queue entries for %s", cleaned, cli_name(cptr)));
   }
