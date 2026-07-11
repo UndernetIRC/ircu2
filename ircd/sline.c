@@ -646,7 +646,7 @@ sline_notify_spamfilter(struct HoldQueueEntry *entry)
   */
   if (entry->msgtype == SLINE_PRIVATE) {
     sendcmdto_one(&me, CMD_XQUERY, serv,
-                  "%C spam:%d :%C %C :%s",
+                  "%C spam:%Lu :%C %C :%s",
                   serv,
                   entry->token,
                   entry->sender,
@@ -654,7 +654,7 @@ sline_notify_spamfilter(struct HoldQueueEntry *entry)
                   entry->captures ? entry->captures : "");
   } else {
     sendcmdto_one(&me, CMD_XQUERY, serv,
-                  "%C spam:%d :%C %H :%s",
+                  "%C spam:%Lu :%C %H :%s",
                   serv,
                   entry->token,
                   entry->sender,
@@ -982,7 +982,7 @@ sline_check_chanmsg(struct Client *sender, struct Channel *channel, const char *
  * @return Pointer to hold queue entry if found, NULL otherwise.
  */
 static struct HoldQueueEntry *
-sline_find_hold_entry(unsigned int token)
+sline_find_hold_entry(uint64_t token)
 {
   struct HoldQueueEntry *entry;
   
@@ -1109,7 +1109,7 @@ sline_release_chanmsg(struct HoldQueueEntry *entry)
  * @return 1 if message was found and delivered, 0 otherwise.
  */
 static int
-sline_release_hold(unsigned int token)
+sline_release_hold(uint64_t token)
 {
   struct HoldQueueEntry *entry;
   int result = 0;
@@ -1178,16 +1178,16 @@ int
 sline_xreply_handler(struct Client *sptr, const char *token, const char *reply)
 {
   struct HoldQueueEntry *entry;
-  unsigned int token_num;
+  uint64_t token_num;
   int should_release;
-  
+
   if (!sptr || !token || !reply) {
     Debug((DEBUG_DEBUG, "sline_xreply_handler: invalid parameters"));
     return 0;
   }
-  
-  /* Convert token string to number */
-  token_num = atoi(token);
+
+  /* Convert token string to number (tokens are 64-bit, sequential) */
+  token_num = strtoull(token, NULL, 10);
   if (token_num == 0 && strcmp(token, "0") != 0) {
     Debug((DEBUG_DEBUG, "sline_xreply_handler: invalid token '%s' from %s", token, cli_name(sptr)));
     return 0;
