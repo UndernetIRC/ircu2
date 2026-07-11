@@ -393,13 +393,18 @@ static void check_pings(struct Event* ev) {
 
         if (wcon->con_ws_last_keepalive == 0)
           wcon->con_ws_last_keepalive = CurrentTime;
-        expire_ws = wcon->con_ws_last_keepalive + ws_ka;
-        if (expire_ws < next_check)
-          next_check = expire_ws;
         if (CurrentTime - wcon->con_ws_last_keepalive >= ws_ka) {
           if (websocket_send_keepalive_ping(cptr) == 0)
             wcon->con_ws_last_keepalive = CurrentTime;
         }
+        /* Schedule the next WS Ping after handling this one; expire_ws must
+         * stay >= CurrentTime (assert below). IRC PING timing is unchanged:
+         * it still keys off cli_lasttime and max_ping below. */
+        expire_ws = wcon->con_ws_last_keepalive + ws_ka;
+        if (expire_ws <= CurrentTime)
+          expire_ws = CurrentTime + 1;
+        if (expire_ws < next_check)
+          next_check = expire_ws;
       }
     }
 

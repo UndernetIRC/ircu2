@@ -807,7 +807,7 @@ int ircd_tls_negotiate(struct Client *cptr)
         log_write(LS_SYSTEM, L_ERROR, 0, "X509_digest failed for %C: %d",
           cptr, res);
       }
-      else if (len == 32) {
+      else if (len == 32 && !IsCloudflarePort(cptr)) {
         /* Convert fingerprint to lowercase hex */
         char *p = cli_tls_fingerprint(cptr);
         for (unsigned int i = 0; i < len; i++) {
@@ -818,7 +818,10 @@ int ircd_tls_negotiate(struct Client *cptr)
       }
       else {
         memset(cli_tls_fingerprint(cptr), 0, 65);
-        Debug((DEBUG_DEBUG, "Invalid fingerprint length: %u", len));
+        if (len == 32 && IsCloudflarePort(cptr))
+          Debug((DEBUG_DEBUG, "Skipping TLS fingerprint for Cloudflare port %C", cptr));
+        else
+          Debug((DEBUG_DEBUG, "Invalid fingerprint length: %u", len));
       }
     }
     ClearNegotiatingTLS(cptr);

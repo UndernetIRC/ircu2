@@ -3,6 +3,7 @@
 FROM debian:trixie-slim AS builder
 
 ARG TLS_BACKEND=openssl
+ARG SANITIZE=
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
@@ -17,6 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     $(if [ "$TLS_BACKEND" = "openssl" ]; then echo libssl-dev; \
       elif [ "$TLS_BACKEND" = "gnutls" ]; then echo libgnutls28-dev; \
       elif [ "$TLS_BACKEND" = "libtls" ]; then echo libtls-dev; fi) \
+    $(if [ -n "$SANITIZE" ]; then echo libasan8; fi) \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build/ircu2
@@ -26,19 +28,27 @@ COPY . .
 RUN find . -name '*.o' -delete && rm -f ircd/ircd
 
 RUN ./autogen.sh \
-    && ./configure --prefix=/opt/ircu --with-maxcon=256 --enable-debug --with-tls=${TLS_BACKEND} \
+    && if [ -n "$SANITIZE" ]; then \
+         export CFLAGS="-fsanitize=$SANITIZE -fno-omit-frame-pointer -g -O1"; \
+         export LDFLAGS="-fsanitize=$SANITIZE"; \
+       fi; \
+    ./configure --prefix=/opt/ircu --with-maxcon=256 --enable-debug --with-tls=${TLS_BACKEND} \
     && make
 
 # Stage 2: Runtime image
 FROM debian:trixie-slim
 
 ARG TLS_BACKEND=openssl
+ARG SANITIZE=
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     perl \
+    gdb \
+    valgrind \
     $(if [ "$TLS_BACKEND" = "openssl" ]; then echo libssl3t64; \
       elif [ "$TLS_BACKEND" = "gnutls" ]; then echo libgnutls30t64; \
       elif [ "$TLS_BACKEND" = "libtls" ]; then echo libtls28t64; fi) \
+    $(if [ -n "$SANITIZE" ]; then echo libasan8; fi) \
     && rm -rf /var/lib/apt/lists/*
 
 RUN useradd -r -m -d /opt/ircu ircu
@@ -58,8 +68,10 @@ RUN chown -R ircu:ircu /opt/ircu/lib/certs
 # Create empty motd file
 RUN touch /opt/ircu/lib/ircd.motd && chown ircu:ircu /opt/ircu/lib/ircd.motd
 
-USER ircu
+COPY tests/docker/ircd-entrypoint.sh /opt/ircu/lib/ircd-entrypoint.sh
+RUN chmod 755 /opt/ircu/lib/ircd-entrypoint.sh
+
 WORKDIR /opt/ircu
 
-ENTRYPOINT ["/opt/ircu/bin/ircd"]
+ENTRYPOINT ["/opt/ircu/lib/ircd-entrypoint.sh"]
 CMD ["-f", "/opt/ircu/lib/ircd.conf", "-n"]

@@ -16,10 +16,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-#include <unistd.h> /* for write() */
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "client.h"
 #include "class.h"
 #include "ircd.h"
@@ -35,6 +35,8 @@
 #include "s_misc.h"
 #include "s_user.h"  /* for SetClient, SetUser */
 #include "ircd_tls.h"
+#include "ircd_osdep.h"
+#include "send.h"
 
 /*
  * Outbound text frames: IRC lines from msgq are UTF-8–sanitized before framing.
@@ -57,6 +59,36 @@ static const char websocket_guid[] = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 static int websocket_send_handshake(struct Client *cptr, const char *accept_key, const char *subprotocol);
 static void trim_http_field(char *str);
 static int websocket_apply_client_ip(struct Client *cptr, const char *ip);
+
+/** Write raw octets to a WebSocket client (TLS-aware, no IRC/WS framing). */
+static int websocket_write_raw(struct Client *cptr, const void *data, size_t len)
+{
+  struct MsgBuf *mb;
+  unsigned int count;
+
+  if (!cptr || len == 0 || len > UINT_MAX)
+    return -1;
+  if (IsNegotiatingTLS(cptr))
+    return -1;
+
+  if (IsTLS(cptr) && s_tls(&cli_socket(cptr))) {
+    mb = msgq_raw_alloc(cptr, (unsigned int)len);
+    if (!mb)
+      return -1;
+    memcpy(mb->msg, data, len);
+    mb->length = (unsigned int)len;
+    send_raw_buffer(cptr, mb, 0);
+    msgq_clean(mb);
+    if (IsDead(cptr))
+      return -1;
+    return 0;
+  }
+
+  if (os_send_nonb(cli_fd(cptr), data, (unsigned int)len, &count) != IO_SUCCESS
+      || count != len)
+    return -1;
+  return 0;
+}
 
 /** Trim leading/trailing whitespace from an HTTP header field value. */
 static void trim_http_field(char *str)
@@ -161,7 +193,7 @@ int websocket_handshake_handler(struct Client *cptr) {
     }
 
     /* Negotiate subprotocol: respect client order of preference */
-    cli_ws_mode(cptr) = WS_TEXT; /* default */
+    enum ws_mode_t negotiated_mode = WS_TEXT;
     chosen_subprotocol[0] = '\0';
     if (subprotocols[0]) {
         char *tok, *saveptr2;
@@ -172,11 +204,11 @@ int websocket_handshake_handler(struct Client *cptr) {
             while (*tok == ' ' || *tok == '\t') ++tok; /* skip leading space */
             if (strcmp(tok, "binary.ircv3.net") == 0) {
                 strncpy(chosen_subprotocol, "binary.ircv3.net", sizeof(chosen_subprotocol) - 1);
-                cli_ws_mode(cptr) = WS_BINARY;
+                negotiated_mode = WS_BINARY;
                 break;
             } else if (strcmp(tok, "text.ircv3.net") == 0) {
                 strncpy(chosen_subprotocol, "text.ircv3.net", sizeof(chosen_subprotocol) - 1);
-                cli_ws_mode(cptr) = WS_TEXT;
+                negotiated_mode = WS_TEXT;
                 break;
             }
         }
@@ -192,10 +224,11 @@ int websocket_handshake_handler(struct Client *cptr) {
             return 0;
     }
 
-    /* Send handshake response */
+    /* Send handshake response (plain HTTP; WS mode set only after 101 is sent). */
     if (websocket_send_handshake(cptr, accept_key, chosen_subprotocol) != 0)
         return 0;
 
+    cli_ws_mode(cptr) = negotiated_mode;
     return 1;
 }
 
@@ -221,9 +254,9 @@ static int websocket_send_handshake(struct Client *cptr, const char *accept_key,
             "\r\n",
             accept_key);
     }
-    if (write(cli_fd(cptr), response, len) != len)
+    if (len <= 0 || len >= (int)sizeof(response))
         return -1;
-    return 0;
+    return websocket_write_raw(cptr, response, (size_t)len);
 }
 
 /* Sanitizes input into valid UTF-8.
@@ -363,29 +396,23 @@ sanitize_utf8(const char *in, size_t inlen, char *out, size_t outsz)
 /** Server→client RFC6455 Ping (empty payload, unmasked). Not IRC PING. */
 int websocket_send_keepalive_ping(struct Client *cptr) {
     static const unsigned char frm[2] = { 0x89, 0x00 };
-    int fd = cli_fd(cptr);
-    ssize_t n;
 
-    if (fd < 0)
+    if (cli_fd(cptr) < 0)
         return -1;
-    n = write(fd, frm, sizeof frm);
-    return n == (ssize_t)sizeof frm ? 0 : -1;
+    return websocket_write_raw(cptr, frm, sizeof frm);
 }
 
 /** Send unmasked Pong with same application data as peer's Ping (RFC6455). */
 static int websocket_write_pong(struct Client *cptr, const unsigned char *payload, size_t plen) {
     unsigned char out[2 + 125];
-    int fd = cli_fd(cptr);
-    ssize_t nw;
 
-    if (plen > 125 || fd < 0)
+    if (plen > 125 || cli_fd(cptr) < 0)
         return -1;
     out[0] = 0x8A;
     out[1] = (unsigned char)plen;
     if (plen)
         memcpy(out + 2, payload, plen);
-    nw = write(fd, out, 2 + plen);
-    return nw == (ssize_t)(2 + plen) ? 0 : -1;
+    return websocket_write_raw(cptr, out, 2 + plen);
 }
 
 /*

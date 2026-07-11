@@ -539,7 +539,7 @@ int ircd_tls_negotiate(struct Client *cptr)
 
     ClearNegotiatingTLS(cptr);
 
-    if (hash && !ircd_strncmp(hash, "SHA256:", 7))
+    if (hash && !ircd_strncmp(hash, "SHA256:", 7) && !IsCloudflarePort(cptr))
     {
       /* Convert the hash to our fingerprint format */
       if (strlen(hash + 7) <= 64) {
@@ -551,7 +551,10 @@ int ircd_tls_negotiate(struct Client *cptr)
       }
     } else {
       memset(cli_tls_fingerprint(cptr), 0, 65);
-      Debug((DEBUG_DEBUG, "Failed to get fingerprint for %s", cli_name(cptr)));
+      if (hash && !ircd_strncmp(hash, "SHA256:", 7) && IsCloudflarePort(cptr))
+        Debug((DEBUG_DEBUG, "Skipping TLS fingerprint for Cloudflare port %s", cli_name(cptr)));
+      else
+        Debug((DEBUG_DEBUG, "Failed to get fingerprint for %s", cli_name(cptr)));
     }
 
     return 1;

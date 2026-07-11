@@ -32,10 +32,13 @@ class IRCWebSocketClient:
         self._logger = logging.getLogger("irc_ws_client")
         self.binary = binary
 
-    async def connect(self, url, subprotocols=None):
+    async def connect(self, url, subprotocols=None, ssl=None):
         if subprotocols is None:
             subprotocols = ["text.ircv3.net"] if not self.binary else ["binary.ircv3.net"]
-        self._ws = await websockets.connect(url, subprotocols=subprotocols)
+        kwargs = {"subprotocols": subprotocols}
+        if ssl is not None:
+            kwargs["ssl"] = ssl
+        self._ws = await websockets.connect(url, **kwargs)
         self.connected = True
         self._logger.debug("Connected to %s", url)
 
@@ -48,9 +51,11 @@ class IRCWebSocketClient:
     async def send(self, line: str):
         if not self._ws:
             raise ConnectionError("Not connected")
-        self._logger.debug(">> %s", line)
+        if not line.endswith("\r\n"):
+            line = line + "\r\n"
+        self._logger.debug(">> %s", line.rstrip())
         if self.binary:
-            await self._ws.send((line).encode("utf-8"))
+            await self._ws.send(line.encode("utf-8"))
         else:
             await self._ws.send(line)
 

@@ -520,7 +520,7 @@ int ircd_tls_negotiate(struct Client *cptr)
     }
     
     /* Convert buf to hex like OpenSSL version */
-    if (len == 32) {
+    if (len == 32 && !IsCloudflarePort(cptr)) {
       char *p = cli_tls_fingerprint(cptr);
       for (unsigned int i = 0; i < len; i++) {
         sprintf(p + (i * 2), "%02x", buf[i]);
@@ -530,7 +530,10 @@ int ircd_tls_negotiate(struct Client *cptr)
     }
     else {
       memset(cli_tls_fingerprint(cptr), 0, 65);
-      Debug((DEBUG_DEBUG, "Invalid fingerprint length: %zu", len));
+      if (len == 32 && IsCloudflarePort(cptr))
+        Debug((DEBUG_DEBUG, "Skipping TLS fingerprint for Cloudflare port %s", cli_name(cptr)));
+      else
+        Debug((DEBUG_DEBUG, "Invalid fingerprint length: %zu", len));
     }
 
     ClearNegotiatingTLS(cptr);

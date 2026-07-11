@@ -1146,6 +1146,8 @@ void start_auth(struct Client* client)
   struct AuthRequest* auth;
 
   assert(0 != client);
+  if (cli_auth(client))
+    return;
   Debug((DEBUG_INFO, "Beginning auth request on client %p", client));
 
   /* Register with event handlers. */

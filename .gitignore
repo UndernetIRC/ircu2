@@ -30,3 +30,8 @@ Makefile
 .deps/
 .project
 ircu.tags
+
+# Test debug captures (gdb/valgrind); keep the directory via .gitkeep
+tests/debug-output/*
+!tests/debug-output/.gitkeep
+tests/debug-output/failures/

@@ -214,6 +214,47 @@ void send_queued(struct Client *to)
   update_write(to);
 }
 
+/** Queue raw octets on a client's sendq without IRC or WebSocket framing.
+ *
+ * Used for TLS wire writes (HTTP 101, RFC6455 ping/pong) where send_buffer()
+ * must not run websocket_frame_msgbuf().
+ *
+ * The caller retains ownership of \a mb and must msgq_clean() it afterward,
+ * matching send_buffer() callers.
+ */
+void
+send_raw_buffer(struct Client *to, struct MsgBuf *mb, int prio)
+{
+  assert(0 != to);
+  assert(0 != mb);
+
+  if (cli_from(to))
+    to = cli_from(to);
+
+  if (!can_send(to))
+    return;
+
+  if (MsgQLength(&(cli_sendQ(to))) > get_sendq(to)) {
+    if (IsServer(to))
+      sendto_opmask_butone(0, SNO_OLDSNO, "Max SendQ limit exceeded for %C: "
+			   "%zu > %zu", to, MsgQLength(&(cli_sendQ(to))),
+			   get_sendq(to));
+    dead_link(to, "Max sendQ exceeded");
+    return;
+  }
+
+  msgq_add(&(cli_sendQ(to)), mb, prio);
+  client_add_sendq(cli_connect(to), &send_queues);
+  update_write(to);
+
+  ++(cli_sendM(to));
+  ++(cli_sendM(&me));
+
+  /* Small, latency-sensitive wire writes (HTTP 101, RFC6455 ping/pong): flush
+   * immediately. The 2 KiB batching rule in send_buffer() is for IRC volume. */
+  send_queued(to);
+}
+
 /** Try to send a buffer to a client, queueing it if needed.
  * @param[in,out] to Client to send message to.
  * @param[in] buf Message to send.

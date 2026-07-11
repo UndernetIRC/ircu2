@@ -58,6 +58,8 @@ async def _drain_until_idle_tcp(tcp: IRCClient, idle_rounds: int = 3) -> None:
         try:
             await tcp.recv(timeout=0.08)
             quiet = 0
+        except (ConnectionError, OSError):
+            break
         except asyncio.TimeoutError:
             quiet += 1
 
@@ -68,6 +70,8 @@ async def _drain_until_idle_ws(ws: IRCWebSocketClient, idle_rounds: int = 3) -> 
         try:
             await ws.recv(timeout=0.08)
             quiet = 0
+        except (ConnectionError, OSError):
+            break
         except asyncio.TimeoutError:
             quiet += 1
 

@@ -7,10 +7,41 @@ import time
 import pytest
 import pytest_asyncio
 
+from debug_support import (
+    compose_env,
+    debug_mode,
+    format_failure_report,
+    prepare_debug_session,
+    snapshot_failure_artifacts,
+)
 from irc_client import IRCClient
 
 # docker-compose.yml and Dockerfile live in the repo root (parent of tests/)
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+HUB = {"host": "127.0.0.1", "port": 6667, "server_port": 4400, "name": "hub.test.net"}
+LEAF1 = {"host": "127.0.0.1", "port": 6668, "server_port": 4401, "name": "leaf1.test.net"}
+LEAF2 = {"host": "127.0.0.1", "port": 6669, "server_port": 4402, "name": "leaf2.test.net"}
+
+TLS_HUB = {
+    "host": "127.0.0.1",
+    "port": 16677,
+    "tls_port": 16697,
+    "tls_port_alt": 16698,
+    "wss_port": 16700,
+    "wss_cf_port": 16701,
+    "server_port": 14440,
+    "server_tls_ca_port": 14441,
+    "name": "tls-hub.test.net",
+}
+TLS_LEAF = {
+    "host": "127.0.0.1",
+    "port": 16678,
+    "tls_port": 16680,
+    "server_port": 14411,
+    "server_tls_ca_port": 14412,
+    "name": "tls-leaf.test.net",
+}
 
 
 def wait_for_port(host: str, port: int, timeout: float = 30.0):
@@ -27,6 +58,16 @@ def wait_for_port(host: str, port: int, timeout: float = 30.0):
     raise TimeoutError(f"Port {host}:{port} not ready after {timeout}s")
 
 
+def wait_for_hub_ports(host: str | None = None):
+    """Wait until the test hub IRC and WebSocket ports accept connections."""
+    host = host or HUB["host"]
+    wait_for_port(host, HUB["port"])
+    wait_for_port(host, 7000)
+    wait_for_port(host, 7001)
+    # Ident lookups during registration can take several seconds on a cold start.
+    time.sleep(2)
+
+
 def docker_compose(*args, check=True):
     """Run a docker compose command from the repo root."""
     result = subprocess.run(
@@ -35,6 +76,7 @@ def docker_compose(*args, check=True):
         text=True,
         timeout=600,
         cwd=REPO_ROOT,
+        env=compose_env(),
     )
     if check and result.returncode != 0:
         raise RuntimeError(
@@ -43,35 +85,33 @@ def docker_compose(*args, check=True):
     return result
 
 
-HUB = {"host": "127.0.0.1", "port": 6667, "server_port": 4400, "name": "hub.test.net"}
-LEAF1 = {"host": "127.0.0.1", "port": 6668, "server_port": 4401, "name": "leaf1.test.net"}
-LEAF2 = {"host": "127.0.0.1", "port": 6669, "server_port": 4402, "name": "leaf2.test.net"}
-
-TLS_HUB = {
-    "host": "127.0.0.1",
-    "port": 16677,
-    "tls_port": 16697,
-    "tls_port_alt": 16698,
-    "server_port": 14440,
-    "server_tls_ca_port": 14441,
-    "name": "tls-hub.test.net",
-}
-TLS_LEAF = {
-    "host": "127.0.0.1",
-    "port": 16678,
-    "tls_port": 16680,
-    "server_port": 14411,
-    "server_tls_ca_port": 14412,
-    "name": "tls-leaf.test.net",
-}
-
-
 def _start_services(*services):
     """Stop any running containers, rebuild, and start fresh."""
+    prepare_debug_session()
     docker_compose("down", check=False)
     args = ["up", "--build", "--force-recreate", "-d"]
     args.extend(services)
     docker_compose(*args)
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    """On test failure, snapshot docker/gdb/valgrind output into debug-output/."""
+    outcome = yield
+    report = outcome.get_result()
+    if report.when != "call" or not report.failed:
+        return
+    snapshot = snapshot_failure_artifacts(item.nodeid)
+    extra = format_failure_report(snapshot)
+    if extra:
+        report.longrepr = f"{report.longrepr}{extra}"
+
+
+def pytest_report_header(config):
+    mode = debug_mode()
+    if mode:
+        return [f"ircd debug mode: IRCD_DEBUG={mode}"]
+    return []
 
 
 @pytest.fixture(scope="session")
@@ -83,7 +123,7 @@ def ircd_hub():
     """
     _start_services("ircd-hub")
     try:
-        wait_for_port(HUB["host"], HUB["port"])
+        wait_for_hub_ports(HUB["host"])
         yield HUB
     finally:
         docker_compose("down", check=False)
@@ -114,6 +154,7 @@ def ircd_tls_network():
     try:
         wait_for_port(TLS_HUB["host"], TLS_HUB["port"])
         wait_for_port(TLS_HUB["host"], TLS_HUB["tls_port"])
+        wait_for_port(TLS_HUB["host"], TLS_HUB["wss_port"])
         wait_for_port(TLS_HUB["host"], TLS_HUB["server_port"])
         wait_for_port(TLS_LEAF["host"], TLS_LEAF["server_port"])
         # Allow autoconnect TLS links hub <-> tls-leaf

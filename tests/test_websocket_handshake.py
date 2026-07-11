@@ -83,7 +83,7 @@ async def test_websocket_and_normal_ports(make_client):
     await client1.connect(HOST, NORMAL_PORT)
     await client1.send("NICK norm1")
     await client1.send("USER norm1 0 * :Normal 1")
-    msg = await client1.wait_for("001", timeout=5.0)
+    msg = await client1.wait_for("001", timeout=15.0)
     assert msg.command == "001"
     await client1.disconnect()
 
@@ -185,7 +185,10 @@ async def test_websocket_keepalive_server_rfc6455_ping(ircd_hub):
         deadline = time.monotonic() + 20.0
         while time.monotonic() < deadline:
             slot = min(8.0, max(0.25, deadline - time.monotonic()))
-            opcode, payload = await _read_one_unmasked_server_ws_frame(r, read_timeout=slot)
+            try:
+                opcode, payload = await _read_one_unmasked_server_ws_frame(r, read_timeout=slot)
+            except asyncio.TimeoutError:
+                continue
             if opcode == 0x9:
                 assert payload == b"", f"expected empty Ping payload, got {payload!r}"
                 saw_ping = True

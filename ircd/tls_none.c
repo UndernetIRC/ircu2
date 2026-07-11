@@ -24,7 +24,6 @@
 #include "ircd_tls.h"
 #include "ircd_sha1.h"
 #include "client.h"
-#include "s_auth.h"
 #include <stddef.h>
 #include <string.h>
 
@@ -88,8 +87,6 @@ void ircd_tls_listen_free(struct Listener *listener)
 int ircd_tls_negotiate(struct Client *cptr)
 {
   ClearNegotiatingTLS(cptr);
-  if (!IsConnecting(cptr))
-    start_auth(cptr);
   return 1;
 }
 

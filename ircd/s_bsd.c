@@ -998,6 +998,15 @@ static int tls_negotiate_client(struct Client *cptr, char **fmt, char **fallback
   return res;
 }
 
+/** Continue client setup after an inbound or outbound TLS handshake completes. */
+static void tls_handshake_succeeded(struct Client *cptr)
+{
+  if (IsConnecting(cptr))
+    completed_connection(cptr);
+  else if (!cli_auth(cptr))
+    start_auth(cptr);
+}
+
 /** Process events on a client socket.
  * @param ev Socket event structure that has a struct Connection as
  *   its associated data.
@@ -1079,7 +1088,7 @@ static void client_sock_callback(struct Event* ev)
         break;
       }
        /* TLS negotiation succeeded */
-       IsConnecting(cptr) ? completed_connection(cptr) : start_auth(cptr);
+       tls_handshake_succeeded(cptr);
        return;
     }
     ClrFlag(cptr, FLAG_BLOCKED);
@@ -1101,8 +1110,7 @@ static void client_sock_callback(struct Event* ev)
           break;
         }
         /* TLS negotiation succeeded */
-        if (IsConnecting(cptr))
-          completed_connection(cptr);
+        tls_handshake_succeeded(cptr);
       }
       if (read_packet(cptr, 1) == 0) /* error while reading packet */
         fallback = "EOF from client";
