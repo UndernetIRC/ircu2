@@ -121,7 +121,7 @@ ms_sline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   time_t lastmod = 0, expire = 0;
   char *state = NULL, *pattern = NULL, *type = NULL;
 
-  if (parc < 5)
+  if (parc < 6)
     return need_more_params(sptr, "SLINE");
 
   state = parv[1];
