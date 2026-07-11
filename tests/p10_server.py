@@ -338,3 +338,61 @@ class P10Server:
                 await self._recv(timeout=timeout)
             except (asyncio.TimeoutError, TimeoutError):
                 break
+
+    # --- S:line / netconf / extension-reply helpers ---
+
+    async def send_sline(
+        self,
+        pattern: str,
+        msg_type: str = "A",
+        active: bool = True,
+        expire: int = 0,
+        lastmod: int | None = None,
+    ):
+        """Inject an S-line via the P10 SLINE (SL) command.
+
+        Wire format (from ms_sline):
+            <our_num> SL <state> <lastmod> <expire> <type> :<pattern>
+        where state is '+' (active) or '-' (inactive), and type is a
+        combination of A/P/C/L/Q.
+        """
+        if lastmod is None:
+            lastmod = int(time.time())
+        state = "+" if active else "-"
+        await self._send(
+            f"{self._num} SL {state} {lastmod} {expire} {msg_type} :{pattern}"
+        )
+
+    async def send_config(self, key: str, value: str, timestamp: int | None = None):
+        """Set a network configuration value via the P10 CONFIG (CF) command.
+
+        Wire format (from ms_config):
+            <our_num> CF <timestamp> <key> :<value>
+        """
+        if timestamp is None:
+            timestamp = int(time.time())
+        await self._send(f"{self._num} CF {timestamp} {key} :{value}")
+
+    async def send_xreply(self, target: str, routing: str, reply: str):
+        """Send an extension reply via the P10 XREPLY (XR) command.
+
+        Wire format (from ms_xreply):
+            <our_num> XR <target> <routing> :<reply>
+        <target> is the numeric of the server that issued the XQUERY
+        (the hub's server numeric), <routing> is e.g. "spam:<token>".
+        """
+        await self._send(f"{self._num} XR {target} {routing} :{reply}")
+
+    async def wait_for_token(self, token: str, timeout: float = 5.0) -> str:
+        """Read lines until one whose P10 token matches, and return it.
+
+        Handles PINGs and NICK tracking while waiting.
+        """
+        deadline = asyncio.get_event_loop().time() + timeout
+        while True:
+            remaining = deadline - asyncio.get_event_loop().time()
+            if remaining <= 0:
+                raise TimeoutError(f"Timed out waiting for token {token}")
+            line = await self._recv(timeout=remaining)
+            if self._get_token(line) == token:
+                return line
