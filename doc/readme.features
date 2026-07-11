@@ -251,6 +251,16 @@ HIDDEN_IP
 This selects a fake IP to be shown on /USERIP and /WHO %i when the
 target has a hidden host (see HOST_HIDING).
 
+TRUST_USERNAME
+ * Type: boolean
+ * Default: TRUE
+
+When enabled, other users see a fully hidden client's username without
+a leading tilde (~) in WHOIS, USERHOST, USERIP, NAMES (UHNAMES), and
+similar user-facing output.  Both umode +x and a registered account
+are required (see HOST_HIDING).  Internal username records, server
+propagation, and ban/gline matching still use the real tilded username.
+
 CONNEXIT_NOTICES
  * Type: boolean
  * Default: FALSE

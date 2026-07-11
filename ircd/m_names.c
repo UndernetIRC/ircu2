@@ -178,8 +178,8 @@ void do_names(struct Client* sptr, struct Channel* chptr, int filter)
 
     if (CapHas(cli_active(sptr), CAP_UHNAMES)) {
       buf[idx++] = '!';
-      strcpy(buf + idx, cli_user(c2ptr)->username);
-      idx += strlen(cli_user(c2ptr)->username);
+      strcpy(buf + idx, visible_username(c2ptr));
+      idx += strlen(visible_username(c2ptr));
       buf[idx++] = '@';
       strcpy(buf + idx, cli_user(c2ptr)->host);
       idx += strlen(cli_user(c2ptr)->host);

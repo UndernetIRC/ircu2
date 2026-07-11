@@ -909,6 +909,20 @@ void send_user_info(struct Client* sptr, char* names, int rpl, InfoFormatter fmt
   msgq_clean(mb);
 }
 
+/** Return the username shown to other users, optionally without ~ when hidden.
+ * @param[in] cptr Client whose username should be displayed.
+ * @return Pointer into the client's username (never modified).
+ */
+const char *
+visible_username(const struct Client *cptr)
+{
+  const char *user = cli_user(cptr)->username;
+
+  if (feature_bool(FEAT_TRUST_USERNAME) && HasHiddenHost(cptr) && user[0] == '~')
+    return user + 1;
+  return user;
+}
+
 /** Set \a flag on \a cptr and possibly hide the client's hostmask.
  * @param[in,out] cptr User who is getting a new flag.
  * @param[in] flag Some flag that affects host-hiding (FLAG_HIDDENHOST, FLAG_ACCOUNT).
@@ -941,7 +955,7 @@ hide_hostmask(struct Client *cptr, unsigned int flag)
 
   sendcmdto_capflag_common_channels_butone(cptr, CMD_QUIT, cptr, 0, CAP_CHGHOST, ":Registered");
   sendcmdto_capflag_common_channels_butone(cptr, CMD_CHGHOST, NULL, CAP_CHGHOST, 0, "%s %s.%s",
-    cli_user(cptr)->username, cli_user(cptr)->account, feature_str(FEAT_HIDDEN_HOST));
+    visible_username(cptr), cli_user(cptr)->account, feature_str(FEAT_HIDDEN_HOST));
   ircd_snprintf(0, cli_user(cptr)->host, HOSTLEN, "%s.%s",
                 cli_user(cptr)->account, feature_str(FEAT_HIDDEN_HOST));
 

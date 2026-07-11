@@ -142,7 +142,7 @@ static void do_whois(struct Client* sptr, struct Client *acptr, int parc)
   a2cptr = feature_bool(FEAT_HIS_WHOIS_SERVERNAME) && !IsAnOper(sptr)
       && sptr != acptr ? &his : user->server;
   assert(user);
-  send_reply(sptr, RPL_WHOISUSER, name, user->username, user->host,
+  send_reply(sptr, RPL_WHOISUSER, name, visible_username(acptr), user->host,
 		   cli_info(acptr));
 
   /* Display the channels this user is on. */

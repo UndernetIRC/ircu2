@@ -122,7 +122,7 @@ void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
 
   if (!fields || (fields & WHO_FIELD_UID))
   {
-    char *p2 = cli_user(acptr)->username;
+    char *p2 = visible_username(acptr);
     *(p1++) = ' ';
     while ((*p2) && (*(p1++) = *(p2++)));
   }
