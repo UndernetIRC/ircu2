@@ -32,6 +32,7 @@
 #include "send.h"
 #include "s_conf.h"
 #include "s_debug.h"
+#include "ircd_sha1.h"
 
 #include <stddef.h>
 #include <stdio.h>
@@ -659,4 +660,9 @@ IOResult ircd_tls_sendv(struct Client *cptr, struct MsgQ *buf,
   }
 
   return result;
+}
+
+int ircd_tls_sha1_base64(const void *data, size_t len, char *out, size_t outlen)
+{
+  return ircd_sha1_base64(data, len, out, outlen);
 }

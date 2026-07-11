@@ -4,6 +4,7 @@ services:
       context: .
       args:
         IRCD_CONF: tests/docker/ircd-hub.conf
+        TLS_BACKEND: ${TLS_BACKEND:-openssl}
     container_name: ircu-hub
     ports:
       - "6667:6667"

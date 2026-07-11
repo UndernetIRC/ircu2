@@ -32,6 +32,7 @@
 #include "numeric.h"
 #include "s_misc.h"
 #include "s_user.h"  /* for SetClient, SetUser */
+#include "ircd_tls.h"
 
 /*
  * Outbound text frames: IRC lines from msgq are UTF-8–sanitized before framing.
@@ -52,43 +53,6 @@ static const char websocket_guid[] = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
 /* Forward declaration */
 static int websocket_send_handshake(struct Client *cptr, const char *accept_key, const char *subprotocol);
-
-/* Compute Sec-WebSocket-Accept from Sec-WebSocket-Key (RFC 6455):
- * concatenate key + GUID, SHA1, base64; OpenSSL SHA1 + BIO base64.
- * Returns 0 on success, -1 on failure.
- */
-#include <openssl/sha.h>
-#include <openssl/evp.h>
-#include <openssl/bio.h>
-#include <openssl/buffer.h>
-
-int websocket_base64_sha1(const char *key, char *out, size_t outlen) {
-    char input[256];
-    unsigned char sha1[SHA_DIGEST_LENGTH];
-    int input_len;
-    BIO *bmem = NULL, *b64 = NULL;
-    BUF_MEM *bptr = NULL;
-    if (!key || !out) return -1;
-    input_len = snprintf(input, sizeof(input), "%s%s", key, websocket_guid);
-    if (input_len <= 0 || input_len >= (int)sizeof(input)) return -1;
-    SHA1((unsigned char*)input, input_len, sha1);
-    b64 = BIO_new(BIO_f_base64());
-    bmem = BIO_new(BIO_s_mem());
-    b64 = BIO_push(b64, bmem);
-    BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
-    BIO_write(b64, sha1, SHA_DIGEST_LENGTH);
-    BIO_flush(b64);
-    BIO_get_mem_ptr(b64, &bptr);
-    if (bptr && bptr->length < outlen) {
-        memcpy(out, bptr->data, bptr->length);
-        out[bptr->length] = '\0';
-    } else {
-        BIO_free_all(b64);
-        return -1;
-    }
-    BIO_free_all(b64);
-    return 0;
-}
 
 /* Parse HTTP headers, perform handshake, and transition client to IRC over WebSocket. */
 int websocket_handshake_handler(struct Client *cptr) {
@@ -156,8 +120,14 @@ int websocket_handshake_handler(struct Client *cptr) {
     }
 
     /* Compute Sec-WebSocket-Accept */
-    if (websocket_base64_sha1(sec_ws_key, accept_key, sizeof(accept_key)) != 0)
-        return 0;
+    {
+        char input[256];
+        int input_len = snprintf(input, sizeof(input), "%s%s", sec_ws_key, websocket_guid);
+        if (input_len <= 0 || input_len >= (int)sizeof(input))
+            return 0;
+        if (ircd_tls_sha1_base64(input, input_len, accept_key, sizeof(accept_key)) != 0)
+            return 0;
+    }
 
     /* Send handshake response */
     if (websocket_send_handshake(cptr, accept_key, chosen_subprotocol) != 0)

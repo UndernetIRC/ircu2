@@ -22,6 +22,7 @@
 
 #include "config.h"
 #include "ircd_tls.h"
+#include "ircd_sha1.h"
 #include "client.h"
 #include "s_auth.h"
 #include <stddef.h>
@@ -102,4 +103,9 @@ IOResult ircd_tls_sendv(struct Client *cptr, struct MsgQ *buf,
                         unsigned int *count_in, unsigned int *count_out)
 {
   return os_sendv_nonb(cli_fd(cptr), buf, count_in, count_out);
+}
+
+int ircd_tls_sha1_base64(const void *data, size_t len, char *out, size_t outlen)
+{
+  return ircd_sha1_base64(data, len, out, outlen);
 }

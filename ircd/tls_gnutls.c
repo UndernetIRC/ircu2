@@ -36,6 +36,7 @@
 
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
+#include <gnutls/crypto.h>
 #include <stddef.h>
 #include <string.h>
 #include <stdio.h>
@@ -650,4 +651,36 @@ IOResult ircd_tls_sendv(struct Client *cptr, struct MsgQ *buf,
   }
 
   return result;
+}
+
+int ircd_tls_sha1_base64(const void *data, size_t len, char *out, size_t outlen)
+{
+  unsigned char digest[20];
+  gnutls_datum_t in;
+  gnutls_datum_t encoded = { NULL, 0 };
+  int rc;
+
+  if (!data || !out || len == 0 || outlen == 0)
+    return -1;
+
+  rc = gnutls_hash_fast(GNUTLS_DIG_SHA1, data, len, digest);
+  if (rc != 0)
+    return -1;
+
+  in.data = digest;
+  in.size = sizeof(digest);
+
+  rc = gnutls_base64_encode2(&in, &encoded);
+  if (rc != 0)
+    return -1;
+
+  if (encoded.size >= outlen) {
+    gnutls_free(encoded.data);
+    return -1;
+  }
+
+  memcpy(out, encoded.data, encoded.size);
+  out[encoded.size] = '\0';
+  gnutls_free(encoded.data);
+  return 0;
 }

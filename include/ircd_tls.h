@@ -218,4 +218,10 @@ IOResult ircd_tls_recv(struct Client *cptr, char *buf,
 IOResult ircd_tls_sendv(struct Client *cptr, struct MsgQ *buf,
                         unsigned int *count_in, unsigned int *count_out);
 
+/** Compute base64(SHA1(\a data)) into \a out.
+ * Used for RFC 6455 WebSocket handshakes and similar protocols.
+ * \returns 0 on success, -1 on failure.
+ */
+int ircd_tls_sha1_base64(const void *data, size_t len, char *out, size_t outlen);
+
 #endif /* INCLUDED_ircd_tls_h */

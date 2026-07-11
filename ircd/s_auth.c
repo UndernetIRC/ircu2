@@ -143,18 +143,6 @@ typedef enum {
   REPORT_INVAL_DNS
 } ReportType;
 
-/** Sends response \a r (from #ReportType) to client \a cptr. */
-static void sendheader(struct Client *cptr, ReportType r)
-{
-  if (IsWebsocket(cptr)) {
-    sendrawto_one(cptr, "%.*s", HeaderMessages[r].length - 2,
-      HeaderMessages[r].message);
-    send_queued(cptr);
-  } else {
-   send(cli_fd(cptr), HeaderMessages[r].message, HeaderMessages[r].length, 0);
-  }
-}
-
 /** Enumeration of IAuth connection flags. */
 enum IAuthFlag
 {
@@ -233,7 +221,7 @@ typedef int (*iauth_cmd_handler)(struct IAuth *iauth, struct Client *cli,
 /** Sends response \a r (from #ReportType) to client \a cptr. */
 static void sendheader(struct Client *cptr, ReportType r)
 {
-  if (IsTLS(cptr))
+  if (IsTLS(cptr) || IsWebsocket(cptr))
   {
     sendrawto_one(cptr, "%.*s", HeaderMessages[r].length - 2,
       HeaderMessages[r].message);
