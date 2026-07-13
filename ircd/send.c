@@ -286,20 +286,25 @@ void send_buffer(struct Client* to, struct MsgBuf* buf, int prio)
   Debug((DEBUG_SEND, "Sending [%p] to %s", buf, cli_name(to)));
 
 
-  /* For websocket clients, replace IRC MsgBuf with a framed one before queueing.
-   * Do not msgq_clean(buf): callers (sendrawto_one, sendcmdto_one, ...) always
-   * msgq_clean their msgq_make buffer after send_buffer; cleaning here would
-   * double-free and abort in msgq_clean. */
+  /* For websocket clients, replace the IRC MsgBuf with a framed one before
+   * queueing. The original buf is still owned and cleaned by the caller
+   * (sendrawto_one, sendcmdto_one, ...); the framed buffer is owned here. */
+  struct MsgBuf *ws_framed = 0;
   if (IsWebsocket(to)) {
-    struct MsgBuf *framed = websocket_frame_msgbuf(to, buf->msg, buf->length);
-    if (!framed) {
+    ws_framed = websocket_frame_msgbuf(to, buf->msg, buf->length);
+    if (!ws_framed) {
       dead_link(to, "Websocket frame error");
       return;
     }
-    buf = framed;
+    buf = ws_framed;
   }
 
   msgq_add(&(cli_sendQ(to)), buf, prio);
+  /* msgq_add() took its own reference on the queued buffer, so release the
+   * reference websocket_frame_msgbuf() handed us. Without this, one MsgBuf
+   * leaks per outbound WebSocket message and exhausts the buffer pool. */
+  if (ws_framed)
+    msgq_clean(ws_framed);
   client_add_sendq(cli_connect(to), &send_queues);
   update_write(to);
 
