@@ -243,8 +243,11 @@ struct Connection
                                         clients socket to close. */
   struct Socket       con_socket;    /**< socket descriptor for
                                       client */
-  char con_ws_handshake[WEBSOCKET_MAX_HEADER + 1]; /**< Buffer for accumulating WebSocket handshake data */
-  size_t con_ws_handshake_len;       /**< Length of handshake buffer */
+  char con_ws_handshake[WEBSOCKET_MAX_HEADER + 1]; /**< WebSocket handshake bytes
+                                        before upgrade; reused after upgrade as
+                                        the frame-reassembly buffer for partial
+                                        WS frames spanning multiple reads. */
+  size_t con_ws_handshake_len;       /**< Bytes currently held in con_ws_handshake */
   time_t con_ws_last_keepalive;      /**< Last time we sent RFC6455 Ping (not IRC PING); 0 = not set */
   struct Timer        con_proc;      /**< process latent messages from
                                       client */

@@ -722,17 +722,42 @@ static int read_packet(struct Client *cptr, int socket_ready)
     return connect_dopacket(cptr, readbuf, length);
   else
   {
-    /* Parse websocket frames */
+    /* Parse websocket frames.
+     *
+     * WebSocket frames can be split across TCP reads, so unconsumed bytes are
+     * retained in con_ws_handshake (reused post-handshake as the frame-assembly
+     * buffer) and completed on a later read. Newly read bytes are fed into that
+     * buffer in chunks and complete frames are drained each pass, so an
+     * unbounded stream of small frames needs only a bounded buffer; a single
+     * frame that cannot fit is treated as excess flood.
+     */
     if (IsWebsocket(cptr)) {
-      if (length > 0) {
+      struct Connection *con = cli_connect(cptr);
+      unsigned int consumed = 0;
+
+      for (;;) {
+        unsigned int space = WEBSOCKET_MAX_HEADER - con->con_ws_handshake_len;
+        unsigned int take = 0;
         size_t offset = 0;
-        int ret;
-        while (offset < length) {
-          ret = websocket_parse_frame(cptr, readbuf + offset, length - offset);
+
+        if (length > consumed) {
+          take = length - consumed;
+          if (take > space)
+            take = space;
+          if (take) {
+            memcpy(con->con_ws_handshake + con->con_ws_handshake_len,
+                   readbuf + consumed, take);
+            con->con_ws_handshake_len += take;
+            consumed += take;
+          }
+        }
+
+        while (offset < con->con_ws_handshake_len) {
+          int ret = websocket_parse_frame(cptr, con->con_ws_handshake + offset,
+                                          con->con_ws_handshake_len - offset);
           if (ret > 0) {
             offset += ret;
 
-            Debug((DEBUG_DEBUG, "dbuf: %u maxfl: %u", DBufLength(&(cli_recvQ(cptr))), GetMaxFlood(cptr)));
             if (DBufLength(&(cli_recvQ(cptr))) > GetMaxFlood(cptr))
               return exit_client(cptr, cptr, &me, "Excess Flood");
 
@@ -749,11 +774,29 @@ static int read_packet(struct Client *cptr, int socket_ready)
               return CPTR_KILLED;
 
           } else if (ret == 0) {
-            break; // need more data
+            break; /* incomplete frame; wait for more bytes */
           } else {
             return exit_client(cptr, cptr, &me, "dbuf_put fail");
           }
         }
+
+        /* Shift any unconsumed (incomplete) frame bytes to the front. */
+        if (offset > 0) {
+          memmove(con->con_ws_handshake, con->con_ws_handshake + offset,
+                  con->con_ws_handshake_len - offset);
+          con->con_ws_handshake_len -= offset;
+        }
+
+        if (consumed >= length) {
+          /* All input fed. A full buffer with no complete frame means a single
+           * frame larger than the buffer can ever hold. */
+          if (con->con_ws_handshake_len >= WEBSOCKET_MAX_HEADER)
+            return exit_client(cptr, cptr, &me, "Excess Flood");
+          break;
+        }
+        /* Could not take new bytes and parsed nothing: single oversize frame. */
+        if (take == 0 && offset == 0)
+          return exit_client(cptr, cptr, &me, "Excess Flood");
       }
       return 1;
     }
