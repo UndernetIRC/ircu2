@@ -437,6 +437,12 @@ int websocket_parse_frame(struct Client *cptr, const char *buf, size_t buflen,
     size_t i;
     unsigned char masking_key[4];
 
+    /* RFC 6455 5.1: every client-to-server frame MUST be masked. An unmasked
+     * frame is a protocol error; fail the connection rather than mis-parsing it
+     * (previously unmasked payloads were read verbatim as IRC input). */
+    if (!mask)
+        return -2;
+
     if (payload_len == 126) {
         if (buflen < 4) return 0;
         /* Cast each length byte to unsigned char before shifting: buf is

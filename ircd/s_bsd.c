@@ -783,7 +783,8 @@ static int read_packet(struct Client *cptr, int socket_ready)
           } else if (ret == 0) {
             break; /* incomplete frame; wait for more bytes */
           } else {
-            return exit_client(cptr, cptr, &me, "dbuf_put fail");
+            return exit_client(cptr, cptr, &me,
+                ret == -2 ? "WebSocket protocol violation" : "dbuf_put fail");
           }
         }
 
