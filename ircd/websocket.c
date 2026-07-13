@@ -90,6 +90,20 @@ static int websocket_write_raw(struct Client *cptr, const void *data, size_t len
   return 0;
 }
 
+/** Send a minimal HTTP 400 response for a failed WebSocket handshake, so a
+ * plain HTTP client sees an error instead of a bare connection drop. */
+int websocket_send_http_error(struct Client *cptr)
+{
+  static const char resp[] =
+    "HTTP/1.1 400 Bad Request\r\n"
+    "Connection: close\r\n"
+    "Sec-WebSocket-Version: 13\r\n"
+    "Content-Length: 0\r\n"
+    "\r\n";
+
+  return websocket_write_raw(cptr, resp, sizeof(resp) - 1);
+}
+
 /** Trim leading/trailing whitespace from an HTTP header field value. */
 static void trim_http_field(char *str)
 {

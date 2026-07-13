@@ -27,6 +27,8 @@
 #define WEBSOCKET_MAX_HEADER 4096
 
 int websocket_handshake_handler(struct Client *cptr);
+/** Send an HTTP 400 response for a failed handshake (before closing). */
+int websocket_send_http_error(struct Client *cptr);
 /** Parse one WebSocket frame. On a data/continuation frame, *msg_ready is set
  * to 1 when the frame carries FIN (logical message complete), else 0. */
 int websocket_parse_frame(struct Client *cptr, const char *buf, size_t buflen,

@@ -708,6 +708,9 @@ static int read_packet(struct Client *cptr, int socket_ready)
 
       /* Start DNS and ident queries. */
       start_dns_ident(cptr);
+    } else if (ret == 0) {
+      /* Handshake definitively failed: tell an HTTP client why before closing. */
+      websocket_send_http_error(cptr);
     }
     return ret;
   }
