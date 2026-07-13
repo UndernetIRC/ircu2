@@ -554,10 +554,9 @@ int websocket_parse_frame(struct Client *cptr, const char *buf, size_t buflen,
         memcpy(masking_key, buf + header_len, 4);
         header_len += 4;
     }
-    if (buflen < header_len + payload_len) return 0;
-
-    /* Control frames (RFC6455): max 125 byte payload; reply to Ping with Pong */
+    /* Control frames (RFC6455): must arrive whole (payload <= 125). */
     if (opcode & 0x08) {
+        if (buflen < header_len + payload_len) return 0;
         if (payload_len > 125)
             return header_len + payload_len;
         if (opcode == 0x8) {
@@ -575,28 +574,41 @@ int websocket_parse_frame(struct Client *cptr, const char *buf, size_t buflen,
         return header_len + payload_len;
     }
 
+    /* Reserved non-control opcodes: skip the whole (fully-present) frame. */
+    if (opcode != 0x0 && opcode != 0x1 && opcode != 0x2) {
+        if (buflen < header_len + payload_len) return 0;
+        return header_len + payload_len;
+    }
+
     /* Data (0x1 text, 0x2 binary) and continuation (0x0) frames carry payload.
      * Continuation frames belong to a message started by an earlier FIN=0 frame;
-     * their bytes simply append to recvQ, so no start-frame state is needed. */
-    if (opcode != 0x0 && opcode != 0x1 && opcode != 0x2)
-        return header_len + payload_len;
+     * their bytes simply append to recvQ, so no start-frame state is needed.
+     *
+     * IRC lines are bounded, so we only ever deliver the first line's worth of
+     * octets; the rest of an oversized frame is drained by the caller (which
+     * uses the returned full frame length). This means only header + up to one
+     * line need be buffered, not the whole frame. */
+    {
+        char irc_line[513];
+        size_t deliver = payload_len < sizeof(irc_line) - 1
+                       ? payload_len : sizeof(irc_line) - 1;
 
-    char irc_line[513];
-    size_t copy_len = payload_len < sizeof(irc_line) - 1 ? payload_len : sizeof(irc_line) - 1;
-    for (i = 0; i < copy_len; ++i) {
-        unsigned char c = buf[header_len + i];
-        if (mask) c ^= masking_key[i % 4];
-        irc_line[i] = c;
+        if (buflen < header_len + deliver)
+            return 0; /* wait until header + deliverable prefix is present */
+
+        for (i = 0; i < deliver; ++i)
+            irc_line[i] = (char)((unsigned char)buf[header_len + i]
+                                 ^ masking_key[i % 4]);
+        irc_line[deliver] = '\0';
+
+        if (dbuf_put(&(cli_recvQ(cptr)), irc_line, deliver) == 0)
+            return -1; /* Buffer error */
+
+        /* Deliver only once the message is complete (FIN); otherwise keep
+         * buffering subsequent continuation fragments in recvQ. */
+        if (msg_ready)
+            *msg_ready = fin;
     }
-    irc_line[copy_len] = '\0';
-
-    if (dbuf_put(&(cli_recvQ(cptr)), irc_line, copy_len) == 0)
-        return -1; /* Buffer error */
-
-    /* Deliver only once the message is complete (FIN); otherwise keep buffering
-     * subsequent continuation fragments in recvQ. */
-    if (msg_ready)
-        *msg_ready = fin;
 
     return header_len + payload_len;
 }

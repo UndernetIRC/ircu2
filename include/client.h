@@ -248,6 +248,9 @@ struct Connection
                                         the frame-reassembly buffer for partial
                                         WS frames spanning multiple reads. */
   size_t con_ws_handshake_len;       /**< Bytes currently held in con_ws_handshake */
+  size_t con_ws_skip;                /**< Remaining payload octets to discard from
+                                        an oversized WebSocket frame (drained across
+                                        reads instead of buffering the whole frame). */
   time_t con_ws_last_keepalive;      /**< Last time we sent RFC6455 Ping (not IRC PING); 0 = not set */
   struct Timer        con_proc;      /**< process latent messages from
                                       client */

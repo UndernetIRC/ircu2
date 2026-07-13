@@ -727,22 +727,35 @@ static int read_packet(struct Client *cptr, int socket_ready)
   {
     /* Parse websocket frames.
      *
-     * WebSocket frames can be split across TCP reads, so unconsumed bytes are
-     * retained in con_ws_handshake (reused post-handshake as the frame-assembly
-     * buffer) and completed on a later read. Newly read bytes are fed into that
-     * buffer in chunks and complete frames are drained each pass, so an
-     * unbounded stream of small frames needs only a bounded buffer; a single
-     * frame that cannot fit is treated as excess flood.
+     * Frames can be split across TCP reads, so unconsumed bytes are retained in
+     * con_ws_handshake (reused post-handshake as the frame-assembly buffer) and
+     * completed on a later read. Oversized frames are not buffered whole: the
+     * parser delivers the first line's worth of octets and reports the full
+     * frame length, and the remaining payload is drained via con_ws_skip across
+     * reads. Input is fed in bounded chunks, so a stream of frames of any size
+     * needs only a bounded buffer.
      */
     if (IsWebsocket(cptr)) {
       struct Connection *con = cli_connect(cptr);
       unsigned int consumed = 0;
 
       for (;;) {
-        unsigned int space = WEBSOCKET_MAX_HEADER - con->con_ws_handshake_len;
+        unsigned int space;
         unsigned int take = 0;
         size_t offset = 0;
 
+        /* Discard payload left over from an oversized frame before parsing. */
+        if (con->con_ws_skip > 0 && length > consumed) {
+          unsigned int avail = length - consumed;
+          unsigned int drop = (con->con_ws_skip < (size_t)avail)
+                            ? (unsigned int)con->con_ws_skip : avail;
+          consumed += drop;
+          con->con_ws_skip -= drop;
+        }
+        if (con->con_ws_skip > 0)
+          break; /* still draining an oversized frame; wait for more data */
+
+        space = WEBSOCKET_MAX_HEADER - con->con_ws_handshake_len;
         if (length > consumed) {
           take = length - consumed;
           if (take > space)
@@ -761,7 +774,14 @@ static int read_packet(struct Client *cptr, int socket_ready)
                                           con->con_ws_handshake_len - offset,
                                           &msg_ready);
           if (ret > 0) {
-            offset += ret;
+            size_t avail = con->con_ws_handshake_len - offset;
+            if ((size_t)ret <= avail) {
+              offset += ret;   /* whole frame was buffered */
+            } else {
+              /* Oversized frame: consume the buffer, drain the remainder. */
+              con->con_ws_skip = (size_t)ret - avail;
+              offset = con->con_ws_handshake_len;
+            }
 
             /* Bound recvQ growth even while fragments accumulate unfinished. */
             if (DBufLength(&(cli_recvQ(cptr))) > GetMaxFlood(cptr))
@@ -783,6 +803,9 @@ static int read_packet(struct Client *cptr, int socket_ready)
                 return CPTR_KILLED;
             }
 
+            if (con->con_ws_skip > 0)
+              break; /* remainder of oversized frame drains on later reads */
+
           } else if (ret == 0) {
             break; /* incomplete frame; wait for more bytes */
           } else {
@@ -803,14 +826,15 @@ static int read_packet(struct Client *cptr, int socket_ready)
         }
 
         if (consumed >= length) {
-          /* All input fed. A full buffer with no complete frame means a single
-           * frame larger than the buffer can ever hold. */
-          if (con->con_ws_handshake_len >= WEBSOCKET_MAX_HEADER)
+          /* All input fed. A full buffer with no complete frame means a
+           * control/reserved frame larger than the buffer can ever hold. */
+          if (con->con_ws_skip == 0
+              && con->con_ws_handshake_len >= WEBSOCKET_MAX_HEADER)
             return exit_client(cptr, cptr, &me, "Excess Flood");
           break;
         }
-        /* Could not take new bytes and parsed nothing: single oversize frame. */
-        if (take == 0 && offset == 0)
+        /* Made no progress and cannot buffer more: oversize control frame. */
+        if (take == 0 && offset == 0 && con->con_ws_skip == 0)
           return exit_client(cptr, cptr, &me, "Excess Flood");
       }
       return 1;
