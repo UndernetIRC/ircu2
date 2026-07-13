@@ -431,12 +431,20 @@ int websocket_parse_frame(struct Client *cptr, const char *buf, size_t buflen) {
 
     if (payload_len == 126) {
         if (buflen < 4) return 0;
-        payload_len = (buf[2] << 8) | buf[3];
+        /* Cast each length byte to unsigned char before shifting: buf is
+         * signed char, so a byte >= 0x80 would otherwise sign-extend and
+         * corrupt the length. */
+        payload_len = ((size_t)(unsigned char)buf[2] << 8)
+                    | (size_t)(unsigned char)buf[3];
         header_len = 4;
     } else if (payload_len == 127) {
         if (buflen < 10) return 0;
-        /* Only support up to 32-bit length for simplicity */
-        payload_len = (buf[6] << 24) | (buf[7] << 16) | (buf[8] << 8) | buf[9];
+        /* Only support up to 32-bit length for simplicity (buf[2..5] ignored);
+         * cast to unsigned char before shifting to avoid sign extension. */
+        payload_len = ((size_t)(unsigned char)buf[6] << 24)
+                    | ((size_t)(unsigned char)buf[7] << 16)
+                    | ((size_t)(unsigned char)buf[8] << 8)
+                    | (size_t)(unsigned char)buf[9];
         header_len = 10;
     }
     if (mask) {
