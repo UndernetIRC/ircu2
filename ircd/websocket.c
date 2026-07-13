@@ -402,6 +402,15 @@ int websocket_send_keepalive_ping(struct Client *cptr) {
     return websocket_write_raw(cptr, frm, sizeof frm);
 }
 
+/** Send an unmasked Close frame (RFC6455 status 1000, normal closure). */
+static int websocket_write_close(struct Client *cptr) {
+    static const unsigned char frm[4] = { 0x88, 0x02, 0x03, 0xE8 }; /* 1000 */
+
+    if (cli_fd(cptr) < 0)
+        return -1;
+    return websocket_write_raw(cptr, frm, sizeof frm);
+}
+
 /** Send unmasked Pong with same application data as peer's Ping (RFC6455). */
 static int websocket_write_pong(struct Client *cptr, const unsigned char *payload, size_t plen) {
     unsigned char out[2 + 125];
@@ -472,13 +481,18 @@ int websocket_parse_frame(struct Client *cptr, const char *buf, size_t buflen,
     if (opcode & 0x08) {
         if (payload_len > 125)
             return header_len + payload_len;
-        if (opcode == 0x9 && mask) {
+        if (opcode == 0x8) {
+            /* Close: echo a Close frame and signal the caller to shut down. */
+            (void)websocket_write_close(cptr);
+            return -3;
+        }
+        if (opcode == 0x9) {
             unsigned char udata[125];
             for (i = 0; i < payload_len; ++i)
                 udata[i] = (unsigned char)buf[header_len + i] ^ masking_key[i % 4];
             (void)websocket_write_pong(cptr, udata, payload_len);
         }
-        /* else: unmasked client Ping is invalid; Close/Pong consumed only */
+        /* Pong (0xA) and other control frames are simply consumed. */
         return header_len + payload_len;
     }
 
