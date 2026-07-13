@@ -68,8 +68,11 @@ async def test_origin_allowlist_enforced(ircd_hub):
     await oper.wait_for("381", timeout=10.0)
 
     try:
+        # Read the SET confirmation (RPL_FEATURESTRING 284); this also keeps the
+        # oper connection serviced (answers PINGs) while we run handshakes.
         await oper.send("SET WEBSOCKET_ALLOWED_ORIGINS https://good.example")
-        await asyncio.sleep(0.5)
+        set_reply = await oper.wait_for("284", timeout=8.0)
+        assert "https://good.example" in set_reply.params[-1]
 
         allowed = await _handshake(b"https://good.example")
         assert b"101" in allowed, f"allowed origin was rejected: {allowed[:200]!r}"
@@ -80,9 +83,13 @@ async def test_origin_allowlist_enforced(ircd_hub):
         missing = await _handshake(None)
         assert b"101" not in missing, "missing Origin accepted despite allowlist"
     finally:
+        # Reset and confirm via the server's reply that the allowlist is cleared,
+        # so the shared hub is not left restricted for later tests.
         await oper.send("RESET WEBSOCKET_ALLOWED_ORIGINS")
-        await asyncio.sleep(0.5)
-        # Confirm default (allow-all) is restored so other tests are unaffected.
-        restored = await _handshake(None)
-        await oper.disconnect()
-        assert b"101" in restored, "allowlist not reset; shared hub left restricted"
+        try:
+            reset_reply = await oper.wait_for("284", timeout=8.0)
+            assert "not set" in reset_reply.params[-1], (
+                f"allowlist not reset: {reset_reply.params[-1]!r}"
+            )
+        finally:
+            await oper.disconnect()
