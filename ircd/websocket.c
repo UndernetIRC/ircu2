@@ -416,12 +416,20 @@ static int websocket_write_pong(struct Client *cptr, const unsigned char *payloa
 }
 
 /*
- * Parse one WebSocket frame; payload (text/binary) is pushed into recvQ for line reassembly.
+ * Parse one WebSocket frame; payload (text/binary/continuation) is pushed into
+ * recvQ for line reassembly. *msg_ready is set to 1 when a data/continuation
+ * frame completes a logical message (FIN set), so the caller knows when to drain
+ * recvQ; fragmented messages (FIN=0 followed by continuation frames) accumulate
+ * until the final fragment.
  * Return value: >0 bytes consumed from buf, 0 if more data needed, <0 on dbuf_put failure.
  */
-int websocket_parse_frame(struct Client *cptr, const char *buf, size_t buflen) {
+int websocket_parse_frame(struct Client *cptr, const char *buf, size_t buflen,
+                          int *msg_ready) {
+    if (msg_ready)
+        *msg_ready = 0;
     if (buflen < 2) return 0; /* need frame header */
 
+    unsigned char fin = (buf[0] & 0x80) ? 1 : 0;
     unsigned char opcode = buf[0] & 0x0F;
     unsigned char mask = buf[1] & 0x80;
     size_t payload_len = buf[1] & 0x7F;
@@ -468,7 +476,10 @@ int websocket_parse_frame(struct Client *cptr, const char *buf, size_t buflen) {
         return header_len + payload_len;
     }
 
-    if (opcode != 0x1 && opcode != 0x2)
+    /* Data (0x1 text, 0x2 binary) and continuation (0x0) frames carry payload.
+     * Continuation frames belong to a message started by an earlier FIN=0 frame;
+     * their bytes simply append to recvQ, so no start-frame state is needed. */
+    if (opcode != 0x0 && opcode != 0x1 && opcode != 0x2)
         return header_len + payload_len;
 
     char irc_line[513];
@@ -482,6 +493,11 @@ int websocket_parse_frame(struct Client *cptr, const char *buf, size_t buflen) {
 
     if (dbuf_put(&(cli_recvQ(cptr)), irc_line, copy_len) == 0)
         return -1; /* Buffer error */
+
+    /* Deliver only once the message is complete (FIN); otherwise keep buffering
+     * subsequent continuation fragments in recvQ. */
+    if (msg_ready)
+        *msg_ready = fin;
 
     return header_len + payload_len;
 }

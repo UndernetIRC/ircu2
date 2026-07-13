@@ -753,25 +753,32 @@ static int read_packet(struct Client *cptr, int socket_ready)
         }
 
         while (offset < con->con_ws_handshake_len) {
+          int msg_ready = 0;
           int ret = websocket_parse_frame(cptr, con->con_ws_handshake + offset,
-                                          con->con_ws_handshake_len - offset);
+                                          con->con_ws_handshake_len - offset,
+                                          &msg_ready);
           if (ret > 0) {
             offset += ret;
 
+            /* Bound recvQ growth even while fragments accumulate unfinished. */
             if (DBufLength(&(cli_recvQ(cptr))) > GetMaxFlood(cptr))
               return exit_client(cptr, cptr, &me, "Excess Flood");
 
-            dolen = dbuf_getframe(&(cli_recvQ(cptr)), cli_buffer(cptr), BUFSIZE);
-            if (dolen == 0) {
-              if (DBufLength(&(cli_recvQ(cptr))) > 510) {
-                /* More than 510 bytes in the line - drop the input and yell
-                * at the client.
-                */
-                DBufClear(&(cli_recvQ(cptr)));
-                send_reply(cptr, ERR_INPUTTOOLONG);
-              }
-            } else if (client_dopacket(cptr, dolen) == CPTR_KILLED)
-              return CPTR_KILLED;
+            /* Only drain once a full logical message has arrived (FIN); a
+             * fragmented message keeps accumulating in recvQ until then. */
+            if (msg_ready) {
+              dolen = dbuf_getframe(&(cli_recvQ(cptr)), cli_buffer(cptr), BUFSIZE);
+              if (dolen == 0) {
+                if (DBufLength(&(cli_recvQ(cptr))) > 510) {
+                  /* More than 510 bytes in the line - drop the input and yell
+                  * at the client.
+                  */
+                  DBufClear(&(cli_recvQ(cptr)));
+                  send_reply(cptr, ERR_INPUTTOOLONG);
+                }
+              } else if (client_dopacket(cptr, dolen) == CPTR_KILLED)
+                return CPTR_KILLED;
+            }
 
           } else if (ret == 0) {
             break; /* incomplete frame; wait for more bytes */
