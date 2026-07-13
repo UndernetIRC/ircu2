@@ -106,6 +106,20 @@ static void trim_http_field(char *str)
   *end = '\0';
 }
 
+/** Case-insensitive test for whether \a token appears anywhere in \a value.
+ * Used so header values that are comma lists (e.g. "keep-alive, Upgrade") or
+ * differ in case still match the required token. */
+static int header_has_token(const char *value, const char *token)
+{
+  size_t tlen = strlen(token);
+  const char *p;
+
+  for (p = value; *p; ++p)
+    if (strncasecmp(p, token, tlen) == 0)
+      return 1;
+  return 0;
+}
+
 /** Replace a client's sock IP after verifying it parses and passes IPcheck. */
 static int websocket_apply_client_ip(struct Client *cptr, const char *ip)
 {
@@ -138,6 +152,7 @@ int websocket_handshake_handler(struct Client *cptr) {
     char *buf = con->con_ws_handshake;
     size_t buflen = con->con_ws_handshake_len;
     char sec_ws_key[128] = "";
+    char sec_ws_version[16] = "";
     char subprotocols[256] = "";
     char chosen_subprotocol[64] = "";
     char accept_key[128];
@@ -161,11 +176,17 @@ int websocket_handshake_handler(struct Client *cptr) {
     strncpy(header_copy, buf, buflen);
     header_copy[buflen] = '\0';
     for (line = strtok_r(header_copy, "\r\n", &saveptr); line; line = strtok_r(NULL, "\r\n", &saveptr)) {
-        if (strncasecmp(line, "Upgrade: WebSocket", 17) == 0)
-            has_upgrade = 1;
-        else if (strncasecmp(line, "Connection: Upgrade", 19) == 0)
-            has_connection = 1;
-        else if (strncasecmp(line, "Sec-WebSocket-Key:", 18) == 0) {
+        /* Header values may vary in case and be comma lists (e.g.
+         * "Connection: keep-alive, Upgrade"), so match by token, not prefix. */
+        if (strncasecmp(line, "Upgrade:", 8) == 0)
+            has_upgrade = header_has_token(line + 8, "websocket");
+        else if (strncasecmp(line, "Connection:", 11) == 0)
+            has_connection = header_has_token(line + 11, "upgrade");
+        else if (strncasecmp(line, "Sec-WebSocket-Version:", 22) == 0) {
+            strncpy(sec_ws_version, line + 22, sizeof(sec_ws_version) - 1);
+            sec_ws_version[sizeof(sec_ws_version) - 1] = '\0';
+            trim_http_field(sec_ws_version);
+        } else if (strncasecmp(line, "Sec-WebSocket-Key:", 18) == 0) {
             strncpy(sec_ws_key, line + 18, sizeof(sec_ws_key) - 1);
             sec_ws_key[sizeof(sec_ws_key) - 1] = '\0';
             trim_http_field(sec_ws_key);
@@ -185,6 +206,14 @@ int websocket_handshake_handler(struct Client *cptr) {
     if (!has_key) {
         Debug((DEBUG_DEBUG, "WebSocket handshake failed for %C", cptr));
         return 0; /* Fail handshake */
+    }
+
+    /* RFC 6455: only version 13 is defined. Reject any other stated version
+     * (absent version is tolerated for lenient clients). */
+    if (sec_ws_version[0] && strcmp(sec_ws_version, "13") != 0) {
+        Debug((DEBUG_DEBUG, "Unsupported WebSocket version '%s' for %C",
+               sec_ws_version, cptr));
+        return 0;
     }
 
     if (trust_cloudflare && !websocket_apply_client_ip(cptr, cf_connecting_ip)) {
