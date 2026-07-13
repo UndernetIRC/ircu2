@@ -838,6 +838,16 @@ to registered clients on WebSocket listener connections at this interval
 (in seconds).  This is for transport / idle TCP keepalive only; it does
 not replace IRC PING/PONG (see PINGFREQUENCY and related settings).
 
+WEBSOCKET_ALLOWED_ORIGINS
+ * Type: string
+ * Default: empty (all origins allowed)
+
+If set, WebSocket handshakes are accepted only when their HTTP Origin
+header exactly matches one of the space- or comma-separated entries in
+this list (case-insensitive); a handshake with a non-matching or missing
+Origin is rejected.  When empty (the default), the Origin header is not
+checked and any origin may connect, which is the traditional behavior.
+
 IPCHECK_CLONE_LIMIT
  * Type: integer
  * Default: 4

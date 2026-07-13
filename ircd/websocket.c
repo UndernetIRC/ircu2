@@ -23,6 +23,7 @@
 #include "client.h"
 #include "class.h"
 #include "ircd.h"
+#include "ircd_features.h"
 #include "IPcheck.h"
 #include "listener.h"
 #include "s_debug.h"
@@ -134,6 +135,29 @@ static int header_has_token(const char *value, const char *token)
   return 0;
 }
 
+/** Check a handshake Origin against FEAT_WEBSOCKET_ALLOWED_ORIGINS.
+ * Returns 1 if allowed. When the feature is unset (empty) all origins are
+ * allowed (default, unchanged behavior); when set, the client's Origin must
+ * match one of the space/comma-separated entries. */
+static int websocket_origin_allowed(const char *origin)
+{
+  const char *list = feature_str(FEAT_WEBSOCKET_ALLOWED_ORIGINS);
+  char buf[512];
+  char *tok, *save;
+
+  if (!list || !*list)
+    return 1;                 /* no allowlist configured */
+  if (!origin || !*origin)
+    return 0;                 /* allowlist set but no Origin supplied */
+
+  ircd_strncpy(buf, list, sizeof(buf) - 1);
+  buf[sizeof(buf) - 1] = '\0';
+  for (tok = strtok_r(buf, " ,", &save); tok; tok = strtok_r(NULL, " ,", &save))
+    if (strcasecmp(tok, origin) == 0)
+      return 1;
+  return 0;
+}
+
 /** Replace a client's sock IP after verifying it parses and passes IPcheck. */
 static int websocket_apply_client_ip(struct Client *cptr, const char *ip)
 {
@@ -167,6 +191,7 @@ int websocket_handshake_handler(struct Client *cptr) {
     size_t buflen = con->con_ws_handshake_len;
     char sec_ws_key[128] = "";
     char sec_ws_version[16] = "";
+    char origin[256] = "";
     char subprotocols[256] = "";
     char chosen_subprotocol[64] = "";
     char accept_key[128];
@@ -200,6 +225,10 @@ int websocket_handshake_handler(struct Client *cptr) {
             strncpy(sec_ws_version, line + 22, sizeof(sec_ws_version) - 1);
             sec_ws_version[sizeof(sec_ws_version) - 1] = '\0';
             trim_http_field(sec_ws_version);
+        } else if (strncasecmp(line, "Origin:", 7) == 0) {
+            strncpy(origin, line + 7, sizeof(origin) - 1);
+            origin[sizeof(origin) - 1] = '\0';
+            trim_http_field(origin);
         } else if (strncasecmp(line, "Sec-WebSocket-Key:", 18) == 0) {
             strncpy(sec_ws_key, line + 18, sizeof(sec_ws_key) - 1);
             sec_ws_key[sizeof(sec_ws_key) - 1] = '\0';
@@ -227,6 +256,13 @@ int websocket_handshake_handler(struct Client *cptr) {
     if (sec_ws_version[0] && strcmp(sec_ws_version, "13") != 0) {
         Debug((DEBUG_DEBUG, "Unsupported WebSocket version '%s' for %C",
                sec_ws_version, cptr));
+        return 0;
+    }
+
+    /* Optional Origin allowlist (FEAT_WEBSOCKET_ALLOWED_ORIGINS). Off by
+     * default; when configured, only listed origins may connect. */
+    if (!websocket_origin_allowed(origin)) {
+        Debug((DEBUG_DEBUG, "WebSocket origin '%s' rejected for %C", origin, cptr));
         return 0;
     }
 
