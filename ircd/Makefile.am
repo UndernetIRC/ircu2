@@ -141,10 +141,12 @@ ircd_SOURCES = \
 	sline.c \
 	uping.c \
 	userload.c \
+	websocket.c \
 	whocmds.c \
 	whowas.c \
 	ircd_parser.y \
 	ircd_md5.c \
+	ircd_sha1.c \
 	ircd_crypt_plain.c \
 	ircd_crypt_smd5.c \
 	ircd_crypt_native.c

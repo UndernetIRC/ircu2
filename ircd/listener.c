@@ -173,6 +173,7 @@ void show_ports(struct Client* sptr, const struct StatDesc* sd,
     len = 0;
     flags[len++] = listener_server(listener) ? 'S'
         : listener_webirc(listener) ? 'W'
+        : listener_websocket(listener) ? 'B'
         : 'C';
     if (FlagHas(&listener->flags, LISTEN_HIDDEN))
     {
@@ -196,6 +197,8 @@ void show_ports(struct Client* sptr, const struct StatDesc* sd,
       if (listener->fd_v6 < 0)
         flags[len++] = '-';
     }
+    if (listener_cloudflare(listener))
+      flags[len++] = 'F';
     flags[len] = '\0';
 
     send_reply(sptr, RPL_STATSPLINE, listener->addr.port, listener->ref_count,

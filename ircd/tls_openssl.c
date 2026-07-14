@@ -37,6 +37,9 @@
 
 #include <openssl/err.h>
 #include <openssl/rand.h>
+#include <openssl/sha.h>
+#include <openssl/bio.h>
+#include <openssl/buffer.h>
 #include <openssl/ssl.h>
 #include <openssl/x509v3.h>
 #include <sys/uio.h> /* IOV_MAX */
@@ -804,7 +807,7 @@ int ircd_tls_negotiate(struct Client *cptr)
         log_write(LS_SYSTEM, L_ERROR, 0, "X509_digest failed for %C: %d",
           cptr, res);
       }
-      else if (len == 32) {
+      else if (len == 32 && !IsCloudflarePort(cptr)) {
         /* Convert fingerprint to lowercase hex */
         char *p = cli_tls_fingerprint(cptr);
         for (unsigned int i = 0; i < len; i++) {
@@ -815,7 +818,10 @@ int ircd_tls_negotiate(struct Client *cptr)
       }
       else {
         memset(cli_tls_fingerprint(cptr), 0, 65);
-        Debug((DEBUG_DEBUG, "Invalid fingerprint length: %u", len));
+        if (len == 32 && IsCloudflarePort(cptr))
+          Debug((DEBUG_DEBUG, "Skipping TLS fingerprint for Cloudflare port %C", cptr));
+        else
+          Debug((DEBUG_DEBUG, "Invalid fingerprint length: %u", len));
       }
     }
     ClearNegotiatingTLS(cptr);
@@ -926,4 +932,36 @@ IOResult ircd_tls_sendv(struct Client *cptr, struct MsgQ *buf,
   }
 
   return result;
+}
+
+int ircd_tls_sha1_base64(const void *data, size_t len, char *out, size_t outlen)
+{
+  unsigned char digest[SHA_DIGEST_LENGTH];
+  BIO *b64;
+  BIO *bmem;
+  BUF_MEM *bptr;
+
+  if (!data || !out || len == 0 || outlen == 0)
+    return -1;
+
+  SHA1(data, len, digest);
+
+  b64 = BIO_new(BIO_f_base64());
+  bmem = BIO_new(BIO_s_mem());
+  b64 = BIO_push(b64, bmem);
+  BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
+  if (BIO_write(b64, digest, SHA_DIGEST_LENGTH) != SHA_DIGEST_LENGTH) {
+    BIO_free_all(b64);
+    return -1;
+  }
+  BIO_flush(b64);
+  BIO_get_mem_ptr(b64, &bptr);
+  if (!bptr || bptr->length >= outlen) {
+    BIO_free_all(b64);
+    return -1;
+  }
+  memcpy(out, bptr->data, bptr->length);
+  out[bptr->length] = '\0';
+  BIO_free_all(b64);
+  return 0;
 }

@@ -210,7 +210,7 @@ int m_sasl(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       /* If not, we pass on the IP and fingerprint. */
       sendcmdto_one(&me, CMD_XQUERY, acptr, "%C sasl:%lu :SASL %s %s %s",
                     acptr, cli_sasl(cptr), ircd_ntoa(&cli_ip(cptr)),
-                    /*cli_fingerprint(cptr) ? cli_fingerprint(cptr) : */"_",
+                    *cli_tls_fingerprint(cptr) ? cli_tls_fingerprint(cptr) : "_",
                     parv[1]);
     }
   } else {

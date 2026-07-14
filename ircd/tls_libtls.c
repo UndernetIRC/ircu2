@@ -32,6 +32,7 @@
 #include "send.h"
 #include "s_conf.h"
 #include "s_debug.h"
+#include "ircd_sha1.h"
 
 #include <stddef.h>
 #include <stdio.h>
@@ -538,7 +539,7 @@ int ircd_tls_negotiate(struct Client *cptr)
 
     ClearNegotiatingTLS(cptr);
 
-    if (hash && !ircd_strncmp(hash, "SHA256:", 7))
+    if (hash && !ircd_strncmp(hash, "SHA256:", 7) && !IsCloudflarePort(cptr))
     {
       /* Convert the hash to our fingerprint format */
       if (strlen(hash + 7) <= 64) {
@@ -550,7 +551,10 @@ int ircd_tls_negotiate(struct Client *cptr)
       }
     } else {
       memset(cli_tls_fingerprint(cptr), 0, 65);
-      Debug((DEBUG_DEBUG, "Failed to get fingerprint for %s", cli_name(cptr)));
+      if (hash && !ircd_strncmp(hash, "SHA256:", 7) && IsCloudflarePort(cptr))
+        Debug((DEBUG_DEBUG, "Skipping TLS fingerprint for Cloudflare port %s", cli_name(cptr)));
+      else
+        Debug((DEBUG_DEBUG, "Failed to get fingerprint for %s", cli_name(cptr)));
     }
 
     return 1;
@@ -659,4 +663,9 @@ IOResult ircd_tls_sendv(struct Client *cptr, struct MsgQ *buf,
   }
 
   return result;
+}
+
+int ircd_tls_sha1_base64(const void *data, size_t len, char *out, size_t outlen)
+{
+  return ircd_sha1_base64(data, len, out, outlen);
 }

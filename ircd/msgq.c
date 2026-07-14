@@ -42,18 +42,7 @@
 #include <sys/uio.h>	/* struct iovec */
 
 #define MB_BASE_SHIFT	5 /**< Log2 of smallest message body to allocate. */
-#define MB_MAX_SHIFT	9 /**< Log2 of largest message body to allocate. */
-
-/** Buffer for a single message. */
-struct MsgBuf {
-  struct MsgBuf *next;		/**< next msg in global queue */
-  struct MsgBuf **prev_p;	/**< what points to us in linked list */
-  struct MsgBuf *real;		/**< the actual MsgBuf we're attaching */
-  unsigned int ref;		/**< reference count */
-  unsigned int length;		/**< length of message */
-  unsigned int power;		/**< size of buffer (power of 2) */
-  char msg[1];			/**< the message */
-};
+#define MB_MAX_SHIFT	11 /**< Log2 of largest message body to allocate. */
 
 /** Return allocated length of the buffer of \a buf. */
 #define bufsize(buf)	(1 << (buf)->power)
@@ -263,7 +252,7 @@ msgq_alloc(struct MsgBuf *in_mb, int length)
     if ((length - 1) >> power == 0)
       break;
   assert((1 << power) >= length);
-  assert((1 << power) <= 512);
+  assert((1 << power) <= (1 << MB_MAX_SHIFT));
   length = 1 << power; /* reset the length */
 
   /* If the message needs a buffer of exactly the existing size, just use it */
@@ -393,6 +382,54 @@ msgq_vmake(struct Client *dest, const char *format, va_list vl)
   return mb;
 }
 
+/** Allocate an empty message buffer with room for at least \a minbytes of payload.
+ * The buffer is registered like one from msgq_make(); set \a mb->length after filling.
+ *
+ * @param[in] dest %Client that receives the data (unused; kept for API symmetry).
+ * @param[in] minbytes Minimum usable size of \a mb->msg (no CRLF appended).
+ */
+struct MsgBuf *
+msgq_raw_alloc(struct Client *dest, unsigned int minbytes)
+{
+  struct MsgBuf *mb;
+
+  (void) dest;
+
+  if (!(mb = msgq_alloc(0, minbytes))) {
+    if (feature_bool(FEAT_HAS_FERGUSON_FLUSHER)) {
+      flush_connections(0);
+      mb = msgq_alloc(0, minbytes);
+    }
+    if (!mb) {
+      msgq_clear_freembs();
+      mb = msgq_alloc(0, minbytes);
+    }
+    if (!mb) {
+      kill_highest_sendq(0);
+      msgq_clear_freembs();
+      mb = msgq_alloc(0, minbytes);
+    }
+    if (!mb) {
+      kill_highest_sendq(1);
+      msgq_clear_freembs();
+      mb = msgq_alloc(0, minbytes);
+    }
+    if (!mb)
+      server_panic("Unable to allocate buffers!");
+  }
+
+  mb->next = MQData.msglist;
+  mb->prev_p = &MQData.msglist;
+  if (MQData.msglist)
+    MQData.msglist->prev_p = &mb->next;
+  MQData.msglist = mb;
+
+  mb->length = 0;
+  mb->msg[0] = '\0';
+
+  return mb;
+}
+
 /** Format a message buffer for a client from a format string.
  * @param[in] dest %Client that receives the data (may be NULL).
  * @param[in] format Format string for message.
@@ -509,7 +546,13 @@ msgq_add(struct MsgQ *mq, struct MsgBuf *mb, int prio)
     struct MsgBuf *tmp;
 
     MQData.sizes.msgs++; /* update histogram counts */
-    MQData.sizes.sizes[mb->length - 1]++;
+    {
+      unsigned int hist_i = mb->length - 1;
+
+      if (hist_i >= BUFSIZE)
+	      hist_i = BUFSIZE - 1;
+      MQData.sizes.sizes[hist_i]++;
+    }
 
     tmp = msgq_alloc(mb, mb->length); /* allocate a close-fitting buffer */
 

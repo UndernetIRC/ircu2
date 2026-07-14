@@ -4,10 +4,28 @@ services:
       context: .
       args:
         IRCD_CONF: tests/docker/ircd-hub.conf
+        TLS_BACKEND: ${TLS_BACKEND:-openssl}
+        SANITIZE: ${IRCD_SANITIZE:-}
     container_name: ircu-hub
+    environment:
+      IRCD_DEBUG: ${IRCD_DEBUG:-}
+      ASAN_OPTIONS: ${ASAN_OPTIONS:-abort_on_error=1:halt_on_error=1:detect_leaks=0:log_path=/opt/ircu/debug/asan}
+    volumes:
+      - ${IRCD_DEBUG_DIR:-./tests/debug-output}:/opt/ircu/debug
+    security_opt:
+      - seccomp:unconfined
+    ulimits:
+      core:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 4096
+        hard: 4096
     ports:
       - "6667:6667"
       - "4400:4400"
+      - "7000:7000"
+      - "7001:7001"
     networks:
       ircu-test-net:
         ipv4_address: 10.55.0.10
@@ -53,6 +71,8 @@ services:
       - "16677:6677"
       - "16697:6697"
       - "16698:6698"
+      - "16700:6700"
+      - "16701:6701"
       - "14440:4440"
       - "14441:4441"
     networks:

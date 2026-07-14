@@ -60,6 +60,7 @@
 #include "sys.h"
 #include "uping.h"
 #include "version.h"
+#include "websocket.h"
 
 /* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <errno.h>
@@ -571,20 +572,22 @@ void add_connection(struct Listener* listener, int fd) {
   }
   else
   {
+    new_client = make_client(0, listener_websocket(listener) ? STAT_WEBSOCKET : STAT_UNKNOWN_USER);
+
     /*
-     * Add this local client to the IPcheck registry.
-     *
-     * If they're throttled, murder them, but tell them why first.
+     * Cloudflare websocket ports: defer IPcheck until CF-Connecting-IP is
+     * known at handshake; the socket peer is a Cloudflare edge node.
      */
-    if (!IPcheck_local_connect(&addr.addr, &next_target))
-    {
-      ++ServerStats->is_throttled;
-      write(fd, throttle_message, strlen(throttle_message));
-      close(fd);
-      return;
+    if (!(listener_websocket(listener) && listener_cloudflare(listener))) {
+      if (!IPcheck_local_connect(&addr.addr, &next_target))
+      {
+        ++ServerStats->is_throttled;
+        write(fd, throttle_message, strlen(throttle_message));
+        close(fd);
+        return;
+      }
+      SetIPChecked(new_client);
     }
-    new_client = make_client(0, STAT_UNKNOWN_USER);
-    SetIPChecked(new_client);
   }
 
   /*
@@ -655,9 +658,11 @@ static int read_packet(struct Client *cptr, int socket_ready)
   unsigned int dolen = 0;
   unsigned int length = 0;
 
+  int is_ws_handshake = (IsWebsocketPort(cptr) && !IsWebsocket(cptr));
+  unsigned int flood_limit = is_ws_handshake ? WEBSOCKET_MAX_HEADER : GetMaxFlood(cptr);
   if (socket_ready &&
       !(IsUser(cptr) &&
-	DBufLength(&(cli_recvQ(cptr))) > GetMaxFlood(cptr))) {
+	DBufLength(&(cli_recvQ(cptr))) > flood_limit)) {
     IOResult io_result = IsTLS(cptr) && s_tls(&cli_socket(cptr))
       ? ircd_tls_recv(cptr, readbuf, sizeof(readbuf), &length)
       : os_recv_nonb(cli_fd(cptr), readbuf, sizeof(readbuf), &length);
@@ -681,6 +686,35 @@ static int read_packet(struct Client *cptr, int socket_ready)
     }
   }
 
+  // WebSocket handshake: accumulate all data in con_ws_handshake buffer
+  if (is_ws_handshake) {
+    struct Connection *con = cli_connect(cptr);
+    if (length > 0) {
+      size_t copylen = length;
+      if (con->con_ws_handshake_len + copylen > WEBSOCKET_MAX_HEADER)
+        return exit_client(cptr, cptr, &me, "Excess Flood");
+      if (copylen > 0) {
+        memcpy(con->con_ws_handshake + con->con_ws_handshake_len, readbuf, copylen);
+        con->con_ws_handshake_len += copylen;
+        con->con_ws_handshake[con->con_ws_handshake_len] = '\0';
+      }
+    }
+    int ret = websocket_handshake_handler(cptr);
+    if (IsWebsocket(cptr)) {
+      // Handshake complete, clear buffer
+      con->con_ws_handshake[0] = '\0';
+      con->con_ws_handshake_len = 0;
+      con->con_ws_last_keepalive = CurrentTime;
+
+      /* Start DNS and ident queries. */
+      start_dns_ident(cptr);
+    } else if (ret == 0) {
+      /* Handshake definitively failed: tell an HTTP client why before closing. */
+      websocket_send_http_error(cptr);
+    }
+    return ret;
+  }
+
   /*
    * For server connections, we process as many as we can without
    * worrying about the time of day or anything :)
@@ -691,6 +725,121 @@ static int read_packet(struct Client *cptr, int socket_ready)
     return connect_dopacket(cptr, readbuf, length);
   else
   {
+    /* Parse websocket frames.
+     *
+     * Frames can be split across TCP reads, so unconsumed bytes are retained in
+     * con_ws_handshake (reused post-handshake as the frame-assembly buffer) and
+     * completed on a later read. Oversized frames are not buffered whole: the
+     * parser delivers the first line's worth of octets and reports the full
+     * frame length, and the remaining payload is drained via con_ws_skip across
+     * reads. Input is fed in bounded chunks, so a stream of frames of any size
+     * needs only a bounded buffer.
+     */
+    if (IsWebsocket(cptr)) {
+      struct Connection *con = cli_connect(cptr);
+      unsigned int consumed = 0;
+
+      for (;;) {
+        unsigned int space;
+        unsigned int take = 0;
+        size_t offset = 0;
+
+        /* Discard payload left over from an oversized frame before parsing. */
+        if (con->con_ws_skip > 0 && length > consumed) {
+          unsigned int avail = length - consumed;
+          unsigned int drop = (con->con_ws_skip < (size_t)avail)
+                            ? (unsigned int)con->con_ws_skip : avail;
+          consumed += drop;
+          con->con_ws_skip -= drop;
+        }
+        if (con->con_ws_skip > 0)
+          break; /* still draining an oversized frame; wait for more data */
+
+        space = WEBSOCKET_MAX_HEADER - con->con_ws_handshake_len;
+        if (length > consumed) {
+          take = length - consumed;
+          if (take > space)
+            take = space;
+          if (take) {
+            memcpy(con->con_ws_handshake + con->con_ws_handshake_len,
+                   readbuf + consumed, take);
+            con->con_ws_handshake_len += take;
+            consumed += take;
+          }
+        }
+
+        while (offset < con->con_ws_handshake_len) {
+          int msg_ready = 0;
+          int ret = websocket_parse_frame(cptr, con->con_ws_handshake + offset,
+                                          con->con_ws_handshake_len - offset,
+                                          &msg_ready);
+          if (ret > 0) {
+            size_t avail = con->con_ws_handshake_len - offset;
+            if ((size_t)ret <= avail) {
+              offset += ret;   /* whole frame was buffered */
+            } else {
+              /* Oversized frame: consume the buffer, drain the remainder. */
+              con->con_ws_skip = (size_t)ret - avail;
+              offset = con->con_ws_handshake_len;
+            }
+
+            /* Bound recvQ growth even while fragments accumulate unfinished. */
+            if (DBufLength(&(cli_recvQ(cptr))) > GetMaxFlood(cptr))
+              return exit_client(cptr, cptr, &me, "Excess Flood");
+
+            /* Only drain once a full logical message has arrived (FIN); a
+             * fragmented message keeps accumulating in recvQ until then. */
+            if (msg_ready) {
+              dolen = dbuf_getframe(&(cli_recvQ(cptr)), cli_buffer(cptr), BUFSIZE);
+              if (dolen == 0) {
+                if (DBufLength(&(cli_recvQ(cptr))) > 510) {
+                  /* More than 510 bytes in the line - drop the input and yell
+                  * at the client.
+                  */
+                  DBufClear(&(cli_recvQ(cptr)));
+                  send_reply(cptr, ERR_INPUTTOOLONG);
+                }
+              } else if (client_dopacket(cptr, dolen) == CPTR_KILLED)
+                return CPTR_KILLED;
+            }
+
+            if (con->con_ws_skip > 0)
+              break; /* remainder of oversized frame drains on later reads */
+
+          } else if (ret == 0) {
+            break; /* incomplete frame; wait for more bytes */
+          } else {
+            const char *why = "dbuf_put fail";
+            if (ret == -2)
+              why = "WebSocket protocol violation";
+            else if (ret == -3)
+              why = "Client closed connection";
+            return exit_client(cptr, cptr, &me, why);
+          }
+        }
+
+        /* Shift any unconsumed (incomplete) frame bytes to the front. */
+        if (offset > 0) {
+          memmove(con->con_ws_handshake, con->con_ws_handshake + offset,
+                  con->con_ws_handshake_len - offset);
+          con->con_ws_handshake_len -= offset;
+        }
+
+        if (consumed >= length) {
+          /* All input fed. A full buffer with no complete frame means a
+           * control/reserved frame larger than the buffer can ever hold. */
+          if (con->con_ws_skip == 0
+              && con->con_ws_handshake_len >= WEBSOCKET_MAX_HEADER)
+            return exit_client(cptr, cptr, &me, "Excess Flood");
+          break;
+        }
+        /* Made no progress and cannot buffer more: oversize control frame. */
+        if (take == 0 && offset == 0 && con->con_ws_skip == 0)
+          return exit_client(cptr, cptr, &me, "Excess Flood");
+      }
+      return 1;
+    }
+
     /*
      * Before we even think of parsing what we just read, stick
      * it on the end of the receive queue and do it when its
@@ -931,6 +1080,15 @@ static int tls_negotiate_client(struct Client *cptr, char **fmt, char **fallback
   return res;
 }
 
+/** Continue client setup after an inbound or outbound TLS handshake completes. */
+static void tls_handshake_succeeded(struct Client *cptr)
+{
+  if (IsConnecting(cptr))
+    completed_connection(cptr);
+  else if (!cli_auth(cptr))
+    start_auth(cptr);
+}
+
 /** Process events on a client socket.
  * @param ev Socket event structure that has a struct Connection as
  *   its associated data.
@@ -1012,7 +1170,7 @@ static void client_sock_callback(struct Event* ev)
         break;
       }
        /* TLS negotiation succeeded */
-       IsConnecting(cptr) ? completed_connection(cptr) : start_auth(cptr);
+       tls_handshake_succeeded(cptr);
        return;
     }
     ClrFlag(cptr, FLAG_BLOCKED);
@@ -1034,8 +1192,7 @@ static void client_sock_callback(struct Event* ev)
           break;
         }
         /* TLS negotiation succeeded */
-        if (IsConnecting(cptr))
-          completed_connection(cptr);
+        tls_handshake_succeeded(cptr);
       }
       if (read_packet(cptr, 1) == 0) /* error while reading packet */
         fallback = "EOF from client";

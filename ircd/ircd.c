@@ -62,6 +62,7 @@
 #include "uping.h"
 #include "userload.h"
 #include "version.h"
+#include "websocket.h"
 #include "whowas.h"
 
 /* #include <assert.h> -- Now using assert in ircd_log.h */
@@ -382,6 +383,30 @@ static void check_pings(struct Event* ev) {
     }
 
     max_ping = client_get_ping(cptr);
+
+    /* RFC6455 WebSocket Ping keepalive (not IRC PING); interval from features */
+    if (MyConnect(cptr) && IsWebsocket(cptr) && IsRegistered(cptr)) {
+      int ws_ka = feature_int(FEAT_WEBSOCKET_KEEPALIVE);
+      if (ws_ka > 0) {
+        struct Connection *wcon = cli_connect(cptr);
+        int expire_ws;
+
+        if (wcon->con_ws_last_keepalive == 0)
+          wcon->con_ws_last_keepalive = CurrentTime;
+        if (CurrentTime - wcon->con_ws_last_keepalive >= ws_ka) {
+          if (websocket_send_keepalive_ping(cptr) == 0)
+            wcon->con_ws_last_keepalive = CurrentTime;
+        }
+        /* Schedule the next WS Ping after handling this one; expire_ws must
+         * stay >= CurrentTime (assert below). IRC PING timing is unchanged:
+         * it still keys off cli_lasttime and max_ping below. */
+        expire_ws = wcon->con_ws_last_keepalive + ws_ka;
+        if (expire_ws <= CurrentTime)
+          expire_ws = CurrentTime + 1;
+        if (expire_ws < next_check)
+          next_check = expire_ws;
+      }
+    }
 
     /* If it's a server and we have not sent an AsLL lately, do so. */
     if (IsServer(cptr)) {

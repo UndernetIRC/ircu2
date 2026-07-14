@@ -46,6 +46,7 @@
 #include "ircd_features.h"
 #include "ircd_log.h"
 #include "ircd_osdep.h"
+#include "listener.h"
 #include "ircd_reply.h"
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
@@ -221,7 +222,7 @@ typedef int (*iauth_cmd_handler)(struct IAuth *iauth, struct Client *cli,
 /** Sends response \a r (from #ReportType) to client \a cptr. */
 static void sendheader(struct Client *cptr, ReportType r)
 {
-  if (IsTLS(cptr))
+  if (IsTLS(cptr) || IsWebsocket(cptr))
   {
     sendrawto_one(cptr, "%.*s", HeaderMessages[r].length - 2,
       HeaderMessages[r].message);
@@ -444,7 +445,7 @@ static int check_auth_finished(struct AuthRequest *auth, int bitclr)
   if (bitclr != AR_IAUTH_SOFT_DONE)
     FlagClr(&auth->flags, bitclr);
 
-  if (IsUserPort(auth->client)
+  if ((IsUserPort(auth->client) || IsWebsocketPort(auth->client))
       && !FlagHas(&auth->flags, AR_GLINE_CHECKED))
   {
     struct User   *user;
@@ -543,7 +544,7 @@ static int check_auth_finished(struct AuthRequest *auth, int bitclr)
     FlagSet(&auth->flags, AR_IAUTH_HURRY);
 
   res = 0;
-  if (IsUserPort(auth->client))
+  if (IsUserPort(auth->client) || IsWebsocketPort(auth->client))
   {
     struct Client *cptr = auth->client;
 
@@ -711,7 +712,7 @@ static void send_auth_query(struct AuthRequest* auth)
     socket_del(&auth->socket);
     s_fd(&auth->socket) = -1;
     ++ServerStats->is_abad;
-    if (IsUserPort(auth->client))
+    if (IsUserPort(auth->client) || IsWebsocketPort(auth->client))
       sendheader(auth->client, REPORT_FAIL_ID);
     check_auth_finished(auth, AR_AUTH_PENDING);
   }
@@ -829,11 +830,11 @@ static void read_auth_reply(struct AuthRequest* auth)
   s_fd(&auth->socket) = -1;
 
   if (EmptyString(username)) {
-    if (IsUserPort(auth->client))
+    if (IsUserPort(auth->client) || IsWebsocketPort(auth->client))
       sendheader(auth->client, REPORT_FAIL_ID);
     ++ServerStats->is_abad;
   } else {
-    if (IsUserPort(auth->client))
+    if (IsUserPort(auth->client) || IsWebsocketPort(auth->client))
       sendheader(auth->client, REPORT_FIN_ID);
     ++ServerStats->is_asuc;
     if (!FlagHas(&auth->flags, AR_IAUTH_USERNAME)) {
@@ -977,7 +978,7 @@ static void auth_timeout_callback(struct Event* ev)
     /* Notify client if ident lookup failed. */
     if (FlagHas(&auth->flags, AR_AUTH_PENDING)) {
       flag = AR_AUTH_PENDING;
-      if (IsUserPort(auth->client))
+      if (IsUserPort(auth->client) || IsWebsocketPort(auth->client))
         sendheader(auth->client, REPORT_FAIL_ID);
     }
 
@@ -987,7 +988,7 @@ static void auth_timeout_callback(struct Event* ev)
         FlagClr(&auth->flags, flag);
       flag = AR_DNS_PENDING;
       delete_resolver_queries(auth);
-      if (IsUserPort(auth->client))
+      if (IsUserPort(auth->client) || IsWebsocketPort(auth->client))
         sendheader(auth->client, REPORT_FAIL_DNS);
     }
 
@@ -1013,12 +1014,12 @@ static void auth_dns_callback(void* vptr, const struct irc_in_addr *addr, const 
 
   if (!addr) {
     /* DNS entry was missing for the IP. */
-    if (IsUserPort(auth->client))
+    if (IsUserPort(auth->client) || IsWebsocketPort(auth->client))
       sendheader(auth->client, REPORT_FAIL_DNS);
   } else if (!irc_in_addr_valid(addr)
              || (irc_in_addr_cmp(&cli_ip(auth->client), addr)
                  && irc_in_addr_cmp(&auth->original, addr))) {
-    if (IsUserPort(auth->client)) {
+    if (IsUserPort(auth->client) || IsWebsocketPort(auth->client)) {
       /* IP for hostname did not match client's IP. */
       sendto_opmask_butone(0, SNO_IPMISMATCH, "IP# Mismatch: %s != %s[%s]",
                            cli_sock_ip(auth->client), h_name,
@@ -1037,11 +1038,11 @@ static void auth_dns_callback(void* vptr, const struct irc_in_addr *addr, const 
     }
   } else if (!auth_verify_hostname(h_name, HOSTLEN)) {
     /* Hostname did not look valid. */
-    if (IsUserPort(auth->client))
+    if (IsUserPort(auth->client) || IsWebsocketPort(auth->client))
       sendheader(auth->client, REPORT_INVAL_DNS);
   } else {
     /* Hostname and mappings checked out. */
-    if (IsUserPort(auth->client))
+    if (IsUserPort(auth->client) || IsWebsocketPort(auth->client))
       sendheader(auth->client, REPORT_FIN_DNS);
     ircd_strncpy(cli_sockhost(auth->client), h_name, HOSTLEN);
   }
@@ -1078,11 +1079,11 @@ static void start_auth_query(struct AuthRequest* auth)
   fd = os_socket(&local_addr, SOCK_STREAM, "auth query", 0);
   if (fd < 0) {
     ++ServerStats->is_abad;
-    if (IsUserPort(auth->client))
+    if (IsUserPort(auth->client) || IsWebsocketPort(auth->client))
       sendheader(auth->client, REPORT_FAIL_ID);
     return;
   }
-  if (IsUserPort(auth->client))
+  if (IsUserPort(auth->client) || IsWebsocketPort(auth->client))
     sendheader(auth->client, REPORT_DO_ID);
 
   if ((result = os_connect_nonb(fd, &remote_addr)) == IO_FAILURE ||
@@ -1090,7 +1091,7 @@ static void start_auth_query(struct AuthRequest* auth)
                   result == IO_SUCCESS ? SS_CONNECTED : SS_CONNECTING,
                   SOCK_EVENT_READABLE, fd)) {
     ++ServerStats->is_abad;
-    if (IsUserPort(auth->client))
+    if (IsUserPort(auth->client) || IsWebsocketPort(auth->client))
       sendheader(auth->client, REPORT_FAIL_ID);
     close(fd);
     return;
@@ -1117,7 +1118,7 @@ static void start_dns_query(struct AuthRequest *auth)
     return;
   }
 
-  if (IsUserPort(auth->client))
+  if (IsUserPort(auth->client) || IsWebsocketPort(auth->client))
     sendheader(auth->client, REPORT_DO_DNS);
 
   FlagSet(&auth->flags, AR_DNS_PENDING);
@@ -1145,6 +1146,8 @@ void start_auth(struct Client* client)
   struct AuthRequest* auth;
 
   assert(0 != client);
+  if (cli_auth(client))
+    return;
   Debug((DEBUG_INFO, "Beginning auth request on client %p", client));
 
   /* Register with event handlers. */
@@ -1173,7 +1176,7 @@ void start_auth(struct Client* client)
   if (!os_get_sockname(cli_fd(client), &auth->local)
       || !os_get_peername(cli_fd(client), &remote)) {
     ++ServerStats->is_abad;
-    if (IsUserPort(auth->client))
+    if (IsUserPort(auth->client) || IsWebsocketPort(auth->client))
       sendheader(auth->client, REPORT_FAIL_ID);
     exit_client(auth->client, auth->client, &me, "Socket local/peer lookup failed");
     return;
@@ -1181,14 +1184,15 @@ void start_auth(struct Client* client)
   auth->port = remote.port;
 
   /* Set required client inputs for users. */
-  if (IsUserPort(client) || IsWebircPort(client)) {
+
+  if (IsUserPort(client) || IsWebircPort(client) || IsWebsocketPort(client)) {
     cli_user(client) = make_user(client);
     cli_user(client)->server = &me;
     FlagSet(&auth->flags, AR_NEEDS_USER);
     FlagSet(&auth->flags, AR_NEEDS_NICK);
 
-    if (IsUserPort(client)) {
-      /* Try to start iauth lookup. */
+    if ((IsUserPort(client) || IsWebsocketPort(client))
+        && !IsCloudflarePort(client)) {
       start_iauth_query(auth);
 
       /* Pass on fingerprint to iauth. */
@@ -1197,17 +1201,38 @@ void start_auth(struct Client* client)
     }
   }
 
+  /* Start DNS and ident queries, except websocket connections not having a handshake. */
+  if (!IsWebsocketPort(client) || IsWebsocket(client))
+    start_dns_ident(client);
+
+  /* Add client to GlobalClientList. */
+  add_client_to_list(client);
+
+  /* Check which auth events remain pending. */
+  check_auth_finished(auth, 0);
+}
+
+/** Start DNS and ident queries for a client, if appropriate.
+ * @param[in] client The client for which to start queries.
+ */
+void start_dns_ident(struct Client *client)
+{
+  struct AuthRequest *auth;
+  assert(client != NULL);
+  auth = cli_auth(client);
+  assert(auth != NULL);
+
   if (!IsWebircPort(client)) {
     /* Try to start DNS lookup. */
     start_dns_query(auth);
 
-    /* Try to start ident lookup. */
-    if (DoIdentLookups)
+    /* Ident queries the connecting host; skip behind Cloudflare. */
+    if (DoIdentLookups && !IsCloudflarePort(client))
       start_auth_query(auth);
   }
 
-  /* Add client to GlobalClientList. */
-  add_client_to_list(client);
+  if (IsCloudflarePort(client) && !FlagHas(&auth->flags, AR_IAUTH_PENDING))
+    start_iauth_query(auth);
 
   /* Check which auth events remain pending. */
   check_auth_finished(auth, 0);
@@ -1976,7 +2001,7 @@ static int iauth_cmd_hostname(struct IAuth *iauth, struct Client *cli,
   /* If a DNS request is pending, abort it. */
   if (FlagHas(&auth->flags, AR_DNS_PENDING)) {
     delete_resolver_queries(auth);
-    if (IsUserPort(cli))
+    if (IsUserPort(cli) || IsWebsocketPort(cli))
       sendheader(cli, REPORT_FIN_DNS);
   }
   /* Set hostname from params. */
