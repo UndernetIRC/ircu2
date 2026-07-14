@@ -47,6 +47,7 @@
 #include "s_conf.h"
 #include "s_debug.h"
 #include "s_misc.h"
+#include "s_serv.h"
 #include "s_user.h"
 #include "send.h"
 #include "sline.h"
@@ -72,6 +73,92 @@ static struct Ban* free_bans;
 static size_t bans_alloc;
 /** Number of ban structures in use. */
 static size_t bans_inuse;
+
+/** Initialize SID tracking for a new channel */
+static void init_channel_sids(struct Channel* chptr)
+{
+  chptr->sids_present = NULL;
+  chptr->sids_count = 0;
+}
+
+/** Clean up SID tracking when channel is destroyed */
+static void cleanup_channel_sids(struct Channel* chptr)
+{
+  if (chptr->sids_present) {
+    MyFree(chptr->sids_present);
+    chptr->sids_present = NULL;
+    chptr->sids_count = 0;
+  }
+}
+
+/** Add a SID to the channel's SID list if not already present */
+static void add_sid_to_channel(struct Channel* chptr, int sid)
+{
+  int i;
+  
+  /* Check if SID is already present */
+  for (i = 0; i < chptr->sids_count; i++) {
+    if (chptr->sids_present[i] == sid)
+      return; /* Already present */
+  }
+  
+  /* Add new SID */
+  chptr->sids_present = (int*) MyRealloc(chptr->sids_present, 
+                                         (chptr->sids_count + 1) * sizeof(int));
+  chptr->sids_present[chptr->sids_count] = sid;
+  chptr->sids_count++;
+}
+
+/** Remove a SID from the channel's SID list if no more users with that SID */
+static void remove_sid_from_channel(struct Channel* chptr, int sid)
+{
+  int i, j;
+  
+  /* Find SID in the list */
+  for (i = 0; i < chptr->sids_count; i++) {
+    if (chptr->sids_present[i] == sid) {
+      /* Check if any other users still have this SID */
+      struct Membership* member;
+      for (member = chptr->members; member; member = member->next_member) {
+        if (!IsZombie(member)) {
+          int user_sid = get_secure_group_id(member->user);
+          if (user_sid == sid)
+            return; /* Another user still has this SID */
+        }
+      }
+      
+      /* Remove SID from array */
+      for (j = i; j < chptr->sids_count - 1; j++) {
+        chptr->sids_present[j] = chptr->sids_present[j + 1];
+      }
+      chptr->sids_count--;
+      
+      /* Reallocate array */
+      if (chptr->sids_count > 0) {
+        chptr->sids_present = (int*) MyRealloc(chptr->sids_present, 
+                                               chptr->sids_count * sizeof(int));
+      } else {
+        MyFree(chptr->sids_present);
+        chptr->sids_present = NULL;
+      }
+      break;
+    }
+  }
+}
+
+void CheckChannelTLS(struct Channel *chan)
+{
+  if ((chan->mode.mode & MODE_TLSINSECURE) && chan->sids_count == 1) {
+    chan->mode.mode &= ~MODE_TLSINSECURE;
+    chan->mode.mode |= MODE_TLSONLY;
+    sendcmdto_channel_butserv_butone(&his, CMD_MODE, chan, NULL, 0,
+                                     "%H -z+Z", chan);
+  } else if ((chan->mode.mode & MODE_TLSONLY) && !(chan->mode.mode & MODE_TLSINSECURE) && chan->sids_count > 1) {
+    chan->mode.mode |= MODE_TLSINSECURE;
+    sendcmdto_channel_butserv_butone(&his, CMD_MODE, chan, NULL, 0,
+                                     "%H -Z+z", chan);
+  }
+}
 
 #if !defined(NDEBUG)
 /** return the length (>=0) of a chain of links.
@@ -337,6 +424,11 @@ int destruct_channel(struct Channel* chptr)
    */
   sline_cleanup_channel(chptr);
   
+  /*
+   * Clean up SID tracking
+   */
+  cleanup_channel_sids(chptr);
+  
   if (chptr->prev)
     chptr->prev->next = chptr->next;
   else
@@ -498,6 +590,13 @@ void add_user_to_channel(struct Channel* chptr, struct Client* who,
       remove_destruct_event(chptr);
     ++chptr->users;
     ++((cli_user(who))->joined);
+    
+    /* Track SID for this user */
+    int user_sid = get_secure_group_id(who);
+    add_sid_to_channel(chptr, user_sid);
+
+    /* Check if the channel needs to be updated for TLS */
+    CheckChannelTLS(chptr);
   }
 }
 
@@ -539,6 +638,13 @@ static int remove_member_from_channel(struct Membership* member)
     (cli_user(member->user))->channel = member->next_channel;
 
   --(cli_user(member->user))->joined;
+
+  /* Track SID removal for this user */
+  int user_sid = get_secure_group_id(member->user);
+  remove_sid_from_channel(chptr, user_sid);
+
+  /* Check if the channel needs to be updated for TLS */
+  CheckChannelTLS(chptr);
 
   member->next_member = membershipFreeList;
   membershipFreeList = member;
@@ -858,7 +964,9 @@ void channel_modes(struct Client *cptr, char *mbuf, char *pbuf, int buflen,
     *mbuf++ = 'P';
   if (chptr->mode.mode & MODE_MODERATENOREG)
     *mbuf++ = 'M';
-  if (chptr->mode.mode & MODE_TLSONLY)
+  if (MyUser(cptr) && (chptr->mode.mode & MODE_TLSINSECURE))
+    *mbuf++ = 'z';
+  else if (chptr->mode.mode & MODE_TLSONLY)
     *mbuf++ = 'Z';
   if (chptr->mode.limit) {
     *mbuf++ = 'l';
@@ -1293,6 +1401,9 @@ struct Channel *get_channel(struct Client *cptr, char *chname, ChannelGetType fl
     chptr->creationtime = MyUser(cptr) ? TStime() : (time_t) 0;
     GlobalChannelList = chptr;
     hAddChannel(chptr);
+    
+    /* Initialize SID tracking */
+    init_channel_sids(chptr);
   }
   return chptr;
 }
@@ -1570,6 +1681,11 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
   };
   static int local_flags[] = {
     MODE_WASDELJOINS,   'd',
+    MODE_TLSINSECURE,   'z',  /* Local clients see 'z' for insecure TLS */
+    0x0, 0x0
+  };
+  static int global_flags[] = {
+    MODE_TLSINSECURE,   'Z',  /* Servers propagate 'Z' for insecure TLS */
     0x0, 0x0
   };
   int i;
@@ -1577,10 +1693,10 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
 
   struct Client *app_source; /* where the MODE appears to come from */
 
-  char addbuf[20], addbuf_local[20]; /* accumulates +psmtin, etc. */
-  int addbuf_i = 0, addbuf_local_i = 0;
-  char rembuf[20], rembuf_local[20]; /* accumulates -psmtin, etc. */
-  int rembuf_i = 0, rembuf_local_i = 0;
+  char addbuf[20], addbuf_local[20], addbuf_global[20]; /* accumulates +psmtin, etc. */
+  int addbuf_i = 0, addbuf_local_i = 0, addbuf_global_i = 0;
+  char rembuf[20], rembuf_local[20], rembuf_global[20]; /* accumulates -psmtin, etc. */
+  int rembuf_i = 0, rembuf_local_i = 0, rembuf_global_i = 0;
   char *bufptr; /* we make use of indirection to simplify the code */
   int *bufptr_i;
 
@@ -1631,6 +1747,26 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
     mbuf->mb_rem |= MODE_WASDELJOINS;
   }
 
+  /* +z must be set instead of +Z if the channel has multiple SIDs */
+  if ((mbuf->mb_add & MODE_TLSONLY)
+      && (mbuf->mb_channel->sids_count > 1)) {
+    mbuf->mb_channel->mode.mode |= MODE_TLSINSECURE;
+    mbuf->mb_channel->mode.mode |= MODE_TLSONLY;
+    mbuf->mb_add |= MODE_TLSINSECURE;
+    mbuf->mb_add &= ~MODE_TLSONLY;  /* Remove +Z from add */
+  }
+
+  /* +z must be cleared if +Z is cleared */
+  if ((mbuf->mb_rem & MODE_TLSONLY)
+      && (mbuf->mb_channel->mode.mode & MODE_TLSINSECURE)) {
+    mbuf->mb_channel->mode.mode &= ~MODE_TLSINSECURE;
+    mbuf->mb_channel->mode.mode &= ~MODE_TLSONLY;
+    mbuf->mb_add &= ~MODE_TLSINSECURE;
+    mbuf->mb_add &= ~MODE_TLSONLY;
+    mbuf->mb_rem &= ~MODE_TLSONLY;
+    mbuf->mb_rem |= MODE_TLSINSECURE;
+  }
+
   /*
    * Account for user we're bouncing; we have to get it in on the first
    * bounced MODE, or we could have problems
@@ -1652,6 +1788,14 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
       addbuf_local[addbuf_local_i++] = flag_p[1];
     else if (*flag_p & mbuf->mb_rem)
       rembuf_local[rembuf_local_i++] = flag_p[1];
+  }
+
+  /* Some flags may be for propagation  only. */
+  for (flag_p = global_flags; flag_p[0]; flag_p += 2) {
+    if (*flag_p & mbuf->mb_add)
+      addbuf_global[addbuf_global_i++] = flag_p[1];
+    else if (*flag_p & mbuf->mb_rem)
+      rembuf_global[rembuf_global_i++] = flag_p[1];
   }
 
   /* Now go through the modes with arguments... */
@@ -1726,6 +1870,8 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
   rembuf[rembuf_i] = '\0';
   addbuf_local[addbuf_local_i] = '\0';
   rembuf_local[rembuf_local_i] = '\0';
+  addbuf_global[addbuf_global_i] = '\0';
+  rembuf_global[rembuf_global_i] = '\0';
 
   /* If we're building a user visible MODE or HACK... */
   if (mbuf->mb_dest & (MODEBUF_DEST_CHANNEL | MODEBUF_DEST_HACK2 |
@@ -1885,29 +2031,35 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
     if (mbuf->mb_dest & MODEBUF_DEST_OPMODE) {
       /* If OPMODE was set, we're propagating the mode as an OPMODE message */
       sendcmdto_serv_butone(mbuf->mb_source, CMD_OPMODE, mbuf->mb_connect,
-			    "%H %s%s%s%s%s%s", mbuf->mb_channel,
-			    rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "",
-			    addbuf, remstr, addstr);
+			    "%H %s%s%s%s%s%s%s%s", mbuf->mb_channel,
+			    rembuf_i || rembuf_global_i ? "-" : "",
+          rembuf, rembuf_global, 
+			    addbuf_i || addbuf_global_i ? "+" : "",
+          addbuf, addbuf_global, 
+			    remstr, addstr);
     } else if (mbuf->mb_dest & MODEBUF_DEST_BOUNCE) {
       /*
        * If HACK2 was set, we're bouncing; we send the MODE back to
        * the connection we got it from with the senses reversed and
        * the proper TS; origin is us
        */
-      sendcmdto_one(&me, CMD_MODE, mbuf->mb_connect, "%H %s%s%s%s%s%s %Tu",
-		    mbuf->mb_channel, addbuf_i ? "-" : "", addbuf,
-		    rembuf_i ? "+" : "", rembuf, addstr, remstr,
-		    mbuf->mb_channel->creationtime);
+      sendcmdto_one(&me, CMD_MODE, mbuf->mb_connect, "%H %s%s%s%s%s%s%s%s %Tu",
+		    mbuf->mb_channel,
+        addbuf_i || addbuf_global_i ? "-" : "",
+        addbuf, addbuf_global,
+		    rembuf_i || rembuf_global_i ? "+" : "",
+        rembuf, rembuf_global, 
+		    addstr, remstr, mbuf->mb_channel->creationtime);
     } else {
       /*
        * We're propagating a normal (or HACK3 or HACK4) MODE command
        * to the rest of the network.  We send the actual channel TS.
        */
       sendcmdto_serv_butone(mbuf->mb_source, CMD_MODE, mbuf->mb_connect,
-                            "%H %s%s%s%s%s%s %Tu", mbuf->mb_channel,
-                            rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "",
-                            addbuf, remstr, addstr,
-                            mbuf->mb_channel->creationtime);
+                            "%H %s%s%s%s%s%s%s%s %Tu", mbuf->mb_channel,
+                            (rembuf_i || rembuf_global_i) ? "-" : "", rembuf, rembuf_global, 
+                            (addbuf_i || addbuf_global_i) ? "+" : "", addbuf, addbuf_global, 
+                            remstr, addstr, mbuf->mb_channel->creationtime);
     }
   }
 
@@ -1993,7 +2145,7 @@ modebuf_mode(struct ModeBuf *mbuf, unsigned int mode)
   mode &= (MODE_ADD | MODE_DEL | MODE_PRIVATE | MODE_SECRET | MODE_MODERATED |
 	   MODE_TOPICLIMIT | MODE_INVITEONLY | MODE_NOPRIVMSGS | MODE_REGONLY |
 	   MODE_NOCOLOR | MODE_NOCTCP | MODE_NOPARTMSGS | MODE_MODERATENOREG | MODE_TLSONLY |
-	   MODE_DELJOINS | MODE_WASDELJOINS | MODE_REGISTERED);
+	   MODE_TLSINSECURE | MODE_DELJOINS | MODE_WASDELJOINS | MODE_REGISTERED);
 
   if (!(mode & ~(MODE_ADD | MODE_DEL))) /* don't add empty modes... */
     return;

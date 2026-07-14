@@ -58,6 +58,13 @@ def client_numnick(server_num: int, client_num: int) -> str:
     return server_numeric(server_num) + int_to_b64(client_num, 3)
 
 
+def ipv4_to_b64(ip: str = "127.0.0.1") -> str:
+    """Encode an IPv4 address as a 6-character P10 base64 string."""
+    parts = [int(x) for x in ip.split(".")]
+    value = (parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3]
+    return int_to_b64(value, 6)
+
+
 def parse_numnick(numnick: str) -> tuple[int, int]:
     """Parse a 5-char numnick into (server_numeric, client_numeric)."""
     return b64_to_int(numnick[:2]), b64_to_int(numnick[2:])
@@ -77,12 +84,14 @@ class P10Server:
         password: str = "testpass",
         max_clients: int = 64,
         description: str = "Test Services",
+        server_flags: str = "s",
     ):
         self.name = name
         self.numeric = numeric
         self.password = password
         self.max_clients = max_clients
         self.description = description
+        self.server_flags = server_flags
 
         self._reader: asyncio.StreamReader | None = None
         self._writer: asyncio.StreamWriter | None = None
@@ -215,9 +224,11 @@ class P10Server:
 
         # Send our credentials
         await self._send(f"PASS :{self.password}")
+        flags = self.server_flags
+        flag_field = f"+{flags}" if flags else "+"
         await self._send(
             f"SERVER {self.name} 1 {now} {now} J10 {self._numnick_mask} "
-            f"+s :{self.description}"
+            f"{flag_field} :{self.description}"
         )
 
         # Read hub's burst until we see EB (end of burst)
@@ -291,6 +302,87 @@ class P10Server:
         """Look up a user's 5-char numnick by their nick."""
         info = self.users.get(nick.lower())
         return info["numnick"] if info else None
+
+    async def send_downstream_server(
+        self,
+        name: str,
+        numeric: int,
+        *,
+        hop: int = 2,
+        flags: str = "",
+        description: str = "Downstream test server",
+        timestamp: int | None = None,
+    ) -> str:
+        """Introduce a remote server behind this link.
+
+        Returns the 2-character P10 server numeric for the new server.
+        """
+        ts = timestamp or _next_timestamp()
+        down_num = server_numeric(numeric)
+        down_mask = down_num + int_to_b64(self.max_clients, 3)
+        flag_field = f"+{flags}" if flags else "+"
+        await self._send(
+            f"{self._num} SERVER {name} {hop} 0 {ts} J10 {down_mask} "
+            f"{flag_field} :{description}"
+        )
+        return down_num
+
+    async def send_downstream_nick(
+        self,
+        server_numeric_prefix: str,
+        nick: str,
+        *,
+        server_numeric: int,
+        client_num: int = 1,
+        username: str | None = None,
+        host: str = "downstream.test",
+        realname: str = "Downstream User",
+        timestamp: int | None = None,
+    ) -> str:
+        """Introduce a user homed on a downstream server."""
+        ts = timestamp or int(time.time())
+        user = username or nick.lower()
+        numnick = client_numnick(server_numeric, client_num)
+        ip_b64 = ipv4_to_b64()
+        await self._send(
+            f"{server_numeric_prefix} N {nick} 1 {ts} {user} {host} "
+            f"{ip_b64} {numnick} :{realname}"
+        )
+        self.users[nick.lower()] = {
+            "nick": nick,
+            "numnick": numnick,
+            "username": user,
+            "host": host,
+            "modes": "",
+            "realname": realname,
+        }
+        return numnick
+
+    async def send_downstream_join(
+        self,
+        nick: str,
+        channel: str,
+        *,
+        creation: int | None = None,
+    ):
+        """Make a downstream user join a channel (P10 JOIN / J)."""
+        info = self.users.get(nick.lower())
+        if not info:
+            raise KeyError(f"unknown downstream user {nick!r}")
+        ts = creation if creation is not None else _next_timestamp()
+        await self._send(f"{info['numnick']} J {channel} {ts}")
+
+    async def send_downstream_part(
+        self,
+        nick: str,
+        channel: str,
+        comment: str = "leaving",
+    ):
+        """Make a downstream user part a channel (P10 PART / L)."""
+        info = self.users.get(nick.lower())
+        if not info:
+            raise KeyError(f"unknown downstream user {nick!r}")
+        await self._send(f"{info['numnick']} L {channel} :{comment}")
 
     async def send_opmode(self, target_numnick: str, mode: str):
         """Send an OPMODE for a user mode change.

@@ -65,6 +65,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Forward declaration */
+static void assign_secure_group(struct Client *cptr, int sid);
+
+/* Static variable to track the next available secure group ID */
+static int next_secure_group_id = 1;
 /** Maximum connection count since last restart. */
 unsigned int max_connection_count = 0;
 /** Maximum (local) client count since last restart. */
@@ -187,10 +192,10 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf)
     if (!match(cli_name(&me), cli_name(cptr)))
       continue;
     sendcmdto_one(&me, CMD_SERVER, acptr,
-		  "%s 2 0 %Tu J%02u %s%s +%s%s%s :%s", cli_name(cptr),
+		  "%s 2 0 %Tu J%02u %s%s +%s%s%s%s :%s", cli_name(cptr),
 		  cli_serv(cptr)->timestamp, Protocol(cptr), NumServCap(cptr),
 		  IsHub(cptr) ? "h" : "", IsService(cptr) ? "s" : "",
-		  IsIPv6(cptr) ? "6" : "", cli_info(cptr));
+		  IsIPv6(cptr) ? "6" : "", IsTLS(cptr) ? "z" : "", cli_info(cptr));
   }
 
   /* Send these as early as possible so that glined users/juped servers can
@@ -234,11 +239,11 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf)
       if (0 == match(cli_name(&me), cli_name(acptr)))
         continue;
       sendcmdto_one(cli_serv(acptr)->up, CMD_SERVER, cptr,
-		    "%s %d 0 %Tu %s%u %s%s +%s%s%s :%s", cli_name(acptr),
+		    "%s %d 0 %Tu %s%u %s%s +%s%s%s%s :%s", cli_name(acptr),
 		    cli_hopcount(acptr) + 1, cli_serv(acptr)->timestamp,
 		    protocol_str, Protocol(acptr), NumServCap(acptr),
 		    IsHub(acptr) ? "h" : "", IsService(acptr) ? "s" : "",
-		    IsIPv6(acptr) ? "6" : "", cli_info(acptr));
+		    IsIPv6(acptr) ? "6" : "", IsTLS(acptr) ? "z" : "", cli_info(acptr));
     }
   }
 
@@ -272,6 +277,247 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf)
       send_channel_modes(cptr, chptr);
   }
   sendcmdto_one(&me, CMD_END_OF_BURST, cptr, "");
+  
   return 0;
+}
+
+/** Compute secure path groups for all servers in the network.
+ * Servers with TLS connections to their uplinks are grouped together
+ * if they share a common secure path. Non-TLS servers get sid=0.
+ * This function should be called whenever the network topology changes.
+ */
+void compute_secure_path_groups(void)
+{
+  struct Client *cptr;
+  int i;
+
+  /* Reset the static counter */
+  next_secure_group_id = 1;
+
+  /* Reset all server sids before reassignment */
+  for (cptr = GlobalClientList; cptr; cptr = cli_next(cptr)) {
+    if ((IsServer(cptr) || IsMe(cptr)) && cli_serv(cptr))
+      cli_serv(cptr)->sid = 0;
+  }
+
+  /* Second pass: assign group IDs to TLS servers using simplified algorithm */
+  for (i = 0; i <= HighestFd; i++) {
+    if (!(cptr = LocalClientArray[i]) || !IsServer(cptr))
+      continue;
+    
+    /* Skip if already assigned a group */
+    if (cli_serv(cptr)->sid != 0)
+      continue;
+    
+    /* Non-TLS servers stay in group 0 */
+    if (!IsTLS(cptr))
+      continue;
+    
+    /* Check if this server's uplink is already in a secure group */
+    if (cli_serv(cptr)->up && IsServer(cli_serv(cptr)->up) && 
+        cli_serv(cli_serv(cptr)->up)->sid > 0) {
+      /* Assign to the same group as uplink */
+      cli_serv(cptr)->sid = cli_serv(cli_serv(cptr)->up)->sid;
+    } else {
+      /* Assign new group ID to this server and all servers in its secure path */
+      assign_secure_group(cptr, next_secure_group_id);
+      next_secure_group_id++;
+    }
+  }
+  
+  /* Third pass: assign local server to secure group if it has TLS downlinks */
+  if (cli_serv(&me)->sid == 0) {
+    struct DLink *down;
+    int has_tls_downlinks = 0;
+    int first_tls_sid = 0;
+    
+    /* Check if local server has TLS downlinks and find their group */
+    for (down = cli_serv(&me)->down; down; down = down->next) {
+      if (IsServer(down->value.cptr) && IsTLS(down->value.cptr)) {
+        has_tls_downlinks = 1;
+        if (first_tls_sid == 0) {
+          first_tls_sid = cli_serv(down->value.cptr)->sid;
+        }
+      }
+    }
+
+    /* If local server has TLS downlinks, assign it to the same group */
+    if (has_tls_downlinks && first_tls_sid > 0) {
+      cli_serv(&me)->sid = first_tls_sid;
+      
+      /* Reassign all TLS downlinks to the same group */
+      for (down = cli_serv(&me)->down; down; down = down->next) {
+        if (IsServer(down->value.cptr) && IsTLS(down->value.cptr)) {
+          cli_serv(down->value.cptr)->sid = first_tls_sid;
+        }
+      }
+    }
+  }
+  
+  /* Fourth pass: ensure all TLS servers connected to the same hub are in the same group */
+  if (cli_serv(&me)->sid > 0) {
+    struct DLink *down;
+    int hub_sid = cli_serv(&me)->sid;
+    
+    /* Reassign all TLS downlinks to the same group as the hub */
+    for (down = cli_serv(&me)->down; down; down = down->next) {
+      if (IsServer(down->value.cptr) && IsTLS(down->value.cptr)) {
+        if (cli_serv(down->value.cptr)->sid != hub_sid) {
+          cli_serv(down->value.cptr)->sid = hub_sid;
+        }
+      }
+    }
+  }
+  
+}
+
+/** Assign secure group ID to a new server based on its uplink.
+ * This is used for incremental updates when a new server joins the network.
+ * &me is assigned a secure group ID based on its downlinks.
+ * @param new_server The newly added server
+ */
+void assign_sid(struct Client *new_server)
+{
+  if (!new_server || (!IsServer(new_server) && !IsMe(new_server)) || !cli_serv(new_server))
+    return;
+    
+  if (cli_serv(new_server)->sid != 0)
+    return;
+    
+  /* Non-TLS servers stay in group 0, except &me which can be assigned based on downlinks */
+  if (!IsTLS(new_server) && !IsMe(new_server))
+    return;
+    
+  if (cli_serv(&me)->sid == 0) {
+    struct DLink *down;
+    int has_tls_downlinks = 0;
+    
+    for (down = cli_serv(&me)->down; down; down = down->next) {
+      if (IsServer(down->value.cptr) && IsTLS(down->value.cptr)) {
+        has_tls_downlinks = 1;
+        break;
+      }
+    }
+    
+    if (has_tls_downlinks) {
+      assign_secure_group(&me, next_secure_group_id);
+      next_secure_group_id++;
+    }
+  }
+  
+  /* Special case: if this is &me, we're done */
+  if (IsMe(new_server)) {
+    return;
+  }
+  
+  if (cli_serv(new_server)->up && cli_serv(cli_serv(new_server)->up)->sid > 0) {
+    /* Assign to the same group as uplink */
+    cli_serv(new_server)->sid = cli_serv(cli_serv(new_server)->up)->sid;
+  } else {
+    /* Assign new group ID to this server and all servers in its secure path */
+    assign_secure_group(new_server, next_secure_group_id);
+    next_secure_group_id++;
+  }
+}
+
+/** Assign a secure group ID to a server and all servers in its secure path.
+ * @param cptr Server to assign group ID to
+ * @param sid Group ID to assign
+ */
+static void assign_secure_group(struct Client *cptr, int sid)
+{
+  struct Client *up;
+  struct DLink *down;
+  struct Client *down_server;
+  
+  /* Assign group ID to current server */
+  cli_serv(cptr)->sid = sid;
+  
+  /* Recursively assign to uplink only if both hops are TLS */
+  up = cli_serv(cptr)->up;
+  if (up && IsServer(up) && IsTLS(cptr) && IsTLS(up) && cli_serv(up)->sid == 0) {
+    assign_secure_group(up, sid);
+  }
+  
+  /* Recursively assign to all downlinks whose connection to current server is TLS */
+  for (down = cli_serv(cptr)->down; down; down = down->next) {
+    down_server = down->value.cptr;
+    if (down_server && IsServer(down_server) && IsTLS(down_server) && 
+        cli_serv(down_server)->sid == 0) {
+      assign_secure_group(down_server, sid);
+    }
+  }
+}
+
+
+/** Get the secure group ID (sid) for any client (user or server).
+ * @param cli Client to get secure group ID for
+ * @return Secure group ID, or 0 if not on a secure path
+ */
+int get_secure_group_id(struct Client *cli)
+{
+  if (!cli)
+    return 0;
+    
+  if (IsServer(cli) || IsMe(cli)) {
+    /* For servers (including &me), get sid directly */
+    if (!cli_serv(cli))
+      return 0;
+    return cli_serv(cli)->sid;
+  } else if (IsUser(cli)) {
+    /* Users must be on a TLS connection to belong to a secure group */
+    if (!IsTLS(cli))
+      return 0;
+    /* For users, get sid from their server */
+    struct Client *user_server = cli_user(cli)->server;
+    if (!user_server || (!IsServer(user_server) && !IsMe(user_server)) || !cli_serv(user_server)) {
+      return 0;
+    }
+    return cli_serv(user_server)->sid;
+  }
+  
+  return 0;
+}
+
+/** Check if two clients are on the same secure network path.
+ * @param c1 First client (user or server)
+ * @param c2 Second client (user or server)
+ * @return Non-zero if both clients are on the same secure path, 0 otherwise
+ */
+int is_secure_path(struct Client *c1, struct Client *c2)
+{
+  int sid1, sid2;
+  
+  if (!c1 || !c2)
+    return 0;
+    
+  /* Get secure group IDs */
+  sid1 = get_secure_group_id(c1);
+  sid2 = get_secure_group_id(c2);
+  
+  /* Both must be on secure paths (sid > 0) and have the same sid */
+  if (sid1 <= 0 || sid2 <= 0 || sid1 != sid2) {
+    return 0;
+  }
+    
+  /* Additional TLS checks */
+  if (IsUser(c1)) {
+    /* For users, check that their connection to their server is TLS */
+    if (!IsTLS(c1)) {
+      return 0;
+    }
+  }
+  
+  if (IsUser(c2)) {
+    /* For users, check that their connection to their server is TLS */
+    if (!IsTLS(c2)) {
+      return 0;
+    }
+  }
+  
+  /* For servers, having the same sid > 0 is sufficient proof of secure path */
+  /* No need to check IsTLS() since sid is only assigned to TLS-connected servers */
+  
+  return 1;
 }
 

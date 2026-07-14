@@ -117,13 +117,14 @@ struct Client;
 #define MODE_NOPARTMSGS 0x800000        /**< +P No part messages */
 #define MODE_MODERATENOREG 0x1000000    /**< +M Moderate unauthed users */
 #define MODE_TLSONLY       0x2000000    /**< +Z TLS users only */
+#define MODE_TLSINSECURE   0x4000000    /**< +z TLS insecure network path */
 
 /** mode flags which take another parameter (With PARAmeterS)
  */
 #define MODE_WPARAS     (MODE_CHANOP|MODE_VOICE|MODE_BAN|MODE_KEY|MODE_LIMIT|MODE_APASS|MODE_UPASS)
 
 /** Available Channel modes */
-#define infochanmodes feature_bool(FEAT_OPLEVELS) ? "AbiklmnopstUvrDdRcCPMZ" : "biklmnopstvrDdRcCPMZ"
+#define infochanmodes feature_bool(FEAT_OPLEVELS) ? "AbiklmnopstUvrDdRcCPMZz" : "biklmnopstvrDdRcCPMZz"
 /** Available Channel modes that take parameters */
 #define infochanmodeswithparams feature_bool(FEAT_OPLEVELS) ? "AbkloUv" : "bklov"
 
@@ -286,6 +287,8 @@ struct Channel {
   char               topic_nick[NICKLEN + 1]; /**< Nick of the person who set
 						*  The topic
 						*/
+  int*               sids_present; /**< Array of SIDs present on this channel */
+  int                sids_count;    /**< Number of SIDs in the sids_present array */
   char               chname[1];	   /**< Dynamically allocated string of the 
 				     * channel name
 				     */
