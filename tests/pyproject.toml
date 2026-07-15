@@ -12,6 +12,8 @@ dependencies = [
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+timeout = 120
+timeout_func_only = true
 testpaths = ["."]
 pythonpath = ["."]
 markers = [

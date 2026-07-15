@@ -162,17 +162,30 @@ class IRCClient:
             if msg.command in ("376", "422"):  # End of MOTD or no MOTD
                 return msgs
 
-    async def negotiate_cap(self, caps: list[str]) -> list[str]:
+    async def negotiate_cap(self, caps: list[str], timeout: float = 5.0) -> list[str]:
         """Negotiate IRC capabilities before registration.
 
         Sends CAP LS 302, requests the given caps, waits for ACK,
         then sends CAP END. Returns list of acknowledged capabilities.
+
+        Non-CAP messages (e.g. "NOTICE AUTH" ident/DNS progress lines) are
+        stashed in the buffer for later retrieval. They must be read from
+        the stream, never via recv(): recv() pops the buffer first, so a
+        stashed message would be popped and re-stashed forever without
+        ever reading the socket again (and without yielding to the event
+        loop, so no timeout could fire).
         """
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + timeout
+
         await self.send("CAP LS 302")
         # Collect CAP LS response(s)
         ls_caps = []
         while True:
-            msg = await self.recv(timeout=5.0)
+            remaining = deadline - loop.time()
+            if remaining <= 0:
+                raise asyncio.TimeoutError("Timed out waiting for CAP LS reply")
+            msg = await self._recv_from_stream(timeout=remaining)
             if msg.command == "CAP" and len(msg.params) >= 3:
                 sub = msg.params[1]
                 if sub == "LS":
@@ -196,7 +209,10 @@ class IRCClient:
         # Wait for ACK or NAK
         acked = []
         while True:
-            msg = await self.recv(timeout=5.0)
+            remaining = deadline - loop.time()
+            if remaining <= 0:
+                raise asyncio.TimeoutError("Timed out waiting for CAP ACK/NAK")
+            msg = await self._recv_from_stream(timeout=remaining)
             if msg.command == "CAP" and len(msg.params) >= 3:
                 sub = msg.params[1]
                 if sub == "ACK":

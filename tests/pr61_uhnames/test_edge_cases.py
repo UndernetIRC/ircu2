@@ -122,14 +122,14 @@ async def test_uhnames_cap_not_advertised_when_disabled(ircd_hub):
         await client.send("CAP LS 302")
         caps = []
         while True:
+            # Ignore non-CAP noise (e.g. "NOTICE AUTH" ident progress lines)
+            # instead of aborting on it — the CAP LS reply follows.
             msg = await client.recv(timeout=5.0)
             if msg.command == "CAP" and len(msg.params) >= 3:
                 if msg.params[1] == "LS":
                     caps.extend(msg.params[-1].split())
                     if msg.params[2] != "*":
                         break
-            else:
-                break
 
         # On builds with PR #61, this cap should be present
         # On builds without, it won't be — that's expected
