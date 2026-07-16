@@ -821,6 +821,16 @@ for as many retries as IRCD_RES_RETRIES allows.  This can be cut short by
 AUTH_TIMEOUT expiring.
 NOTE: Has no effect when using the adns resolver.
 
+DNS_TCP_MAXCONN
+ * Type: integer
+ * Default: 16
+
+Maximum number of concurrent DNS-over-TCP connections used when a UDP
+response is truncated (TC=1).  This bounds file-descriptor and nameserver
+load if many clients trigger TCP retries.  Excess TC=1 lookups fail that
+client's hostname check instead of opening another TCP session.  Set to 0
+for no limit.
+
 AUTH_TIMEOUT
  * Type: integer
  * Default: 9

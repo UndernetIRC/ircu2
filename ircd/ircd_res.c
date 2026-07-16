@@ -23,6 +23,8 @@
 
 #include "client.h"
 #include "ircd_alloc.h"
+#include "ircd_events.h"
+#include "ircd_features.h"
 #include "ircd_log.h"
 #include "ircd_osdep.h"
 #include "ircd_reply.h"
@@ -45,6 +47,7 @@
 #include <sys/time.h>
 #include <sys/socket.h>
 #include <time.h>
+#include <unistd.h>
 
 #if (CHAR_BIT != 8)
 #error this code needs to be able to address individual octets 
@@ -67,7 +70,19 @@ struct irc_sockaddr VirtualHost_dns_v6;
  * RFC says 512, but we add extra for expanded names.
  */
 #define MAXPACKET      1024
+/** Maximum accepted DNS-over-TCP message body length. */
+#define MAXPACKET_TCP  8192
 #define AR_TTL         600   /**< TTL in seconds for dns cache entries */
+
+/** State of an optional DNS-over-TCP retry after a truncated UDP reply. */
+typedef enum
+{
+  TCP_NONE = 0,       /**< No TCP session for this request. */
+  TCP_CONNECTING,     /**< Non-blocking connect in progress. */
+  TCP_SENDING,        /**< Sending length-prefixed query. */
+  TCP_RECV_LEN,       /**< Reading 2-byte response length. */
+  TCP_RECV_BODY       /**< Reading response body. */
+} dns_tcp_state;
 
 /* RFC 1104/1105 wasn't very helpful about what these fields
  * should be named, so for now, we'll just name them this way.
@@ -125,10 +140,45 @@ struct reslist
   struct irc_in_addr *addrs; /**< Array of IP addresses for this request. */
   int addr_count;          /**< Number of IP addresses in addrs array. */
   int addr_capacity;       /**< Capacity of addrs array. */
+  /* DNS-over-TCP fallback for truncated UDP replies (TC=1) */
+  unsigned char *query;    /**< Last UDP query payload (no TCP length). */
+  unsigned short query_len;/**< Length of query. */
+  char tcp_mode;           /**< Non-zero when falling back to TCP. */
+  dns_tcp_state tcp_state; /**< TCP session state machine. */
+  struct Socket tcp_sock;  /**< TCP socket to nameserver. */
+  struct irc_sockaddr tcp_ns; /**< Nameserver that returned TC=1. */
+  unsigned char *tcp_send; /**< Length-prefixed query being sent. */
+  unsigned short tcp_send_len; /**< Total length of tcp_send. */
+  unsigned short tcp_send_pos; /**< Bytes of tcp_send already written. */
+  unsigned char tcp_lenbuf[2]; /**< Partial read of response length. */
+  unsigned short tcp_len_pos;  /**< Bytes stored in tcp_lenbuf. */
+  unsigned char *tcp_recv; /**< Response body buffer. */
+  unsigned short tcp_recv_len; /**< Expected response body length. */
+  unsigned short tcp_recv_pos; /**< Bytes of body received so far. */
 };
 
 /** Base of request list. */
 static struct dlink request_list;
+/** Number of open DNS-over-TCP sessions. */
+static int dns_tcp_count;
+/** Set after logging that DNS_TCP_MAXCONN was hit; cleared when below limit. */
+static int dns_tcp_maxconn_logged;
+
+/** Drop one reserved/active TCP session from the count and clear the
+ * maxconn log latch once we are no longer at the limit.
+ */
+static void
+dns_tcp_release_slot(void)
+{
+  if (dns_tcp_count > 0)
+    --dns_tcp_count;
+  if (dns_tcp_maxconn_logged)
+  {
+    int maxconn = feature_int(FEAT_DNS_TCP_MAXCONN);
+    if (maxconn <= 0 || dns_tcp_count < maxconn)
+      dns_tcp_maxconn_logged = 0;
+  }
+}
 
 static void rem_request(struct reslist *request);
 static struct reslist *make_request(dns_callback_f callback, void *ctx);
@@ -140,11 +190,18 @@ static void do_query_number(dns_callback_f callback, void *ctx,
 static void query_name(const char *name, int query_class, int query_type,
                        struct reslist *request);
 static int send_res_msg(const char *buf, int len, int count);
-static void resend_query(struct reslist *request);
+static int resend_query(struct reslist *request);
 static int proc_answer(struct reslist *request, HEADER *header, char *, char *);
 static struct reslist *find_id(int id);
 static void res_readreply(struct Event *ev);
 static void timeout_resolver(struct Event *notused);
+static void close_dns_tcp(struct reslist *request);
+static int start_dns_tcp(struct reslist *request, const struct irc_sockaddr *ns);
+static void process_dns_reply(struct reslist *request, HEADER *header,
+                              char *buf, unsigned int rc);
+static void dns_tcp_callback(struct Event *ev);
+static int dns_tcp_send(struct reslist *request);
+static void dns_tcp_read(struct reslist *request);
 
 /** Add an IP address to the reslist's address array.
  * @param[in] request The reslist to add the address to.
@@ -301,8 +358,11 @@ rem_request(struct reslist *request)
   /* remove from dlist */
   request->node.prev->next = request->node.next;
   request->node.next->prev = request->node.prev;
+  close_dns_tcp(request);
   /* free memory */
   MyFree(request->name);
+  MyFree(request->addrs);
+  MyFree(request->query);
   MyFree(request);
 }
 
@@ -332,6 +392,7 @@ make_request(dns_callback_f callback, void *ctx)
   request->addrs = NULL;
   request->addr_count = 0;
   request->addr_capacity = 0;
+  s_fd(&request->tcp_sock) = -1;
 
   add_dlink(&request->node, &request_list);
   return(request);
@@ -388,7 +449,8 @@ timeout_resolver(struct Event *ev)
       {
         request->sentat = CurrentTime;
         request->timeout += request->timeout;
-        resend_query(request);
+        if (!resend_query(request))
+          continue;
       }
     }
 
@@ -625,6 +687,11 @@ query_name(const char *name, int query_class, int type,
     request->id = header->id;
     ++request->sends;
 
+    MyFree(request->query);
+    request->query = (unsigned char *)MyMalloc(request_len);
+    memcpy(request->query, buf, request_len);
+    request->query_len = request_len;
+
     request->sent += send_res_msg(buf, request_len, request->sends);
     check_resolver_timeout(request->sentat + request->timeout);
   }
@@ -632,12 +699,26 @@ query_name(const char *name, int query_class, int type,
 
 /** Send a failed DNS lookup request again.
  * @param[in] request Request to resend.
+ * @return Non-zero if \a request is still live; zero if it was destroyed.
  */
-static void
+static int
 resend_query(struct reslist *request)
 {
   if (request->resend == 0)
-    return;
+    return 1;
+
+  if (request->tcp_mode)
+  {
+    close_dns_tcp(request);
+    if (!start_dns_tcp(request, &request->tcp_ns))
+    {
+      Debug((DEBUG_DNS, "Request %p TCP resend denied by maxconn", request));
+      (*request->callback)(request->callback_ctx, NULL, 0, NULL);
+      rem_request(request);
+      return 0;
+    }
+    return 1;
+  }
 
   switch(request->type)
   {
@@ -654,6 +735,7 @@ resend_query(struct reslist *request)
     default:
       break;
   }
+  return 1;
 }
 
 /** Process the answer for a lookup request.
@@ -829,7 +911,6 @@ res_readreply(struct Event *ev)
   HEADER *header;
   struct reslist *request = NULL;
   unsigned int rc;
-  int answer_count;
 
   assert((ev_socket(ev) == &res_socket_v4) || (ev_socket(ev) == &res_socket_v6));
   sock = ev_socket(ev);
@@ -860,6 +941,351 @@ res_readreply(struct Event *ev)
   if (0 == (request = find_id(header->id)))
     return;
 
+  /*
+   * Truncated UDP reply: retry the same query over TCP.  Do not treat
+   * this as an AAAA miss that should fall back to A.
+   */
+  if (header->tc)
+  {
+    Debug((DEBUG_DNS, "Request %p UDP reply truncated; trying TCP", request));
+    if (!start_dns_tcp(request, &lsin))
+    {
+      (*request->callback)(request->callback_ctx, NULL, 0, NULL);
+      rem_request(request);
+    }
+    return;
+  }
+
+  process_dns_reply(request, header, buf, rc);
+}
+
+/** Tear down any DNS-over-TCP state for \a request. */
+static void
+close_dns_tcp(struct reslist *request)
+{
+  if (s_fd(&request->tcp_sock) >= 0)
+  {
+    close(s_fd(&request->tcp_sock));
+    if (s_active(&request->tcp_sock))
+      socket_del(&request->tcp_sock);
+    s_fd(&request->tcp_sock) = -1;
+    dns_tcp_release_slot();
+  }
+
+  MyFree(request->tcp_send);
+  request->tcp_send = NULL;
+  request->tcp_send_len = 0;
+  request->tcp_send_pos = 0;
+  MyFree(request->tcp_recv);
+  request->tcp_recv = NULL;
+  request->tcp_recv_len = 0;
+  request->tcp_recv_pos = 0;
+  request->tcp_len_pos = 0;
+  request->tcp_state = TCP_NONE;
+}
+
+/** Send pending bytes of the length-prefixed TCP DNS query.
+ * @return Non-zero on progress/success; zero on hard send failure.
+ *         On failure the request remains live for the caller to clean up.
+ */
+static int
+dns_tcp_send(struct reslist *request)
+{
+  unsigned int written = 0;
+  IOResult result;
+
+  assert(request->tcp_send != NULL);
+  assert(request->tcp_send_pos < request->tcp_send_len);
+
+  result = os_send_nonb(s_fd(&request->tcp_sock),
+                        (const char *)request->tcp_send + request->tcp_send_pos,
+                        request->tcp_send_len - request->tcp_send_pos,
+                        &written);
+  if (result == IO_FAILURE)
+  {
+    Debug((DEBUG_DNS, "Request %p TCP send failed", request));
+    return 0;
+  }
+
+  request->tcp_send_pos += written;
+  if (request->tcp_send_pos < request->tcp_send_len)
+  {
+    request->tcp_state = TCP_SENDING;
+    socket_events(&request->tcp_sock, SOCK_ACTION_ADD | SOCK_EVENT_WRITABLE);
+    return 1;
+  }
+
+  MyFree(request->tcp_send);
+  request->tcp_send = NULL;
+  request->tcp_send_len = 0;
+  request->tcp_send_pos = 0;
+  request->tcp_state = TCP_RECV_LEN;
+  request->tcp_len_pos = 0;
+  socket_events(&request->tcp_sock,
+                SOCK_ACTION_SET | SOCK_EVENT_READABLE);
+  return 1;
+}
+
+/** Read a length-prefixed DNS response over TCP. */
+static void
+dns_tcp_read(struct reslist *request)
+{
+  unsigned int got = 0;
+  IOResult result;
+
+  if (request->tcp_state == TCP_RECV_LEN)
+  {
+    result = os_recv_nonb(s_fd(&request->tcp_sock),
+                          (char *)request->tcp_lenbuf + request->tcp_len_pos,
+                          2 - request->tcp_len_pos, &got);
+    if (result == IO_BLOCKED)
+      return;
+    if (result == IO_FAILURE || got == 0)
+    {
+      Debug((DEBUG_DNS, "Request %p TCP length read failed", request));
+      (*request->callback)(request->callback_ctx, NULL, 0, NULL);
+      rem_request(request);
+      return;
+    }
+
+    request->tcp_len_pos += got;
+    if (request->tcp_len_pos < 2)
+      return;
+
+    request->tcp_recv_len = irc_ns_get16(request->tcp_lenbuf);
+    if (request->tcp_recv_len < sizeof(HEADER)
+        || request->tcp_recv_len > MAXPACKET_TCP)
+    {
+      Debug((DEBUG_DNS, "Request %p TCP length %u invalid", request,
+             request->tcp_recv_len));
+      (*request->callback)(request->callback_ctx, NULL, 0, NULL);
+      rem_request(request);
+      return;
+    }
+
+    request->tcp_recv = (unsigned char *)MyMalloc(request->tcp_recv_len);
+    request->tcp_recv_pos = 0;
+    request->tcp_state = TCP_RECV_BODY;
+  }
+
+  if (request->tcp_state == TCP_RECV_BODY)
+  {
+    HEADER *header;
+
+    result = os_recv_nonb(s_fd(&request->tcp_sock),
+                          (char *)request->tcp_recv + request->tcp_recv_pos,
+                          request->tcp_recv_len - request->tcp_recv_pos,
+                          &got);
+    if (result == IO_BLOCKED)
+      return;
+    if (result == IO_FAILURE || got == 0)
+    {
+      Debug((DEBUG_DNS, "Request %p TCP body read failed", request));
+      (*request->callback)(request->callback_ctx, NULL, 0, NULL);
+      rem_request(request);
+      return;
+    }
+
+    request->tcp_recv_pos += got;
+    if (request->tcp_recv_pos < request->tcp_recv_len)
+      return;
+
+    header = (HEADER *)request->tcp_recv;
+    header->ancount = ntohs(header->ancount);
+    header->qdcount = ntohs(header->qdcount);
+    header->nscount = ntohs(header->nscount);
+    header->arcount = ntohs(header->arcount);
+
+    /*
+     * Done with the TCP transport; free the socket before finishing so
+     * concurrent TC=1 lookups can reuse the slot.
+     */
+    {
+      unsigned char *body = request->tcp_recv;
+      unsigned int body_len = request->tcp_recv_len;
+
+      request->tcp_recv = NULL;
+      close_dns_tcp(request);
+      process_dns_reply(request, header, (char *)body, body_len);
+      MyFree(body);
+    }
+  }
+}
+
+/** Event callback for DNS-over-TCP sessions. */
+static void
+dns_tcp_callback(struct Event *ev)
+{
+  struct reslist *request;
+
+  assert(0 != ev_socket(ev));
+  request = (struct reslist *)s_data(ev_socket(ev));
+  assert(0 != request);
+
+  switch (ev_type(ev))
+  {
+  case ET_DESTROY:
+    break;
+
+  case ET_CONNECT:
+    Debug((DEBUG_DNS, "Request %p TCP connected", request));
+    socket_state(&request->tcp_sock, SS_CONNECTED);
+    if (!dns_tcp_send(request))
+    {
+      (*request->callback)(request->callback_ctx, NULL, 0, NULL);
+      rem_request(request);
+    }
+    break;
+
+  case ET_WRITE:
+    if (!dns_tcp_send(request))
+    {
+      (*request->callback)(request->callback_ctx, NULL, 0, NULL);
+      rem_request(request);
+    }
+    break;
+
+  case ET_READ:
+  case ET_EOF:
+  case ET_ERROR:
+    if (ev_type(ev) == ET_ERROR || ev_type(ev) == ET_EOF)
+    {
+      if (request->tcp_state == TCP_RECV_LEN
+          || request->tcp_state == TCP_RECV_BODY)
+      {
+        /* Fall through to read path which handles short/zero reads. */
+      }
+      else
+      {
+        Debug((DEBUG_DNS, "Request %p TCP error before reply", request));
+        (*request->callback)(request->callback_ctx, NULL, 0, NULL);
+        rem_request(request);
+        break;
+      }
+    }
+    dns_tcp_read(request);
+    break;
+
+  default:
+    assert(0 && "Unrecognized event in dns_tcp_callback()");
+    break;
+  }
+}
+
+/** Start a DNS-over-TCP retry toward \a ns for a truncated UDP reply.
+ * @return Non-zero on success (connect started or already sending).
+ */
+static int
+start_dns_tcp(struct reslist *request, const struct irc_sockaddr *ns)
+{
+  struct irc_sockaddr local;
+  IOResult result;
+  int fd;
+  int family;
+  int maxconn = feature_int(FEAT_DNS_TCP_MAXCONN);
+
+  if (request->query == NULL || request->query_len == 0)
+    return 0;
+
+  if (s_fd(&request->tcp_sock) >= 0)
+    close_dns_tcp(request);
+
+  /* maxconn == 0 means unlimited concurrent TCP DNS sessions. */
+  if (maxconn > 0 && dns_tcp_count >= maxconn)
+  {
+    Debug((DEBUG_DNS, "Request %p TCP denied (count %d max %d)",
+           request, dns_tcp_count, maxconn));
+    if (!dns_tcp_maxconn_logged)
+    {
+      dns_tcp_maxconn_logged = 1;
+      log_write(LS_RESOLVER, L_WARNING, 0,
+                "DNS TCP maxconn reached (%d); refusing TCP fallback "
+                "until a session closes", maxconn);
+    }
+    return 0;
+  }
+
+  if (maxconn > 0)
+    ++dns_tcp_count;
+
+  memcpy(&request->tcp_ns, ns, sizeof(request->tcp_ns));
+  request->tcp_mode = 1;
+
+  if (irc_in_addr_is_ipv4(&ns->addr))
+  {
+    local = VirtualHost_dns_v4;
+    family = AF_INET;
+  }
+  else
+  {
+    local = VirtualHost_dns_v6;
+#ifdef AF_INET6
+    family = AF_INET6;
+#else
+    if (maxconn > 0)
+      dns_tcp_release_slot();
+    return 0;
+#endif
+  }
+  local.port = 0;
+
+  fd = os_socket(&local, SOCK_STREAM, "Resolver TCP socket", family);
+  if (fd < 0)
+  {
+    if (maxconn > 0)
+      dns_tcp_release_slot();
+    return 0;
+  }
+
+  result = os_connect_nonb(fd, ns);
+  if (result == IO_FAILURE
+      || !socket_add(&request->tcp_sock, dns_tcp_callback, request,
+                     result == IO_SUCCESS ? SS_CONNECTED : SS_CONNECTING,
+                     SOCK_EVENT_READABLE, fd))
+  {
+    close(fd);
+    s_fd(&request->tcp_sock) = -1;
+    if (maxconn > 0)
+      dns_tcp_release_slot();
+    return 0;
+  }
+
+  request->sentat = CurrentTime;
+  request->tcp_send = (unsigned char *)MyMalloc(2 + request->query_len);
+  irc_ns_put16(request->query_len, request->tcp_send);
+  memcpy(request->tcp_send + 2, request->query, request->query_len);
+  request->tcp_send_len = 2 + request->query_len;
+  request->tcp_send_pos = 0;
+
+  Debug((DEBUG_DNS, "Request %p starting TCP to nameserver (active %d/%d)",
+         request, dns_tcp_count, maxconn));
+
+  if (result == IO_SUCCESS)
+  {
+    request->tcp_state = TCP_SENDING;
+    if (!dns_tcp_send(request))
+    {
+      close_dns_tcp(request);
+      return 0;
+    }
+  }
+  else
+    request->tcp_state = TCP_CONNECTING;
+
+  check_resolver_timeout(request->sentat + request->timeout);
+  return 1;
+}
+
+/** Finish handling a decoded DNS response for \a request.
+ * Truncated UDP replies (TC=1) are handled by the caller before invoking
+ * this; truncation over TCP is not meaningful and is ignored here.
+ */
+static void
+process_dns_reply(struct reslist *request, HEADER *header, char *buf,
+                  unsigned int rc)
+{
+  int answer_count;
+
   if ((header->rcode != NO_ERRORS) || (header->ancount == 0))
   {
     if (SERVFAIL == header->rcode || NXDOMAIN == header->rcode)
@@ -876,10 +1302,11 @@ res_readreply(struct Event *ev)
     {
       /*
        * If we haven't already tried this, and we're looking up AAAA, try A
-       * now
+       * now.  Skip this while in TCP mode: a truncated AAAA must not be
+       * treated as "no AAAA".
        */
 
-      if (request->state == REQ_AAAA && request->type == T_AAAA)
+      if (!request->tcp_mode && request->state == REQ_AAAA && request->type == T_AAAA)
       {
         request->timeout += feature_int(FEAT_IRCD_RES_TIMEOUT);
         resend_query(request);
@@ -887,9 +1314,15 @@ res_readreply(struct Event *ev)
       else if (request->type == T_PTR && request->state != REQ_INT &&
                !irc_in_addr_is_ipv4(&request->addr))
       {
+        request->tcp_mode = 0;
         request->state = REQ_INT;
         request->timeout += feature_int(FEAT_IRCD_RES_TIMEOUT);
         resend_query(request);
+      }
+      else if (request->tcp_mode)
+      {
+        (*request->callback)(request->callback_ctx, NULL, 0, NULL);
+        rem_request(request);
       }
     }
 
@@ -955,6 +1388,12 @@ res_readreply(struct Event *ev)
 
     /* XXX don't leak it */
     Debug((DEBUG_DNS, "Request %p was unexpected(!)", request));
+    rem_request(request);
+  }
+  else if (request->tcp_mode)
+  {
+    Debug((DEBUG_DNS, "Request %p TCP reply had no usable answers", request));
+    (*request->callback)(request->callback_ctx, NULL, 0, NULL);
     rem_request(request);
   }
 }
