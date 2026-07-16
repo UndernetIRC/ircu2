@@ -338,22 +338,28 @@ class P10Server:
         host: str = "downstream.test",
         realname: str = "Downstream User",
         timestamp: int | None = None,
+        modes: str = "",
     ) -> str:
-        """Introduce a user homed on a downstream server."""
+        """Introduce a user homed on a downstream server.
+
+        modes: optional usermode letters (without '+'), e.g. "iz" for an
+        invisible TLS user.
+        """
         ts = timestamp or int(time.time())
         user = username or nick.lower()
         numnick = client_numnick(server_numeric, client_num)
         ip_b64 = ipv4_to_b64()
+        mode_field = f"+{modes} " if modes else ""
         await self._send(
             f"{server_numeric_prefix} N {nick} 1 {ts} {user} {host} "
-            f"{ip_b64} {numnick} :{realname}"
+            f"{mode_field}{ip_b64} {numnick} :{realname}"
         )
         self.users[nick.lower()] = {
             "nick": nick,
             "numnick": numnick,
             "username": user,
             "host": host,
-            "modes": "",
+            "modes": modes,
             "realname": realname,
         }
         return numnick
