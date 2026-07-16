@@ -98,6 +98,8 @@ class P10Server:
         self.users: dict[str, dict] = {}
         # All raw messages received
         self.received: list[str] = []
+        # Next client numeric for users we introduce ourselves
+        self._next_client_num = 0
 
     async def connect(self, host: str, port: int):
         """Open a TCP connection to the ircd's server port."""
@@ -309,6 +311,39 @@ class P10Server:
             if acc_flags is not None:
                 parts += f" {acc_flags}"
         await self._send(parts)
+
+    async def introduce_user(
+        self,
+        nick: str,
+        username: str = "fakeuser",
+        host: str = "fake.test.net",
+        modes: str = "+i",
+        realname: str = "Fake User",
+    ) -> str:
+        """Introduce a user originating from this server via a P10 N message.
+
+        Format: <our_num> N <nick> <hops> <ts> <user> <host> <+modes> <b64ip> <numnick> :<realname>
+
+        Returns the new user's numnick.
+        """
+        client_num = self._next_client_num
+        self._next_client_num += 1
+        numnick = self._num + int_to_b64(client_num, 3)
+        ts = int(time.time())
+        ip64 = int_to_b64(0x7F000001, 6)  # 127.0.0.1
+        await self._send(
+            f"{self._num} N {nick} 1 {ts} {username} {host} {modes} "
+            f"{ip64} {numnick} :{realname}"
+        )
+        return numnick
+
+    async def send_privmsg(self, from_numnick: str, target: str, text: str):
+        """Send a PRIVMSG (P) from one of our users to a target numnick."""
+        await self._send(f"{from_numnick} P {target} :{text}")
+
+    async def send_notice(self, from_numnick: str, target: str, text: str):
+        """Send a NOTICE (O) from one of our users to a target numnick."""
+        await self._send(f"{from_numnick} O {target} :{text}")
 
     async def wait_for_user(self, nick: str, timeout: float = 5.0) -> str:
         """Wait until a user with the given nick appears, return their numnick.

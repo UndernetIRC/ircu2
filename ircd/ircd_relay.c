@@ -417,6 +417,48 @@ void relay_directed_notice(struct Client* sptr, char* name, char* server, const 
   }
 }
 
+/** Check if two users share a common channel.
+ * The source's zombie and delayed-join memberships are skipped: a
+ * hidden join in a +D channel must not grant access to a +c member of
+ * that channel.  The target's own delayed joins do count, since the
+ * target knows its own channels and can see the (visible) source.
+ * @param[in] sptr Source client.
+ * @param[in] acptr Target client.
+ * @return Non-zero if users share a channel, zero otherwise.
+ */
+static int has_common_channel(struct Client *sptr, struct Client *acptr)
+{
+  struct Membership *schan, *achan;
+
+  for (schan = cli_user(sptr)->channel; schan; schan = schan->next_channel) {
+    if (IsZombie(schan) || IsDelayedJoin(schan))
+      continue;
+    for (achan = cli_user(acptr)->channel; achan; achan = achan->next_channel) {
+      if (IsZombie(achan))
+        continue;
+      if (schan->channel == achan->channel)
+        return 1;  /* Found common channel */
+    }
+  }
+  return 0;  /* No common channels */
+}
+
+/** Check whether user mode +c on \a acptr requires dropping a message
+ * from \a sptr.  Servers, services (+k), IRC operators and messages
+ * to self are exempt.
+ * @param[in] sptr Source of the message.
+ * @param[in] acptr Target of the message.
+ * @return Non-zero if the message should be dropped.
+ */
+static int commonchans_drop(struct Client *sptr, struct Client *acptr)
+{
+  if (!IsCommonChans(acptr) || sptr == acptr)
+    return 0;
+  if (!IsUser(sptr) || IsChannelService(sptr) || IsAnOper(sptr))
+    return 0;
+  return !has_common_channel(sptr, acptr);
+}
+
 /** Relay a private message from a local user.
  * Returns an error if the user does not exist or sending to him would
  * exceed the source's free targets.  Sends an AWAY status message if
@@ -446,6 +488,10 @@ void relay_private_message(struct Client* sptr, const char* name, const char* te
   if (sline_check_privmsg(sptr, acptr, text, MSG_PRIVATE)) {
     return;
   }
+
+  /* Check +c mode: drop private messages from users not in a common channel */
+  if (commonchans_drop(sptr, acptr))
+    return;
 
   /*
    * send away message if user away
@@ -490,6 +536,10 @@ void relay_private_notice(struct Client* sptr, const char* name, const char* tex
     return;
   }
 
+  /* Check +c mode: drop notices from users not in a common channel */
+  if (commonchans_drop(sptr, acptr))
+    return;
+
   /*
    * deliver the message
    */
@@ -526,6 +576,12 @@ void server_relay_private_message(struct Client* sptr, const char* name, const c
   if (is_silenced(sptr, acptr))
     return;
 
+  /* Check +c mode: drop private messages from users not in a common
+   * channel.  This must be enforced here too: the origin server may
+   * not do it (services packages, older servers). */
+  if (commonchans_drop(sptr, acptr))
+    return;
+
   if (MyUser(acptr))
     add_target(acptr, sptr);
 
@@ -552,6 +608,12 @@ void server_relay_private_notice(struct Client* sptr, const char* name, const ch
     return;
 
   if (is_silenced(sptr, acptr))
+    return;
+
+  /* Check +c mode: drop notices from users not in a common channel.
+   * This must be enforced here too: the origin server may not do it
+   * (services packages, older servers). */
+  if (commonchans_drop(sptr, acptr))
     return;
 
   if (MyUser(acptr))

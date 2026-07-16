@@ -96,7 +96,7 @@ typedef unsigned long flagpage_t;
 #define FlagClr(set,flag) ((set)->bits[FLAGSET_INDEX(flag)] &= ~FLAGSET_MASK(flag))
 
 /** String containing valid user modes, in no particular order. */
-#define infousermodes "diOoswkgxzI"
+#define infousermodes "diOoswkgxczI"
 
 /** Operator privileges. */
 enum Priv
@@ -179,6 +179,7 @@ enum Flag
     FLAG_TLS,                       /**< user is using TLS */
     FLAG_SPAMHOLD,                  /**< user is the sender or recipient of a message on hold */
     FLAG_HIDEIDLE,                  /**< Hide idle time from non-opers */
+    FLAG_COMMONCHANS,               /**< only accepts messages from users in common channels */
     FLAG_LAST_FLAG,                 /**< number of flags */
     FLAG_LOCAL_UMODES = FLAG_LOCOP, /**< First local mode flag */
     FLAG_GLOBAL_UMODES = FLAG_OPER, /**< First global mode flag */
@@ -656,6 +657,8 @@ struct Client {
 #define IsNegotiatingTLS(x)     HasFlag(x, FLAG_NEGOTIATING_TLS)
 /** Return non-zero if the client is the sender or recipient of a message on hold (spamfilter) */
 #define IsSpamHold(x)           HasFlag(x, FLAG_SPAMHOLD)
+/** Return non-zero if the client has mode +c (only messages from common channels). */
+#define IsCommonChans(x)        HasFlag(x, FLAG_COMMONCHANS)
 
 /** Return non-zero if the client has completed the handshake for a WebSocket connection. */
 #define IsWebsocket(x)           (cli_ws_mode(x) != WS_NONE)
@@ -712,6 +715,8 @@ struct Client {
 #define SetNegotiatingTLS(x)    SetFlag(x, FLAG_NEGOTIATING_TLS)
 /** Mark a client as being the sender or recipient of a message on hold (spamfilter). */
 #define SetSpamHold(x)          SetFlag(x, FLAG_SPAMHOLD)
+/** Mark a client as having mode +c (only messages from those in common channels). */
+#define SetCommonChans(x)       SetFlag(x, FLAG_COMMONCHANS)
 
 /** Return non-zero if \a sptr sees \a acptr as an operator. */
 #define SeeOper(sptr,acptr) (IsAnOper(acptr) && (HasPriv(acptr, PRIV_DISPLAY) \
@@ -753,6 +758,8 @@ struct Client {
 #define ClearNegotiatingTLS(x)  ClrFlag(x, FLAG_NEGOTIATING_TLS)
 /** Clear the client's spam hold flag. */
 #define ClearSpamHold(x)        ClrFlag(x, FLAG_SPAMHOLD)
+/** Remove mode +c (only accepts messages from common channels) from the client. */
+#define ClearCommonChans(x)     ClrFlag(x, FLAG_COMMONCHANS)
 
 /* free flags */
 #define FREEFLAG_SOCKET	0x0001	/**< socket needs to be freed */
