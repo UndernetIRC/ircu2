@@ -281,34 +281,14 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf)
   return 0;
 }
 
-/** Check whether a server is on at least one TLS server link.
- * IsTLS() on a server describes the link between that server and its
- * uplink, so a server is TLS-linked if its own uplink link is TLS or
- * if any of its downlinks' links are TLS.
- * @param cptr Server (or &me) to check.
- * @return Non-zero if the server has at least one TLS server link.
- */
-static int has_tls_link(struct Client *cptr)
-{
-  struct DLink *down;
-
-  if (IsTLS(cptr))
-    return 1;
-
-  for (down = cli_serv(cptr)->down; down; down = down->next) {
-    if (down->value.cptr && IsServer(down->value.cptr) &&
-        IsTLS(down->value.cptr))
-      return 1;
-  }
-
-  return 0;
-}
-
 /** Compute secure path groups for all servers in the network.
  * Two servers share a secure group if and only if every server link
  * on the path between them is TLS; the groups are the connected
- * components of the server tree restricted to TLS links.  Servers
- * with no TLS server links stay in group 0.
+ * components of the server tree restricted to TLS links.  Every
+ * server always belongs to a group -- a server with no TLS server
+ * links forms a group of its own, so two TLS clients on the same
+ * server share a secure path (no server link is involved between
+ * them).
  * This function should be called whenever the network topology changes.
  */
 void compute_secure_path_groups(void)
@@ -331,10 +311,6 @@ void compute_secure_path_groups(void)
 
     /* Skip if already assigned a group */
     if (cli_serv(cptr)->sid != 0)
-      continue;
-
-    /* Servers with no TLS server links stay in group 0 */
-    if (!has_tls_link(cptr))
       continue;
 
     assign_secure_group(cptr, next_secure_group_id);
@@ -425,6 +401,8 @@ static void assign_secure_group(struct Client *cptr, int sid)
 
 
 /** Get the secure group ID (sid) for any client (user or server).
+ * Servers always belong to a group; users belong to their server's
+ * group when their own connection is TLS and to group 0 otherwise.
  * @param cli Client to get secure group ID for
  * @return Secure group ID, or 0 if not on a secure path
  */
