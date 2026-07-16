@@ -110,7 +110,10 @@ static int channel_secure_groups(struct Channel *chptr, int *group)
   return count;
 }
 
-void CheckChannelTLS(struct Channel *chan)
+/** Reconcile a channel's +Z/+z presentation with its current members.
+ * Called whenever the membership changes.
+ */
+static void CheckChannelTLS(struct Channel *chan)
 {
   int group = 0;
   int groups;

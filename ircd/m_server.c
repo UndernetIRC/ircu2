@@ -671,7 +671,6 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 		       cli_name(&me));
   }
 
-  assign_sid(cptr);
   compute_secure_path_groups();
 
   return ret;
@@ -807,8 +806,7 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
                   IsTLS(acptr) ? "z" : "", cli_info(acptr));
   }
   
-  assign_sid(acptr);
   compute_secure_path_groups();
-  
+
   return 0;
 }

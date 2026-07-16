@@ -312,7 +312,6 @@ struct Server *make_server(struct Client *cptr)
     serv = (struct Server*) MyMalloc(sizeof(struct Server));
     assert(0 != serv);
     memset(serv, 0, sizeof(struct Server)); /* All variables are 0 by default */
-    serv->sid = 0; /* Explicitly initialize secure group ID */
     servs.inuse++;
     servs.alloc++;
     cli_serv(cptr) = serv;
