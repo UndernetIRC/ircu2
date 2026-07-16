@@ -823,7 +823,7 @@ NOTE: Has no effect when using the adns resolver.
 
 DNS_TCP_MAXCONN
  * Type: integer
- * Default: 16
+ * Default: 256
 
 Maximum number of concurrent DNS-over-TCP connections used when a UDP
 response is truncated (TC=1).  This bounds file-descriptor and nameserver
