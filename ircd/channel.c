@@ -74,86 +74,58 @@ static size_t bans_alloc;
 /** Number of ban structures in use. */
 static size_t bans_inuse;
 
-/** Initialize SID tracking for a new channel */
-static void init_channel_sids(struct Channel* chptr)
+/** Count the distinct secure groups present among the non-zombie
+ * members of a channel.  This is computed on demand from the
+ * membership list so it can never go stale when the network topology
+ * changes and secure groups are renumbered.  Group 0 (clients not on
+ * a secure path) counts as a distinct group.  The scan stops as soon
+ * as a second group is seen.
+ * @param chptr Channel to scan.
+ * @param[out] group Set to the common group ID when the return value
+ *   is 1 (untouched otherwise).  May be NULL.
+ * @return Number of distinct secure groups, capped at 2.
+ */
+static int channel_secure_groups(struct Channel *chptr, int *group)
 {
-  chptr->sids_present = NULL;
-  chptr->sids_count = 0;
-}
+  struct Membership* member;
+  int first_sid = 0;
+  int count = 0;
 
-/** Clean up SID tracking when channel is destroyed */
-static void cleanup_channel_sids(struct Channel* chptr)
-{
-  if (chptr->sids_present) {
-    MyFree(chptr->sids_present);
-    chptr->sids_present = NULL;
-    chptr->sids_count = 0;
-  }
-}
+  for (member = chptr->members; member; member = member->next_member) {
+    int user_sid;
 
-/** Add a SID to the channel's SID list if not already present */
-static void add_sid_to_channel(struct Channel* chptr, int sid)
-{
-  int i;
-  
-  /* Check if SID is already present */
-  for (i = 0; i < chptr->sids_count; i++) {
-    if (chptr->sids_present[i] == sid)
-      return; /* Already present */
-  }
-  
-  /* Add new SID */
-  chptr->sids_present = (int*) MyRealloc(chptr->sids_present, 
-                                         (chptr->sids_count + 1) * sizeof(int));
-  chptr->sids_present[chptr->sids_count] = sid;
-  chptr->sids_count++;
-}
+    if (IsZombie(member))
+      continue;
 
-/** Remove a SID from the channel's SID list if no more users with that SID */
-static void remove_sid_from_channel(struct Channel* chptr, int sid)
-{
-  int i, j;
-  
-  /* Find SID in the list */
-  for (i = 0; i < chptr->sids_count; i++) {
-    if (chptr->sids_present[i] == sid) {
-      /* Check if any other users still have this SID */
-      struct Membership* member;
-      for (member = chptr->members; member; member = member->next_member) {
-        if (!IsZombie(member)) {
-          int user_sid = get_secure_group_id(member->user);
-          if (user_sid == sid)
-            return; /* Another user still has this SID */
-        }
-      }
-      
-      /* Remove SID from array */
-      for (j = i; j < chptr->sids_count - 1; j++) {
-        chptr->sids_present[j] = chptr->sids_present[j + 1];
-      }
-      chptr->sids_count--;
-      
-      /* Reallocate array */
-      if (chptr->sids_count > 0) {
-        chptr->sids_present = (int*) MyRealloc(chptr->sids_present, 
-                                               chptr->sids_count * sizeof(int));
-      } else {
-        MyFree(chptr->sids_present);
-        chptr->sids_present = NULL;
-      }
-      break;
-    }
+    user_sid = get_secure_group_id(member->user);
+    if (count == 0) {
+      first_sid = user_sid;
+      count = 1;
+    } else if (user_sid != first_sid)
+      return 2;
   }
+
+  if (count == 1 && group)
+    *group = first_sid;
+  return count;
 }
 
 void CheckChannelTLS(struct Channel *chan)
 {
-  if ((chan->mode.mode & MODE_TLSINSECURE) && chan->sids_count == 1) {
+  int groups;
+
+  /* Only channels carrying a TLS mode need the membership scan. */
+  if (!(chan->mode.mode & (MODE_TLSONLY | MODE_TLSINSECURE)))
+    return;
+
+  groups = channel_secure_groups(chan, NULL);
+
+  if ((chan->mode.mode & MODE_TLSINSECURE) && groups == 1) {
     chan->mode.mode &= ~MODE_TLSINSECURE;
     chan->mode.mode |= MODE_TLSONLY;
     sendcmdto_channel_butserv_butone(&his, CMD_MODE, chan, NULL, 0,
                                      "%H -z+Z", chan);
-  } else if ((chan->mode.mode & MODE_TLSONLY) && !(chan->mode.mode & MODE_TLSINSECURE) && chan->sids_count > 1) {
+  } else if ((chan->mode.mode & MODE_TLSONLY) && !(chan->mode.mode & MODE_TLSINSECURE) && groups > 1) {
     chan->mode.mode |= MODE_TLSINSECURE;
     sendcmdto_channel_butserv_butone(&his, CMD_MODE, chan, NULL, 0,
                                      "%H -Z+z", chan);
@@ -423,12 +395,7 @@ int destruct_channel(struct Channel* chptr)
    * Clean up S-line hold queue entries for this channel
    */
   sline_cleanup_channel(chptr);
-  
-  /*
-   * Clean up SID tracking
-   */
-  cleanup_channel_sids(chptr);
-  
+
   if (chptr->prev)
     chptr->prev->next = chptr->next;
   else
@@ -590,10 +557,6 @@ void add_user_to_channel(struct Channel* chptr, struct Client* who,
       remove_destruct_event(chptr);
     ++chptr->users;
     ++((cli_user(who))->joined);
-    
-    /* Track SID for this user */
-    int user_sid = get_secure_group_id(who);
-    add_sid_to_channel(chptr, user_sid);
 
     /* Check if the channel needs to be updated for TLS */
     CheckChannelTLS(chptr);
@@ -638,10 +601,6 @@ static int remove_member_from_channel(struct Membership* member)
     (cli_user(member->user))->channel = member->next_channel;
 
   --(cli_user(member->user))->joined;
-
-  /* Track SID removal for this user */
-  int user_sid = get_secure_group_id(member->user);
-  remove_sid_from_channel(chptr, user_sid);
 
   /* Check if the channel needs to be updated for TLS */
   CheckChannelTLS(chptr);
@@ -1401,9 +1360,6 @@ struct Channel *get_channel(struct Client *cptr, char *chname, ChannelGetType fl
     chptr->creationtime = MyUser(cptr) ? TStime() : (time_t) 0;
     GlobalChannelList = chptr;
     hAddChannel(chptr);
-    
-    /* Initialize SID tracking */
-    init_channel_sids(chptr);
   }
   return chptr;
 }
@@ -1747,9 +1703,9 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
     mbuf->mb_rem |= MODE_WASDELJOINS;
   }
 
-  /* +z must be set instead of +Z if the channel has multiple SIDs */
+  /* +z must be set instead of +Z if the channel has multiple secure groups */
   if ((mbuf->mb_add & MODE_TLSONLY)
-      && (mbuf->mb_channel->sids_count > 1)) {
+      && (channel_secure_groups(mbuf->mb_channel, NULL) > 1)) {
     mbuf->mb_channel->mode.mode |= MODE_TLSINSECURE;
     mbuf->mb_channel->mode.mode |= MODE_TLSONLY;
     mbuf->mb_add |= MODE_TLSINSECURE;

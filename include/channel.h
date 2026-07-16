@@ -287,9 +287,7 @@ struct Channel {
   char               topic_nick[NICKLEN + 1]; /**< Nick of the person who set
 						*  The topic
 						*/
-  int*               sids_present; /**< Array of SIDs present on this channel */
-  int                sids_count;    /**< Number of SIDs in the sids_present array */
-  char               chname[1];	   /**< Dynamically allocated string of the 
+  char               chname[1];	   /**< Dynamically allocated string of the
 				     * channel name
 				     */
 };
