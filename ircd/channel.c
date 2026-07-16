@@ -112,20 +112,26 @@ static int channel_secure_groups(struct Channel *chptr, int *group)
 
 void CheckChannelTLS(struct Channel *chan)
 {
+  int group = 0;
   int groups;
 
   /* Only channels carrying a TLS mode need the membership scan. */
   if (!(chan->mode.mode & (MODE_TLSONLY | MODE_TLSINSECURE)))
     return;
 
-  groups = channel_secure_groups(chan, NULL);
+  groups = channel_secure_groups(chan, &group);
 
-  if ((chan->mode.mode & MODE_TLSINSECURE) && groups == 1) {
+  /* The channel only counts as secure when every member is on the same
+   * *nonzero* secure group; group 0 means "not on a secure path", so a
+   * channel left with only insecure members must keep presenting +z.
+   */
+  if ((chan->mode.mode & MODE_TLSINSECURE) && groups == 1 && group > 0) {
     chan->mode.mode &= ~MODE_TLSINSECURE;
     chan->mode.mode |= MODE_TLSONLY;
     sendcmdto_channel_butserv_butone(&his, CMD_MODE, chan, NULL, 0,
                                      "%H -z+Z", chan);
-  } else if ((chan->mode.mode & MODE_TLSONLY) && !(chan->mode.mode & MODE_TLSINSECURE) && groups > 1) {
+  } else if ((chan->mode.mode & MODE_TLSONLY) && !(chan->mode.mode & MODE_TLSINSECURE)
+             && (groups > 1 || (groups == 1 && group == 0))) {
     chan->mode.mode |= MODE_TLSINSECURE;
     sendcmdto_channel_butserv_butone(&his, CMD_MODE, chan, NULL, 0,
                                      "%H -Z+z", chan);
@@ -1703,13 +1709,18 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
     mbuf->mb_rem |= MODE_WASDELJOINS;
   }
 
-  /* +z must be set instead of +Z if the channel has multiple secure groups */
-  if ((mbuf->mb_add & MODE_TLSONLY)
-      && (channel_secure_groups(mbuf->mb_channel, NULL) > 1)) {
-    mbuf->mb_channel->mode.mode |= MODE_TLSINSECURE;
-    mbuf->mb_channel->mode.mode |= MODE_TLSONLY;
-    mbuf->mb_add |= MODE_TLSINSECURE;
-    mbuf->mb_add &= ~MODE_TLSONLY;  /* Remove +Z from add */
+  /* +z must be set instead of +Z unless every member is on the same
+   * nonzero secure group (an empty channel counts as secure) */
+  if (mbuf->mb_add & MODE_TLSONLY) {
+    int group = 0;
+    int groups = channel_secure_groups(mbuf->mb_channel, &group);
+
+    if (groups > 1 || (groups == 1 && group == 0)) {
+      mbuf->mb_channel->mode.mode |= MODE_TLSINSECURE;
+      mbuf->mb_channel->mode.mode |= MODE_TLSONLY;
+      mbuf->mb_add |= MODE_TLSINSECURE;
+      mbuf->mb_add &= ~MODE_TLSONLY;  /* Remove +Z from add */
+    }
   }
 
   /* +z must be cleared if +Z is cleared */
