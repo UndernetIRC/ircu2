@@ -1389,7 +1389,8 @@ int auth_cap_start(struct AuthRequest *auth)
 int auth_cap_done(struct AuthRequest *auth)
 {
   assert(auth != NULL);
-  sendto_iauth(auth->client, "e");
+  if (FlagHas(&auth->flags, AR_CAP_PENDING))
+    sendto_iauth(auth->client, "e");
   return check_auth_finished(auth, AR_CAP_PENDING);
 }
 
