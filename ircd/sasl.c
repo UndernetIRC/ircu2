@@ -246,7 +246,8 @@ void sasl_send_xreply(struct Client* sptr, const char* routing, const char* repl
   if (reply[0] == 'O' && reply[1] == 'K'
                && (reply[2] == '\0' || reply[2] == ' ')) {
     
-    const char *account_info = reply + 3; /* Skip "OK " */
+    /* Skip "OK "; a bare "OK" reply carries no account information. */
+    const char *account_info = (reply[2] == ' ') ? reply + 3 : "";
     char *account_copy, *username, *id_str, *flags_str, *extra;
 
     /**

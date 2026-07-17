@@ -380,10 +380,14 @@ badid:
  */
 int auth_set_account(struct AuthRequest *auth, const char *account_info)
 {
+  struct Client *sptr;
+  char *account_copy = NULL, *account = NULL, *id_str = NULL, *flags_str = NULL, *extra = NULL;
+
   assert(auth != NULL);
 
-  struct Client *sptr = auth->client;
-  char *account_copy = NULL, *account = NULL, *id_str = NULL, *flags_str = NULL, *extra = NULL;
+  sptr = auth->client;
+  if (!cli_user(sptr) || EmptyString(account_info))
+    return 1;
 
   /* Parse account information: username:id:flags */
   DupString(account_copy, account_info);
@@ -394,6 +398,12 @@ int auth_set_account(struct AuthRequest *auth, const char *account_info)
   id_str = strtok(NULL, ":");
   flags_str = strtok(NULL, " ");
   extra = strtok(NULL, "");
+
+  /* A malformed reply may contain no account name at all. */
+  if (EmptyString(account)) {
+    MyFree(account_copy);
+    return 1;
+  }
 
   /* Copy account name to User structure */
   ircd_strncpy(cli_user(sptr)->account, account, ACCOUNTLEN);
