@@ -187,15 +187,6 @@ client_set_privs(struct Client *client, struct ConfItem *oper, int forceOper)
     if (class && (!FlagHas(&class->privs_dirty, PRIV_PROPAGATE)
               || !FlagHas(&class->privs, PRIV_PROPAGATE)))
       class = NULL;
-
-    /* For remote opers, we need to also set their max sendq and flood because
-     * we will not be attaching an Operator block to their client.
-     */
-    if (class && MaxSendq(class))
-      cli_max_sendq(client) = MaxSendq(class);
-
-    if (class && MaxFlood(class))
-      cli_max_flood(client) = MaxFlood(class);
   }
 
   /* Decide whether to use global or local oper defaults. */

@@ -85,6 +85,14 @@ def docker_compose(*args, check=True):
     return result
 
 
+LIMITS = {
+    "host": "127.0.0.1",
+    "port": 6670,
+    "server_port": 4410,
+    "name": "limits.test.net",
+}
+
+
 def _start_services(*services):
     """Stop any running containers, rebuild, and start fresh."""
     prepare_debug_session()
@@ -162,6 +170,85 @@ def ircd_tls_network():
         yield {"hub": TLS_HUB, "leaf": TLS_LEAF}
     finally:
         docker_compose("down", check=False)
+
+
+@pytest.fixture(scope="session")
+def ircd_limits():
+    """Start the dedicated limits-test ircd with a volume-mounted config."""
+    _start_services("ircd-limits")
+    try:
+        wait_for_port(LIMITS["host"], LIMITS["port"])
+        # Ident lookups during registration can take a moment on cold start.
+        time.sleep(2)
+        yield LIMITS
+    finally:
+        docker_compose("down", check=False)
+
+
+@pytest.fixture(scope="session")
+def limits_config_snapshot():
+    """Preserve and restore the mounted limits config across tests."""
+    from class_limits.helpers import read_config, restore_config
+
+    snapshot = read_config()
+    yield snapshot
+    restore_config(snapshot)
+
+
+@pytest_asyncio.fixture
+async def limits_oper(ircd_limits):
+    """Connected global operator on the limits test server."""
+    from class_limits.helpers import make_oper
+
+    oper = await make_oper(ircd_limits)
+    yield oper
+    try:
+        await oper.send("QUIT :test cleanup")
+    except Exception:
+        pass
+    await oper.disconnect()
+
+
+@pytest_asyncio.fixture
+async def limits_services(ircd_limits):
+    """UWorld-capable P10 services server for remote oper tests."""
+    from p10_server import P10Server
+
+    srv = P10Server(
+        name="services.test.net",
+        numeric=4,
+        password="testpass",
+    )
+    await srv.connect(ircd_limits["host"], ircd_limits["server_port"])
+    await srv.handshake()
+    yield srv
+    await srv.disconnect()
+
+
+@pytest_asyncio.fixture
+async def make_limits_client(ircd_limits):
+    """Factory for registered clients on the limits test server."""
+    clients: list[IRCClient] = []
+
+    async def _make(
+        nick: str,
+        username: str = "testuser",
+        realname: str = "Test User",
+    ) -> IRCClient:
+        client = IRCClient()
+        await client.connect(ircd_limits["host"], ircd_limits["port"])
+        await client.register(nick, username, realname)
+        clients.append(client)
+        return client
+
+    yield _make
+
+    for client in clients:
+        try:
+            await client.send("QUIT :test cleanup")
+        except Exception:
+            pass
+        await client.disconnect()
 
 
 @pytest_asyncio.fixture

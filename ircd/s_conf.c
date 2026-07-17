@@ -682,6 +682,10 @@ enum AuthorizationCheckResult attach_conf(struct Client *cptr, struct ConfItem *
   ++aconf->clients;
   if (aconf->status & CONF_CLIENT_MASK)
     ConfLinks(aconf)++;
+  if (MyConnect(cptr) && (aconf->status & CONF_CLIENT)) {
+    cli_max_flood(cptr) = 0;
+    cli_max_sendq(cptr) = 0;
+  }
   return ACR_OK;
 }
 
@@ -1152,12 +1156,15 @@ int rehash(struct Client *cptr, int sig)
     if ((acptr = LocalClientArray[i])) {
       const struct wline *wline;
       assert(!IsMe(acptr));
-      /* Invalidate the cached per-client flood limit so maxflood -- and the
+
+      /* Invalidate the cached per-client limit so maxflood and sendq -- and the
        * input-throttle exemption read_packet() derives from it -- re-resolves
        * from the rehashed connection class instead of a value frozen at connect
        * time.  Mirrors the reset done on /OPER in m_oper.c.
        */
       cli_max_flood(acptr) = 0;
+      cli_max_sendq(acptr) = 0;
+
       if (IsServer(acptr))
         det_confs_butmask(acptr, ~(CONF_UWORLD | CONF_ILLEGAL));
       /* Because admin's are getting so uppity about people managing to

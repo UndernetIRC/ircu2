@@ -7,6 +7,7 @@ services:
         TLS_BACKEND: ${TLS_BACKEND:-openssl}
         SANITIZE: ${IRCD_SANITIZE:-}
     container_name: ircu-hub
+    command: ["-f", "/opt/ircu/lib/ircd.conf", "-n", "-x", "8"]
     environment:
       IRCD_DEBUG: ${IRCD_DEBUG:-}
       ASAN_OPTIONS: ${ASAN_OPTIONS:-abort_on_error=1:halt_on_error=1:detect_leaks=0:log_path=/opt/ircu/debug/asan}
@@ -36,6 +37,7 @@ services:
       args:
         IRCD_CONF: tests/docker/ircd-leaf1.conf
     container_name: ircu-leaf1
+    command: ["-f", "/opt/ircu/lib/ircd.conf", "-n", "-x", "8"]
     ports:
       - "6668:6668"
       - "4401:4401"
@@ -52,6 +54,7 @@ services:
       args:
         IRCD_CONF: tests/docker/ircd-leaf2.conf
     container_name: ircu-leaf2
+    command: ["-f", "/opt/ircu/lib/ircd.conf", "-n", "-x", "8"]
     ports:
       - "6669:6669"
       - "4402:4402"
@@ -68,6 +71,7 @@ services:
         IRCD_CONF: tests/docker/ircd-tls-hub.conf
         TLS_BACKEND: ${TLS_BACKEND:-openssl}
     container_name: ircu-tls-hub
+    command: ["-f", "/opt/ircu/lib/ircd.conf", "-n", "-x", "8"]
     ports:
       - "16677:6677"
       - "16697:6697"
@@ -87,6 +91,7 @@ services:
         IRCD_CONF: tests/docker/ircd-tls-leaf.conf
         TLS_BACKEND: ${TLS_BACKEND:-openssl}
     container_name: ircu-tls-leaf
+    command: ["-f", "/opt/ircu/lib/ircd.conf", "-n", "-x", "8"]
     ports:
       - "16678:6678"
       - "16680:6680"
@@ -97,6 +102,22 @@ services:
         ipv4_address: 10.55.0.21
     depends_on:
       - ircd-tls-hub
+
+  ircd-limits:
+    build:
+      context: .
+      args:
+        IRCD_CONF: tests/class_limits/ircd-limits.conf
+    container_name: ircu-limits
+    command: ["-f", "/opt/ircu/lib/ircd.conf", "-n", "-x", "8"]
+    ports:
+      - "6670:6670"
+      - "4410:4410"
+    volumes:
+      - ./tests/class_limits/ircd-limits.conf:/opt/ircu/lib/ircd.conf
+    networks:
+      ircu-test-net:
+        ipv4_address: 10.55.0.30
 
 networks:
   ircu-test-net:
