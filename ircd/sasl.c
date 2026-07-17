@@ -35,6 +35,7 @@
 #include "msg.h"
 #include "capab.h"
 #include "numnicks.h"
+#include "s_auth.h"
 #include "s_debug.h"
 #include "s_bsd.h"
 #include "numeric.h"
@@ -245,45 +246,15 @@ void sasl_send_xreply(struct Client* sptr, const char* routing, const char* repl
   if (reply[0] == 'O' && reply[1] == 'K'
                && (reply[2] == '\0' || reply[2] == ' ')) {
     
-    const char *account_info = reply + 3; /* Skip "OK " */
-    char *account_copy, *username, *id_str, *flags_str, *extra;
+    /* Skip "OK "; a bare "OK" reply carries no account information. */
+    const char *account_info = (reply[2] == ' ') ? reply + 3 : "";
 
     /**
      * We only parse this information if the user is not yet registered (i.e. SASL authentication during auth).
      * If this is a SASL authentication after registration, the username will be set by the service using AC.
      */
     if (!IsUser(cli)) {
-      /* Parse account information: username:id:flags */
-      DupString(account_copy, account_info);
-      if (!account_copy)
-        return;
-      
-      username = strtok(account_copy, ":");
-      id_str = strtok(NULL, ":");
-      flags_str = strtok(NULL, " ");
-      extra = strtok(NULL, "");
-         
-      /* Copy account name to User structure */
-      ircd_strncpy(cli_user(cli)->account, username, ACCOUNTLEN);
-      
-      /* Parse account ID if provided */
-      if (id_str) {
-        cli_user(cli)->acc_id = strtoul(id_str, NULL, 10);
-      }
-      
-      /* Parse account flags if provided */
-      if (flags_str) {
-        cli_user(cli)->acc_flags = strtoul(flags_str, NULL, 10);
-      }
-      
-      SetAccount(cli);
-      
-      /* Check for +x flag (host hiding) */
-      if (extra && strstr(extra, "+x") && feature_bool(FEAT_HOST_HIDING)) {
-        SetHiddenHost(cli);
-      }
-
-      MyFree(account_copy);
+      auth_set_account(cli_auth(cli), account_info);
 
     /**
      * For already registered users, we send RPL_LOGGEDIN. For non-registered users,
