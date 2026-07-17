@@ -50,6 +50,7 @@
 #include "s_bsd.h"
 #include "s_conf.h"
 #include "s_debug.h"
+#include "s_serv.h"
 #include "s_stats.h"
 #include "s_user.h"
 #include "sasl.h"
@@ -384,6 +385,7 @@ int exit_client(struct Client *cptr,
   struct Client* acptr = 0;
   struct DLink *dlp;
   time_t on_for;
+  int was_server = IsServer(victim);
 
   char comment1[HOSTLEN + HOSTLEN + 2];
   assert(killer);
@@ -514,6 +516,9 @@ int exit_client(struct Client *cptr,
   if (IsServer(victim))
     exit_downlinks(victim, killer, comment1);
   exit_one_client(victim, comment);
+
+  if (was_server)
+    compute_secure_path_groups();
 
   /*
    *  cptr can only have been killed if it was cptr itself that got killed here,

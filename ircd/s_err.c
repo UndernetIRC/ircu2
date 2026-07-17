@@ -66,7 +66,7 @@ static Numeric replyTable[] = {
 /* 016 */
   { RPL_MAPMORE, ":%s%s --> *more*", "016" },
 /* 017 */
-  { RPL_MAPEND, ":End of /MAP", "017" },
+  { RPL_MAPEND, ":End of /%s", "017" },
 /* 018 */
   { 0 },
 /* 019 */
@@ -1374,7 +1374,7 @@ static Numeric replyTable[] = {
 /* 670 */
   { 0 },
 /* 671 */
-  { RPL_WHOISSECURE, "%s :is using a secure connection", "671" },
+  { RPL_WHOISSECURE, "%s :is using a secure connection%s", "671" },
 /* 672 */
   { 0 },
 /* 673 */

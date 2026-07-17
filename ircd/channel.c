@@ -47,6 +47,7 @@
 #include "s_conf.h"
 #include "s_debug.h"
 #include "s_misc.h"
+#include "s_serv.h"
 #include "s_user.h"
 #include "send.h"
 #include "sline.h"
@@ -72,6 +73,73 @@ static struct Ban* free_bans;
 static size_t bans_alloc;
 /** Number of ban structures in use. */
 static size_t bans_inuse;
+
+/** Count the distinct secure groups present among the non-zombie
+ * members of a channel.  This is computed on demand from the
+ * membership list so it can never go stale when the network topology
+ * changes and secure groups are renumbered.  Group 0 (clients not on
+ * a secure path) counts as a distinct group.  The scan stops as soon
+ * as a second group is seen.
+ * @param chptr Channel to scan.
+ * @param[out] group Set to the common group ID when the return value
+ *   is 1 (untouched otherwise).  May be NULL.
+ * @return Number of distinct secure groups, capped at 2.
+ */
+static int channel_secure_groups(struct Channel *chptr, int *group)
+{
+  struct Membership* member;
+  int first_sid = 0;
+  int count = 0;
+
+  for (member = chptr->members; member; member = member->next_member) {
+    int user_sid;
+
+    if (IsZombie(member))
+      continue;
+
+    user_sid = get_secure_group_id(member->user);
+    if (count == 0) {
+      first_sid = user_sid;
+      count = 1;
+    } else if (user_sid != first_sid)
+      return 2;
+  }
+
+  if (count == 1 && group)
+    *group = first_sid;
+  return count;
+}
+
+/** Reconcile a channel's +Z/+z presentation with its current members.
+ * Called whenever the membership changes.
+ */
+static void CheckChannelTLS(struct Channel *chan)
+{
+  int group = 0;
+  int groups;
+
+  /* Only channels carrying a TLS mode need the membership scan. */
+  if (!(chan->mode.mode & (MODE_TLSONLY | MODE_TLSINSECURE)))
+    return;
+
+  groups = channel_secure_groups(chan, &group);
+
+  /* The channel only counts as secure when every member is on the same
+   * *nonzero* secure group; group 0 means "not on a secure path", so a
+   * channel left with only insecure members must keep presenting +z.
+   */
+  if ((chan->mode.mode & MODE_TLSINSECURE) && groups == 1 && group > 0) {
+    chan->mode.mode &= ~MODE_TLSINSECURE;
+    chan->mode.mode |= MODE_TLSONLY;
+    sendcmdto_channel_butserv_butone(&his, CMD_MODE, chan, NULL, 0,
+                                     "%H -z+Z", chan);
+  } else if ((chan->mode.mode & MODE_TLSONLY) && !(chan->mode.mode & MODE_TLSINSECURE)
+             && (groups > 1 || (groups == 1 && group == 0))) {
+    chan->mode.mode |= MODE_TLSINSECURE;
+    sendcmdto_channel_butserv_butone(&his, CMD_MODE, chan, NULL, 0,
+                                     "%H -Z+z", chan);
+  }
+}
 
 #if !defined(NDEBUG)
 /** return the length (>=0) of a chain of links.
@@ -336,7 +404,7 @@ int destruct_channel(struct Channel* chptr)
    * Clean up S-line hold queue entries for this channel
    */
   sline_cleanup_channel(chptr);
-  
+
   if (chptr->prev)
     chptr->prev->next = chptr->next;
   else
@@ -498,6 +566,9 @@ void add_user_to_channel(struct Channel* chptr, struct Client* who,
       remove_destruct_event(chptr);
     ++chptr->users;
     ++((cli_user(who))->joined);
+
+    /* Check if the channel needs to be updated for TLS */
+    CheckChannelTLS(chptr);
   }
 }
 
@@ -539,6 +610,9 @@ static int remove_member_from_channel(struct Membership* member)
     (cli_user(member->user))->channel = member->next_channel;
 
   --(cli_user(member->user))->joined;
+
+  /* Check if the channel needs to be updated for TLS */
+  CheckChannelTLS(chptr);
 
   member->next_member = membershipFreeList;
   membershipFreeList = member;
@@ -858,7 +932,9 @@ void channel_modes(struct Client *cptr, char *mbuf, char *pbuf, int buflen,
     *mbuf++ = 'P';
   if (chptr->mode.mode & MODE_MODERATENOREG)
     *mbuf++ = 'M';
-  if (chptr->mode.mode & MODE_TLSONLY)
+  if (MyUser(cptr) && (chptr->mode.mode & MODE_TLSINSECURE))
+    *mbuf++ = 'z';
+  else if (chptr->mode.mode & MODE_TLSONLY)
     *mbuf++ = 'Z';
   if (chptr->mode.limit) {
     *mbuf++ = 'l';
@@ -1570,6 +1646,11 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
   };
   static int local_flags[] = {
     MODE_WASDELJOINS,   'd',
+    MODE_TLSINSECURE,   'z',  /* Local clients see 'z' for insecure TLS */
+    0x0, 0x0
+  };
+  static int global_flags[] = {
+    MODE_TLSINSECURE,   'Z',  /* Servers propagate 'Z' for insecure TLS */
     0x0, 0x0
   };
   int i;
@@ -1577,10 +1658,10 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
 
   struct Client *app_source; /* where the MODE appears to come from */
 
-  char addbuf[20], addbuf_local[20]; /* accumulates +psmtin, etc. */
-  int addbuf_i = 0, addbuf_local_i = 0;
-  char rembuf[20], rembuf_local[20]; /* accumulates -psmtin, etc. */
-  int rembuf_i = 0, rembuf_local_i = 0;
+  char addbuf[20], addbuf_local[20], addbuf_global[20]; /* accumulates +psmtin, etc. */
+  int addbuf_i = 0, addbuf_local_i = 0, addbuf_global_i = 0;
+  char rembuf[20], rembuf_local[20], rembuf_global[20]; /* accumulates -psmtin, etc. */
+  int rembuf_i = 0, rembuf_local_i = 0, rembuf_global_i = 0;
   char *bufptr; /* we make use of indirection to simplify the code */
   int *bufptr_i;
 
@@ -1631,6 +1712,31 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
     mbuf->mb_rem |= MODE_WASDELJOINS;
   }
 
+  /* +z must be set instead of +Z unless every member is on the same
+   * nonzero secure group (an empty channel counts as secure) */
+  if (mbuf->mb_add & MODE_TLSONLY) {
+    int group = 0;
+    int groups = channel_secure_groups(mbuf->mb_channel, &group);
+
+    if (groups > 1 || (groups == 1 && group == 0)) {
+      mbuf->mb_channel->mode.mode |= MODE_TLSINSECURE;
+      mbuf->mb_channel->mode.mode |= MODE_TLSONLY;
+      mbuf->mb_add |= MODE_TLSINSECURE;
+      mbuf->mb_add &= ~MODE_TLSONLY;  /* Remove +Z from add */
+    }
+  }
+
+  /* +z must be cleared if +Z is cleared */
+  if ((mbuf->mb_rem & MODE_TLSONLY)
+      && (mbuf->mb_channel->mode.mode & MODE_TLSINSECURE)) {
+    mbuf->mb_channel->mode.mode &= ~MODE_TLSINSECURE;
+    mbuf->mb_channel->mode.mode &= ~MODE_TLSONLY;
+    mbuf->mb_add &= ~MODE_TLSINSECURE;
+    mbuf->mb_add &= ~MODE_TLSONLY;
+    mbuf->mb_rem &= ~MODE_TLSONLY;
+    mbuf->mb_rem |= MODE_TLSINSECURE;
+  }
+
   /*
    * Account for user we're bouncing; we have to get it in on the first
    * bounced MODE, or we could have problems
@@ -1652,6 +1758,14 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
       addbuf_local[addbuf_local_i++] = flag_p[1];
     else if (*flag_p & mbuf->mb_rem)
       rembuf_local[rembuf_local_i++] = flag_p[1];
+  }
+
+  /* Some flags may be for propagation  only. */
+  for (flag_p = global_flags; flag_p[0]; flag_p += 2) {
+    if (*flag_p & mbuf->mb_add)
+      addbuf_global[addbuf_global_i++] = flag_p[1];
+    else if (*flag_p & mbuf->mb_rem)
+      rembuf_global[rembuf_global_i++] = flag_p[1];
   }
 
   /* Now go through the modes with arguments... */
@@ -1726,6 +1840,8 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
   rembuf[rembuf_i] = '\0';
   addbuf_local[addbuf_local_i] = '\0';
   rembuf_local[rembuf_local_i] = '\0';
+  addbuf_global[addbuf_global_i] = '\0';
+  rembuf_global[rembuf_global_i] = '\0';
 
   /* If we're building a user visible MODE or HACK... */
   if (mbuf->mb_dest & (MODEBUF_DEST_CHANNEL | MODEBUF_DEST_HACK2 |
@@ -1885,29 +2001,35 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
     if (mbuf->mb_dest & MODEBUF_DEST_OPMODE) {
       /* If OPMODE was set, we're propagating the mode as an OPMODE message */
       sendcmdto_serv_butone(mbuf->mb_source, CMD_OPMODE, mbuf->mb_connect,
-			    "%H %s%s%s%s%s%s", mbuf->mb_channel,
-			    rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "",
-			    addbuf, remstr, addstr);
+			    "%H %s%s%s%s%s%s%s%s", mbuf->mb_channel,
+			    rembuf_i || rembuf_global_i ? "-" : "",
+          rembuf, rembuf_global, 
+			    addbuf_i || addbuf_global_i ? "+" : "",
+          addbuf, addbuf_global, 
+			    remstr, addstr);
     } else if (mbuf->mb_dest & MODEBUF_DEST_BOUNCE) {
       /*
        * If HACK2 was set, we're bouncing; we send the MODE back to
        * the connection we got it from with the senses reversed and
        * the proper TS; origin is us
        */
-      sendcmdto_one(&me, CMD_MODE, mbuf->mb_connect, "%H %s%s%s%s%s%s %Tu",
-		    mbuf->mb_channel, addbuf_i ? "-" : "", addbuf,
-		    rembuf_i ? "+" : "", rembuf, addstr, remstr,
-		    mbuf->mb_channel->creationtime);
+      sendcmdto_one(&me, CMD_MODE, mbuf->mb_connect, "%H %s%s%s%s%s%s%s%s %Tu",
+		    mbuf->mb_channel,
+        addbuf_i || addbuf_global_i ? "-" : "",
+        addbuf, addbuf_global,
+		    rembuf_i || rembuf_global_i ? "+" : "",
+        rembuf, rembuf_global, 
+		    addstr, remstr, mbuf->mb_channel->creationtime);
     } else {
       /*
        * We're propagating a normal (or HACK3 or HACK4) MODE command
        * to the rest of the network.  We send the actual channel TS.
        */
       sendcmdto_serv_butone(mbuf->mb_source, CMD_MODE, mbuf->mb_connect,
-                            "%H %s%s%s%s%s%s %Tu", mbuf->mb_channel,
-                            rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "",
-                            addbuf, remstr, addstr,
-                            mbuf->mb_channel->creationtime);
+                            "%H %s%s%s%s%s%s%s%s %Tu", mbuf->mb_channel,
+                            (rembuf_i || rembuf_global_i) ? "-" : "", rembuf, rembuf_global, 
+                            (addbuf_i || addbuf_global_i) ? "+" : "", addbuf, addbuf_global, 
+                            remstr, addstr, mbuf->mb_channel->creationtime);
     }
   }
 
@@ -1993,7 +2115,7 @@ modebuf_mode(struct ModeBuf *mbuf, unsigned int mode)
   mode &= (MODE_ADD | MODE_DEL | MODE_PRIVATE | MODE_SECRET | MODE_MODERATED |
 	   MODE_TOPICLIMIT | MODE_INVITEONLY | MODE_NOPRIVMSGS | MODE_REGONLY |
 	   MODE_NOCOLOR | MODE_NOCTCP | MODE_NOPARTMSGS | MODE_MODERATENOREG | MODE_TLSONLY |
-	   MODE_DELJOINS | MODE_WASDELJOINS | MODE_REGISTERED);
+	   MODE_TLSINSECURE | MODE_DELJOINS | MODE_WASDELJOINS | MODE_REGISTERED);
 
   if (!(mode & ~(MODE_ADD | MODE_DEL))) /* don't add empty modes... */
     return;

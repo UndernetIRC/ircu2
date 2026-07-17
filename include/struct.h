@@ -65,6 +65,7 @@ struct Server {
 
   char *last_error_msg;         /**< Allocated memory with last message receive with an ERROR */
   char by[NICKLEN + 1];         /**< Numnick of client who requested the link */
+  int  sid;                     /**< Secure group ID - servers with secure paths share same sid */
 };
 
 /** Describes a user on the network. */

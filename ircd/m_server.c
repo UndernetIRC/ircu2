@@ -493,6 +493,7 @@ void set_server_flags(struct Client *cptr, const char *flags)
     case 'h': SetHub(cptr); break;
     case 's': SetService(cptr); break;
     case '6': SetIPv6(cptr); break;
+    case 'z': SetTLS(cptr); break;
     }
 }
 
@@ -670,6 +671,8 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 		       cli_name(&me));
   }
 
+  compute_secure_path_groups();
+
   return ret;
 }
 
@@ -796,11 +799,14 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       continue;
     if (0 == match(cli_name(&me), cli_name(acptr)))
       continue;
-    sendcmdto_one(sptr, CMD_SERVER, bcptr, "%s %d 0 %s %s %s%s +%s%s%s :%s",
+    sendcmdto_one(sptr, CMD_SERVER, bcptr, "%s %d 0 %s %s %s%s +%s%s%s%s :%s",
                   cli_name(acptr), hop + 1, parv[4], parv[5],
                   NumServCap(acptr), IsHub(acptr) ? "h" : "",
                   IsService(acptr) ? "s" : "", IsIPv6(acptr) ? "6" : "",
-                  cli_info(acptr));
+                  IsTLS(acptr) ? "z" : "", cli_info(acptr));
   }
+  
+  compute_secure_path_groups();
+
   return 0;
 }

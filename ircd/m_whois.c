@@ -94,6 +94,7 @@
 #include "numeric.h"
 #include "numnicks.h"
 #include "s_conf.h"
+#include "s_serv.h"
 #include "s_user.h"
 #include "send.h"
 #include "whocmds.h"
@@ -209,7 +210,8 @@ static void do_whois(struct Client* sptr, struct Client *acptr, int parc)
        send_reply(sptr, RPL_AWAY, name, user->away);
 
     if (IsTLS(acptr))
-       send_reply(sptr, RPL_WHOISSECURE, name);
+       send_reply(sptr, RPL_WHOISSECURE, name,
+          is_secure_path(acptr, sptr) ? " (secure network path)" : "");
 
     if (SeeOper(sptr,acptr))
        send_reply(sptr, RPL_WHOISOPERATOR, name);
