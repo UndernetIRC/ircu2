@@ -248,7 +248,6 @@ void sasl_send_xreply(struct Client* sptr, const char* routing, const char* repl
     
     /* Skip "OK "; a bare "OK" reply carries no account information. */
     const char *account_info = (reply[2] == ' ') ? reply + 3 : "";
-    char *account_copy, *username, *id_str, *flags_str, *extra;
 
     /**
      * We only parse this information if the user is not yet registered (i.e. SASL authentication during auth).
