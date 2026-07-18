@@ -924,11 +924,13 @@ static int read_packet(struct Client *cptr, int socket_ready)
       }
     }
 
-    /* If there's still data to process, wait 2 seconds first,
-     * unless the client is exempt from throttling.
+    /* If there's still data to process, wait 2 seconds first.  Throttle-exempt
+     * clients never get here: their drain loop above runs until recvQ empties
+     * (or a partial, newline-less line remains, which NoNewLine already guards),
+     * so there is no deferred remainder to schedule.
      */
     if (DBufLength(&(cli_recvQ(cptr))) && !NoNewLine(cptr) &&
-        !IsExemptThrottle(cptr) && !t_onqueue(&(cli_proc(cptr))))
+        !t_onqueue(&(cli_proc(cptr))))
     {
       Debug((DEBUG_LIST, "Adding client process timer for %C", cptr));
       cli_freeflag(cptr) |= FREEFLAG_TIMER;
