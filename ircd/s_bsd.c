@@ -664,9 +664,12 @@ static int read_packet(struct Client *cptr, int socket_ready)
   /* A connection class whose maxflood exceeds the CLIENT_FLOOD default marks
    * its clients exempt from input throttling. Evaluated here in the shared
    * prologue so the flag is consistent for both the line-based and WebSocket
-   * readers, and re-checked each read so it tracks class changes. Note the
-   * Excess Flood ceiling below still applies -- this exempts from throttling,
-   * not from the recvQ limit.
+   * readers, and re-checked each read. GetMaxFlood() caches the class maxflood
+   * per client, but rehash() clears that cache (ircd/s_conf.c), so a class
+   * maxflood change takes effect on the next read -- an operator can revoke or
+   * grant the exemption for live clients via /rehash. Note the Excess Flood
+   * ceiling below still applies -- this exempts from throttling, not from the
+   * recvQ limit.
    */
   if (!is_ws_handshake) {
     if (flood_limit > feature_int(FEAT_CLIENT_FLOOD))

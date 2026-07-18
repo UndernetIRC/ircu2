@@ -1152,6 +1152,12 @@ int rehash(struct Client *cptr, int sig)
     if ((acptr = LocalClientArray[i])) {
       const struct wline *wline;
       assert(!IsMe(acptr));
+      /* Invalidate the cached per-client flood limit so maxflood -- and the
+       * input-throttle exemption read_packet() derives from it -- re-resolves
+       * from the rehashed connection class instead of a value frozen at connect
+       * time.  Mirrors the reset done on /OPER in m_oper.c.
+       */
+      cli_max_flood(acptr) = 0;
       if (IsServer(acptr))
         det_confs_butmask(acptr, ~(CONF_UWORLD | CONF_ILLEGAL));
       /* Because admin's are getting so uppity about people managing to
