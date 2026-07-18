@@ -784,10 +784,8 @@ static int read_packet(struct Client *cptr, int socket_ready)
         }
 
         while (offset < con->con_ws_handshake_len) {
-          int msg_ready = 0;
           int ret = websocket_parse_frame(cptr, con->con_ws_handshake + offset,
-                                          con->con_ws_handshake_len - offset,
-                                          &msg_ready);
+                                          con->con_ws_handshake_len - offset);
           if (ret > 0) {
             size_t avail = con->con_ws_handshake_len - offset;
             if ((size_t)ret <= avail) {
@@ -798,33 +796,10 @@ static int read_packet(struct Client *cptr, int socket_ready)
               offset = con->con_ws_handshake_len;
             }
 
-            /* Bound recvQ growth even while fragments accumulate unfinished. */
+            /* Bound recvQ growth even while fragments accumulate unfinished.
+             * Completed lines are drained (and throttled) after the read. */
             if (DBufLength(&(cli_recvQ(cptr))) > GetMaxFlood(cptr))
               return exit_client(cptr, cptr, &me, "Excess Flood");
-
-            /* Only drain once a full logical message has arrived (FIN); a
-             * fragmented message keeps accumulating in recvQ until then.
-             *
-             * NOTE: unlike the line-based reader below, this path does not
-             * enforce the cli_since penalty gate, so WebSocket clients are
-             * not currently throttled (the Excess Flood ceiling above still
-             * bounds them). FLAG_EXEMPT_THROTTLE is maintained for them in
-             * the shared prologue so it is correct once throttle enforcement
-             * is added to this reader in a follow-up change.
-             */
-            if (msg_ready) {
-              dolen = dbuf_getframe(&(cli_recvQ(cptr)), cli_buffer(cptr), BUFSIZE);
-              if (dolen == 0) {
-                if (DBufLength(&(cli_recvQ(cptr))) > 510) {
-                  /* More than 510 bytes in the line - drop the input and yell
-                  * at the client.
-                  */
-                  DBufClear(&(cli_recvQ(cptr)));
-                  send_reply(cptr, ERR_INPUTTOOLONG);
-                }
-              } else if (client_dopacket(cptr, dolen) == CPTR_KILLED)
-                return CPTR_KILLED;
-            }
 
             if (con->con_ws_skip > 0)
               break; /* remainder of oversized frame drains on later reads */
@@ -860,15 +835,13 @@ static int read_packet(struct Client *cptr, int socket_ready)
         if (take == 0 && offset == 0 && con->con_ws_skip == 0)
           return exit_client(cptr, cptr, &me, "Excess Flood");
       }
-      return 1;
     }
-
     /*
-     * Before we even think of parsing what we just read, stick
-     * it on the end of the receive queue and do it when its
-     * turn comes around.
+     * Before we even think of parsing what we just read, stick it on the end
+     * of the receive queue and do it when its turn comes around.  WebSocket
+     * input was already decoded into recvQ above.
      */
-    if (length > 0 && dbuf_put(&(cli_recvQ(cptr)), readbuf, length) == 0)
+    else if (length > 0 && dbuf_put(&(cli_recvQ(cptr)), readbuf, length) == 0)
       return exit_client(cptr, cptr, &me, "dbuf_put fail");
 
     Debug((DEBUG_DEBUG, "dbuf: %u maxfl: %u", DBufLength(&(cli_recvQ(cptr))), GetMaxFlood(cptr)));

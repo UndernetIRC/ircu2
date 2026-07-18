@@ -22,7 +22,7 @@ import pytest
 from irc_client import IRCClient
 from ws_frame_helpers import (
     HOST,
-    WS_PORT,
+    WS_EXEMPT_PORT,
     masked_text_frame,
     raw_ws_connect,
     read_server_frame,
@@ -76,7 +76,8 @@ async def test_ws_outbound_does_not_leak_msgbufs(ircd_hub):
     baseline = await _msgbuf_used(oper)
 
     # Connect a WS client and make the server emit a large volume of frames.
-    r, w = await raw_ws_connect(WS_PORT)
+    # Use the exempt port so the rapid PING burst is not flood-throttled.
+    r, w = await raw_ws_connect(WS_EXEMPT_PORT)
     assert await register_over_raw_ws(r, w, "leakws", timeout=15.0)
 
     n = 400
