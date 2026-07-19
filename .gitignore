@@ -30,6 +30,7 @@ Makefile
 .deps/
 .project
 ircu.tags
+**/__pycache__
 
 # Test debug captures (gdb/valgrind); keep the directory via .gitkeep
 tests/debug-output/*

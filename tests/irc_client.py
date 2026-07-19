@@ -33,6 +33,28 @@ def parse_message(line: str) -> Message:
     return Message(prefix=prefix, command=command, params=params)
 
 
+def is_server_msg(msg: Message) -> bool:
+    """True if a Message originates from a server, not a user.
+
+    Server messages have a plain server-name prefix (no user!ident@host),
+    e.g. the "on 1 ca 2(4) ft 10(10)" target-throttle NOTICE sent after
+    registration. Those must not be mistaken for delivered messages.
+    """
+    return msg.prefix is None or "!" not in msg.prefix
+
+
+def parse_mode_string(modestring: str) -> dict[str, str]:
+    """Parse a modestring like "+xR-c" into {char: sign} pairs."""
+    result = {}
+    sign = "+"
+    for ch in modestring:
+        if ch in "+-":
+            sign = ch
+        else:
+            result[ch] = sign
+    return result
+
+
 class IRCClient:
     """Async IRC client for protocol-level testing.
 
@@ -254,6 +276,58 @@ class IRCClient:
                 return msg
             self._buffer.append(msg)
 
+    async def wait_for_user_msg(self, command: str, timeout: float = 5.0) -> Message:
+        """Wait for a PRIVMSG/NOTICE/etc that comes from a user, skipping server ones."""
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + timeout
+        while True:
+            remaining = deadline - loop.time()
+            if remaining <= 0:
+                raise asyncio.TimeoutError(f"no user-originated {command}")
+            msg = await self.wait_for(command, timeout=remaining)
+            if not is_server_msg(msg):
+                return msg
+
+    async def wait_for_message_with_text(
+        self, command: str, text: str, timeout: float = 5.0
+    ) -> Message:
+        """Wait for a message of the given command whose last param equals text.
+
+        Used when the expected message is itself server-prefixed (e.g. a
+        server-sourced NOTICE under an IsServer(source) exemption), so the
+        is_server_msg-based filter in wait_for_user_msg can't tell it apart
+        from unrelated server-injected messages like the post-registration
+        throttle NOTICE.
+        """
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + timeout
+        while True:
+            remaining = deadline - loop.time()
+            if remaining <= 0:
+                raise asyncio.TimeoutError(f"no {command} with text {text!r}")
+            msg = await self.wait_for(command, timeout=remaining)
+            if msg.params[-1] == text:
+                return msg
+
+    async def assert_no_message(self, command: str = "PRIVMSG", timeout: float = 2.0):
+        """Assert that no message of the given command arrives within timeout.
+
+        Numeric replies (e.g. "477") are always server-prefixed, so they're
+        checked directly. PRIVMSG/NOTICE/INVITE are checked via
+        wait_for_user_msg() to ignore unrelated server-injected messages
+        (e.g. the post-registration target-throttle NOTICE) -- using the
+        server-vs-user filter for a numeric would make this vacuously pass,
+        since every numeric reply IS server-originated.
+        """
+        try:
+            if command.isdigit():
+                msg = await self.wait_for(command, timeout=timeout)
+            else:
+                msg = await self.wait_for_user_msg(command, timeout=timeout)
+        except asyncio.TimeoutError:
+            return
+        raise AssertionError(f"Unexpected {command} delivered: {msg}")
+
     async def collect_until(self, command: str, timeout: float = 5.0) -> list[Message]:
         """Collect all messages until one matching command is seen.
 
@@ -276,3 +350,36 @@ class IRCClient:
         """Send a line and wait for a specific response command."""
         await self.send(line)
         return await self.wait_for(command, timeout=timeout)
+
+    async def set_umode(self, modes: str, nick: str | None = None) -> Message:
+        """Send MODE <nick> <modes>, wait for the echo, and verify it applied.
+
+        `modes` is a modestring like "+R" or "-x" (multiple flags/signs
+        are fine too, e.g. "+x-c"). The server only sends a MODE reply
+        when the requested modes actually change something. Setting a
+        mode that's already set (or clearing one already clear) is a
+        silent no-op with no reply at all, so only call this when a real
+        change is expected.
+        """
+        nick = nick or self.nick
+        await self.send(f"MODE {nick} {modes}")
+        msg = await self.wait_for("MODE")
+        applied = parse_mode_string(msg.params[-1])
+        requested = parse_mode_string(modes)
+        for ch, sign in requested.items():
+            if applied.get(ch) != sign:
+                raise AssertionError(
+                    f"MODE {modes} not applied as expected: requested "
+                    f"{sign}{ch}, got {msg.params[-1]!r}"
+                )
+        return msg
+
+    async def silence(self, pattern: str, timeout: float = 5.0) -> Message:
+        """Send SILENCE +<pattern>, waiting for the server's echo.
+
+        Only call this for a genuinely new entry: if the resulting mask is
+        already on the silence list, the server sends no SILENCE reply at all,
+        and this will hang until timeout.
+        """
+        await self.send(f"SILENCE +{pattern}")
+        return await self.wait_for("SILENCE", timeout=timeout)
