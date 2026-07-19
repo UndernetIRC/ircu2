@@ -999,6 +999,23 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
   if (IsDead(cptr))
     return 0;
 
+  /*
+   * Skip IRCv3 message-tags if present.  Tags are ignored for now so
+   * tagged server-server traffic stays backwards compatible; real tag
+   * handling lands in a later release.
+   * Format: @key=value;key2=value2 <rest of message>
+   */
+  if (*ch == '@')
+  {
+    while (ch < bufend && *ch != ' ')
+      ++ch;
+    if (ch >= bufend || *ch != ' ')
+      return -1;
+    ++ch;                       /* skip the separating space */
+    if (ch >= bufend || !*ch)
+      return -1;
+  }
+
   para[0] = cli_name(from);
 
   /*

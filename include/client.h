@@ -240,9 +240,9 @@ struct Connection
                                         the socket and after which the
                                         connection was accepted. */
   char con_passwd[PASSWDLEN + 1];    /**< Password given by user. */
-  char con_buffer[BUFSIZE];          /**< Incoming message buffer; or
-                                        the error that caused this
-                                        clients socket to close. */
+  char con_buffer[READBUFSIZE];      /**< Incoming message buffer (tags +
+                                        body); or the error that caused
+                                        this clients socket to close. */
   struct Socket       con_socket;    /**< socket descriptor for
                                       client */
   char con_ws_handshake[WEBSOCKET_MAX_HEADER + 1]; /**< WebSocket handshake bytes

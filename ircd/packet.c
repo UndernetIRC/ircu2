@@ -59,12 +59,18 @@ static void update_messages_received(struct Client* cptr)
  * @param[in] buffer Input buffer.
  * @param[in] length Number of bytes in input buffer.
  * @return 1 on success or CPTR_KILLED if the client is squit.
+ *
+ * Message-tags (a leading '@' ... ' ' section) are accepted in addition
+ * to the normal BUFSIZE message body so tagged server-server traffic
+ * remains backwards compatible before full msgtags handling lands.
  */
 int server_dopacket(struct Client* cptr, const char* buffer, int length)
 {
   const char* src;
   char*       endp;
   char*       client_buffer;
+  char*       body;                 /* Start of body after tags, or NULL
+                                       while still reading the tag section. */
 
   assert(0 != cptr);
 
@@ -73,6 +79,26 @@ int server_dopacket(struct Client* cptr, const char* buffer, int length)
   client_buffer = cli_buffer(cptr);
   endp = client_buffer + cli_count(cptr);
   src = buffer;
+
+  /*
+   * Restore body pointer when continuing a partial tagged line across
+   * reads.  body remains NULL for untagged lines and while the tag
+   * section is still incomplete.
+   */
+  body = 0;
+  if (cli_count(cptr) > 0 && client_buffer[0] == '@')
+  {
+    char* p = client_buffer;
+
+    while (p < endp)
+    {
+      if (*p++ == ' ')
+      {
+        body = p;
+        break;
+      }
+    }
+  }
 
   while (length-- > 0) {
     *endp = *src++;
@@ -98,9 +124,41 @@ int server_dopacket(struct Client* cptr, const char* buffer, int length)
       if (IsDead(cptr))
         return exit_client(cptr, cptr, &me, cli_info(cptr));
       endp = client_buffer;
+      body = 0;
     }
-    else if (endp < client_buffer + BUFSIZE)
-      ++endp;                   /* There is always room for the null */
+    else
+    {
+      int can_advance = 0;
+
+      if (client_buffer[0] != '@')
+      {
+        /* Untagged message: classic BUFSIZE limit on the whole line. */
+        if (endp < client_buffer + BUFSIZE)
+          can_advance = 1;
+      }
+      else if (body == 0)
+      {
+        /* Still in the tag section (including the separating space). */
+        if (*endp == ' ')
+        {
+          if (endp < client_buffer + TAGSLEN)
+          {
+            body = endp + 1;
+            can_advance = 1;
+          }
+        }
+        else if (endp < client_buffer + TAGSLEN)
+          can_advance = 1;
+      }
+      else if (endp < body + BUFSIZE)
+      {
+        /* Body after tags: at most BUFSIZE bytes. */
+        can_advance = 1;
+      }
+
+      if (can_advance)
+        ++endp;                 /* There is always room for the null */
+    }
   }
   cli_count(cptr) = endp - cli_buffer(cptr);
   return 1;

@@ -92,8 +92,19 @@
 #define SLINELEN        470
 /** Exactly long enough to hold one protocol message (RFC 1459)
  * including the line termination (\\r\\n).  DO NOT CHANGE THIS!!!!
+ * This limit applies to the message body only; IRCv3 message-tags are
+ * additional (see TAGSLEN / READBUFSIZE).
  */
 #define BUFSIZE         512
+/** Maximum length of an IRCv3 message-tags section, including the
+ * leading '@' and the trailing space that separates tags from the body.
+ * See the IRCv3 message-tags specification.
+ */
+#define TAGSLEN         8191
+/** Incoming line buffer large enough for optional tags plus one
+ * protocol message body (BUFSIZE).
+ */
+#define READBUFSIZE     (TAGSLEN + BUFSIZE)
 
 /** Maximum available targets for a user. */
 #define MAXTARGETS      20
