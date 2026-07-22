@@ -132,6 +132,31 @@ async def test_aaaa_empty_over_tcp_falls_back_to_a(ircd_dns_hub, dns_control):
 
 
 @pytest.mark.asyncio
+async def test_iauth_ip_override_is_not_dns_mismatch(ircd_dns_hub, dns_control):
+    """DNS answers for the pre-override IP must not be flagged as mismatch.
+
+    The iauth stub rewrites the IP of clients whose nick starts with
+    "ipspoof" while the forward A lookup is still in flight (slow_a delays
+    the A answer).  The resolver then returns the client's *original* IP,
+    which auth_dns_callback must accept via auth->original instead of
+    reporting an IP mismatch (or killing the client with KILL_IPMISMATCH).
+    """
+    dns_control("slow_a")
+    reset_stats()
+    nick = f"ipspoof{random.randint(0, 999_999)}"
+    notices = await register_collect_auth_notices(
+        ircd_dns_hub["host"],
+        ircd_dns_hub["spoof_port"],
+        nick,
+    )
+    blob = notice_blob(notices)
+    assert AUTH_MISMATCH not in blob, (
+        f"pre-override IP flagged as mismatch: {blob!r}"
+    )
+    assert AUTH_FOUND in blob, f"expected hostname to resolve, got: {blob!r}"
+
+
+@pytest.mark.asyncio
 async def test_tc_hold_keeps_tcp_session_pending(ircd_dns_hub, dns_control):
   """Truncated UDP with tc_hold keeps the DNS-over-TCP session open."""
   dns_control("tc_hold")

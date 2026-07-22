@@ -1088,9 +1088,15 @@ static void auth_dns_callback(void* vptr, const struct irc_in_addr *addrs, int a
       ircd_strncpy(resolved_ip, ircd_ntoa(&addrs[i]), sizeof(resolved_ip));
       Debug((DEBUG_DNS, "  IP[%d]: %s", i, resolved_ip));
       
-      if (!irc_in_addr_cmp(&cli_ip(auth->client), &addrs[i])) {
+      /* Accept a match against the client's current IP or, when IAuth
+       * rewrote the address mid-lookup, its original IP.  A DNS answer
+       * for the pre-override IP is expected and must not be flagged as a
+       * mismatch. */
+      if (!irc_in_addr_cmp(&cli_ip(auth->client), &addrs[i])
+          || (irc_in_addr_valid(&auth->original)
+              && !irc_in_addr_cmp(&auth->original, &addrs[i]))) {
         found = 1;
-        Debug((DEBUG_DNS, "  MATCH FOUND! Client IP %s matches resolved IP[%d]: %s", 
+        Debug((DEBUG_DNS, "  MATCH FOUND! Client IP %s matches resolved IP[%d]: %s",
                cli_sock_ip(auth->client), i, resolved_ip));
         break;
       }

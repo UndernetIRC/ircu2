@@ -32,6 +32,7 @@ class Scenario(str, Enum):
     TC_HOLD = "tc_hold"
     TC_AAAA = "tc_aaaa"
     TC_AAAA_EMPTY = "tc_aaaa_empty"
+    SLOW_A = "slow_a"
 
 
 class State:
@@ -84,6 +85,7 @@ def scenario_ptr_name() -> str:
         Scenario.TC_HOLD: "client.hold.test",
         Scenario.TC_AAAA: "client.ok.test",
         Scenario.TC_AAAA_EMPTY: "client.ok.test",
+        Scenario.SLOW_A: "client.slow.test",
     }[STATE.scenario]
 
 
@@ -231,6 +233,20 @@ def answer_for_query(query: bytes, qname: str, qtype: int, transport: str) -> by
     return build_response(query, [], rcode=3)
 
 
+def parse_question(query: bytes) -> tuple[str, int] | None:
+    if len(query) < 12:
+        return None
+    qdcount = struct.unpack("!H", query[4:6])[0]
+    if qdcount != 1:
+        return None
+    offset = 12
+    qname, offset = parse_name(query, offset)
+    if offset + 4 > len(query):
+        return None
+    qtype = struct.unpack("!H", query[offset : offset + 2])[0]
+    return qname, qtype
+
+
 def handle_query(query: bytes, transport: str) -> bytes | None:
     if len(query) < 12:
         return None
@@ -247,6 +263,21 @@ def handle_query(query: bytes, transport: str) -> bytes | None:
     return answer_for_query(query, qname, qtype, transport)
 
 
+def response_delay(query: bytes) -> float:
+    """Seconds to delay the UDP answer for this query, per scenario."""
+    if STATE.scenario != Scenario.SLOW_A:
+        return 0.0
+    question = parse_question(query)
+    if question is None:
+        return 0.0
+    _, qtype = question
+    # Keep PTR fast; delay the forward lookup so a test can act (e.g.
+    # have iauth rewrite the client IP) while it is still in flight.
+    if qtype == T_A:
+        return 2.0
+    return 0.0
+
+
 class UDPProtocol(asyncio.DatagramProtocol):
     def connection_made(self, transport) -> None:
         self.transport = transport
@@ -254,8 +285,19 @@ class UDPProtocol(asyncio.DatagramProtocol):
     def datagram_received(self, data: bytes, addr) -> None:
         STATE.udp_queries += 1
         response = handle_query(data, "udp")
-        if response:
+        if not response:
+            return
+        delay = response_delay(data)
+        if delay > 0:
+            asyncio.get_running_loop().create_task(
+                self._send_later(response, addr, delay)
+            )
+        else:
             self.transport.sendto(response, addr)
+
+    async def _send_later(self, response: bytes, addr, delay: float) -> None:
+        await asyncio.sleep(delay)
+        self.transport.sendto(response, addr)
 
 
 async def tcp_client_handler(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:

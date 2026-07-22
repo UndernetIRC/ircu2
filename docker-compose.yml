@@ -156,6 +156,7 @@ services:
         hard: 4096
     ports:
       - "6671:6670"
+      - "6672:6672"
     networks:
       ircu-test-net:
         ipv4_address: 10.55.0.15

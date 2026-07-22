@@ -46,6 +46,7 @@ TLS_LEAF = {
 DNS_HUB = {
     "host": "127.0.0.1",
     "port": 6671,
+    "spoof_port": 6672,
     "name": "dns-hub.test.net",
     "dns_control_port": 8053,
 }
