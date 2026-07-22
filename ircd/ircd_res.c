@@ -145,7 +145,7 @@ struct reslist
   unsigned short query_len;/**< Length of query. */
   char tcp_mode;           /**< Non-zero when falling back to TCP. */
   dns_tcp_state tcp_state; /**< TCP session state machine. */
-  struct Socket tcp_sock;  /**< TCP socket to nameserver. */
+  struct dns_tcp_session *tcp; /**< TCP transport, or NULL. */
   struct irc_sockaddr tcp_ns; /**< Nameserver that returned TC=1. */
   unsigned char *tcp_send; /**< Length-prefixed query being sent. */
   unsigned short tcp_send_len; /**< Total length of tcp_send. */
@@ -155,6 +155,20 @@ struct reslist
   unsigned char *tcp_recv; /**< Response body buffer. */
   unsigned short tcp_recv_len; /**< Expected response body length. */
   unsigned short tcp_recv_pos; /**< Bytes of body received so far. */
+};
+
+/** Heap-allocated DNS-over-TCP transport session.
+ * This lives separately from struct reslist because the socket
+ * generator can outlive the request: when teardown happens inside the
+ * socket's own event callback, socket_del() defers ET_DESTROY until the
+ * in-flight event releases its reference, so the generator's memory
+ * must stay valid after the request is freed.  The session is freed
+ * only when ET_DESTROY is delivered.
+ */
+struct dns_tcp_session
+{
+  struct Socket sock;      /**< TCP socket to nameserver. */
+  struct reslist *request; /**< Owning request; NULL once detached. */
 };
 
 /** Base of request list. */
@@ -392,7 +406,6 @@ make_request(dns_callback_f callback, void *ctx)
   request->addrs = NULL;
   request->addr_count = 0;
   request->addr_capacity = 0;
-  s_fd(&request->tcp_sock) = -1;
 
   add_dlink(&request->node, &request_list);
   return(request);
@@ -963,12 +976,18 @@ res_readreply(struct Event *ev)
 static void
 close_dns_tcp(struct reslist *request)
 {
-  if (s_fd(&request->tcp_sock) >= 0)
+  if (request->tcp)
   {
-    close(s_fd(&request->tcp_sock));
-    if (s_active(&request->tcp_sock))
-      socket_del(&request->tcp_sock);
-    s_fd(&request->tcp_sock) = -1;
+    struct dns_tcp_session *session = request->tcp;
+
+    request->tcp = NULL;
+    session->request = NULL;
+    close(s_fd(&session->sock));
+    /* May free the session synchronously (via ET_DESTROY) or later,
+     * once any in-flight event drops its reference; either way the
+     * session must not be touched after this call.
+     */
+    socket_del(&session->sock);
     dns_tcp_release_slot();
   }
 
@@ -994,10 +1013,11 @@ dns_tcp_send(struct reslist *request)
   unsigned int written = 0;
   IOResult result;
 
+  assert(request->tcp != NULL);
   assert(request->tcp_send != NULL);
   assert(request->tcp_send_pos < request->tcp_send_len);
 
-  result = os_send_nonb(s_fd(&request->tcp_sock),
+  result = os_send_nonb(s_fd(&request->tcp->sock),
                         (const char *)request->tcp_send + request->tcp_send_pos,
                         request->tcp_send_len - request->tcp_send_pos,
                         &written);
@@ -1011,7 +1031,7 @@ dns_tcp_send(struct reslist *request)
   if (request->tcp_send_pos < request->tcp_send_len)
   {
     request->tcp_state = TCP_SENDING;
-    socket_events(&request->tcp_sock, SOCK_ACTION_ADD | SOCK_EVENT_WRITABLE);
+    socket_events(&request->tcp->sock, SOCK_ACTION_ADD | SOCK_EVENT_WRITABLE);
     return 1;
   }
 
@@ -1021,7 +1041,7 @@ dns_tcp_send(struct reslist *request)
   request->tcp_send_pos = 0;
   request->tcp_state = TCP_RECV_LEN;
   request->tcp_len_pos = 0;
-  socket_events(&request->tcp_sock,
+  socket_events(&request->tcp->sock,
                 SOCK_ACTION_SET | SOCK_EVENT_READABLE);
   return 1;
 }
@@ -1033,9 +1053,11 @@ dns_tcp_read(struct reslist *request)
   unsigned int got = 0;
   IOResult result;
 
+  assert(request->tcp != NULL);
+
   if (request->tcp_state == TCP_RECV_LEN)
   {
-    result = os_recv_nonb(s_fd(&request->tcp_sock),
+    result = os_recv_nonb(s_fd(&request->tcp->sock),
                           (char *)request->tcp_lenbuf + request->tcp_len_pos,
                           2 - request->tcp_len_pos, &got);
     if (result == IO_BLOCKED)
@@ -1072,7 +1094,7 @@ dns_tcp_read(struct reslist *request)
   {
     HEADER *header;
 
-    result = os_recv_nonb(s_fd(&request->tcp_sock),
+    result = os_recv_nonb(s_fd(&request->tcp->sock),
                           (char *)request->tcp_recv + request->tcp_recv_pos,
                           request->tcp_recv_len - request->tcp_recv_pos,
                           &got);
@@ -1116,20 +1138,32 @@ dns_tcp_read(struct reslist *request)
 static void
 dns_tcp_callback(struct Event *ev)
 {
+  struct dns_tcp_session *session;
   struct reslist *request;
 
   assert(0 != ev_socket(ev));
-  request = (struct reslist *)s_data(ev_socket(ev));
-  assert(0 != request);
+  session = (struct dns_tcp_session *)s_data(ev_socket(ev));
+  assert(0 != session);
+
+  if (ev_type(ev) == ET_DESTROY)
+  {
+    /* Generator fully released; safe to free the session now. */
+    MyFree(session);
+    return;
+  }
+
+  request = session->request;
+  if (!request)
+    /* Detached by close_dns_tcp(); only ET_DESTROY is expected after
+     * that, but ignore anything else that slips through.
+     */
+    return;
 
   switch (ev_type(ev))
   {
-  case ET_DESTROY:
-    break;
-
   case ET_CONNECT:
     Debug((DEBUG_DNS, "Request %p TCP connected", request));
-    socket_state(&request->tcp_sock, SS_CONNECTED);
+    socket_state(&session->sock, SS_CONNECTED);
     if (!dns_tcp_send(request))
     {
       (*request->callback)(request->callback_ctx, NULL, 0, NULL);
@@ -1178,6 +1212,7 @@ dns_tcp_callback(struct Event *ev)
 static int
 start_dns_tcp(struct reslist *request, const struct irc_sockaddr *ns)
 {
+  struct dns_tcp_session *session;
   struct irc_sockaddr local;
   IOResult result;
   int fd;
@@ -1187,7 +1222,7 @@ start_dns_tcp(struct reslist *request, const struct irc_sockaddr *ns)
   if (request->query == NULL || request->query_len == 0)
     return 0;
 
-  if (s_fd(&request->tcp_sock) >= 0)
+  if (request->tcp)
     close_dns_tcp(request);
 
   /* maxconn == 0 means unlimited concurrent TCP DNS sessions. */
@@ -1237,18 +1272,23 @@ start_dns_tcp(struct reslist *request, const struct irc_sockaddr *ns)
     return 0;
   }
 
+  session = (struct dns_tcp_session *)MyMalloc(sizeof(*session));
+  memset(session, 0, sizeof(*session));
+  session->request = request;
+
   result = os_connect_nonb(fd, ns);
   if (result == IO_FAILURE
-      || !socket_add(&request->tcp_sock, dns_tcp_callback, request,
+      || !socket_add(&session->sock, dns_tcp_callback, session,
                      result == IO_SUCCESS ? SS_CONNECTED : SS_CONNECTING,
                      SOCK_EVENT_READABLE, fd))
   {
     close(fd);
-    s_fd(&request->tcp_sock) = -1;
+    MyFree(session);
     if (maxconn > 0)
       dns_tcp_release_slot();
     return 0;
   }
+  request->tcp = session;
 
   request->sentat = CurrentTime;
   request->tcp_send = (unsigned char *)MyMalloc(2 + request->query_len);
