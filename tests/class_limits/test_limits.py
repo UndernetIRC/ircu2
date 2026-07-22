@@ -47,6 +47,30 @@ async def test_local_oper_killed_above_oper_class_limit(make_limits_client):
     await assert_killed_by_flood(user, OPER_FLOOD + FLOOD_KILL_MARGIN)
 
 
+async def test_local_oper_deoper_restores_local_flood_limit(make_limits_client):
+    """MODE -o must drop the cached OperClass maxflood back to Local."""
+    user = await make_limits_client("lim5")
+    await user.send("OPER testoper operpass")
+    await user.wait_for("381")
+    # Send a command while opered: the ircd resolves and caches the
+    # OperClass maxflood when it reads from the client.  De-opering must
+    # invalidate that cache, not just detach the Operator block.
+    await user.send("TIME")
+    await user.wait_for("391")
+
+    await user.send("MODE lim5 -o")
+    # Wait for the actual -o echo (OPER's +o echo may still be buffered);
+    # this also guarantees the server processed the deoper before the flood
+    # arrives, so the two cannot coalesce into a single read.
+    while True:
+        msg = await user.wait_for("MODE")
+        if "-o" in msg.params[-1]:
+            break
+
+    mid = (LOCAL_FLOOD + OPER_FLOOD) // 2
+    await assert_killed_by_flood(user, mid)
+
+
 async def test_stats_y_reports_class_definitions(limits_oper):
     """STATS y should expose configured class sendq/maxflood values."""
     await limits_oper.send("STATS y")

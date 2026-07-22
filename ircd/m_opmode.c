@@ -150,6 +150,8 @@ static void de_oper(struct Client *dptr)
       set_snomask(dptr, 0, SNO_SET);
     }
     det_confs_butmask(dptr, CONF_CLIENT & ~CONF_OPERATOR);
+    cli_max_sendq(dptr) = 0;
+    cli_max_flood(dptr) = 0;
     client_set_privs(dptr, NULL, 0);
     /* prop must be 1 so send_umode_out includes FLAG_OPER; after de_oper,
      * HasPriv(PRIV_PROPAGATE) is false but SEND_UMODES_BUT_OPER would drop -o. */

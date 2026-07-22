@@ -59,6 +59,12 @@ async def test_deoper_restores_local_flood_limit(
 
     await limits_services.send_opmode(numnick, "+o")
     await asyncio.sleep(0.3)
+    # Send a command while opered: the ircd resolves and caches the
+    # RemoteOpers maxflood when it reads from the client.  De-opering must
+    # invalidate that cache, not just detach the conf.
+    await user.send("TIME")
+    await user.wait_for("391")
+
     await limits_services.send_opmode(numnick, "-o")
     await asyncio.sleep(0.3)
 
