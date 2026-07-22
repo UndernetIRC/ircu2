@@ -20,7 +20,13 @@ from ws_frame_helpers import HOST, WS_PORT, WS_EXEMPT_PORT
 
 NORMAL_PORT = 6667
 BURST = 15
+# Window for the throttled test: short relative to the ~2s/command penalty so
+# the tail of the burst cannot drain within it.
 FAST_WINDOW = 4.0
+# Window for the exempt test: generous, since a loaded CI host can delay even
+# an unthrottled burst. count_within() returns as soon as the full burst has
+# arrived, so a passing run never waits this long.
+EXEMPT_WINDOW = 10.0
 
 
 async def recipient_client(nick):
@@ -74,10 +80,10 @@ async def test_exempt_ws_client_not_throttled(ircd_hub):
     sender = await ws_sender("wssnd_e", WS_EXEMPT_PORT)
     try:
         await burst_privmsgs(sender, "wsrcpt_e", BURST)
-        got = await count_within(recipient, "wssnd_e", BURST, FAST_WINDOW)
+        got = await count_within(recipient, "wssnd_e", BURST, EXEMPT_WINDOW)
         assert got == BURST, (
             f"exempt WS sender should not be throttled, but recipient got "
-            f"{got}/{BURST} within {FAST_WINDOW}s"
+            f"{got}/{BURST} within {EXEMPT_WINDOW}s"
         )
     finally:
         await cleanup(recipient, sender)
@@ -90,9 +96,12 @@ async def test_normal_ws_client_is_throttled(ircd_hub):
     try:
         await burst_privmsgs(sender, "wsrcpt_n", BURST)
         got = await count_within(recipient, "wssnd_n", BURST, FAST_WINDOW)
-        assert got < BURST, (
-            f"normal WS sender should be throttled, but recipient got all "
-            f"{got}/{BURST} within {FAST_WINDOW}s"
+        # Lower bound: some of the burst must arrive (zero would mean delivery
+        # is broken, not that throttling works). Upper bound: the tail must be
+        # withheld by the throttle.
+        assert 0 < got < BURST, (
+            f"normal WS sender should be throttled but still deliver the head "
+            f"of the burst; recipient got {got}/{BURST} within {FAST_WINDOW}s"
         )
     finally:
         await cleanup(recipient, sender)
