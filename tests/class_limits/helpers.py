@@ -51,21 +51,36 @@ async def assert_killed_by_flood(client: IRCClient, flood_bytes: int, *,
 
 async def assert_survives_flood(client: IRCClient, flood_bytes: int, *,
                                  timeout: float = 5.0) -> None:
-    """Send flood_bytes of raw data and assert the client is not disconnected."""
+    """Send flood_bytes of raw data and assert the client is not disconnected.
+
+    Survival is proven with a PING/PONG round trip: a killed client still
+    *receives* data (the ERROR :Closing Link line), so merely reading a byte
+    cannot distinguish survival from a kill.  The flood payload has no CRLF;
+    the server consumes it as garbage lines, then parses the trailing PING.
+    """
     payload = _build_flood_payload(flood_bytes)
     await _send_raw_bytes(client, payload)
     await asyncio.sleep(0.2)
+    # The newline-less junk makes the server clear its recvQ (with a 417
+    # reply) once it processes it -- input throttling can defer that by a
+    # few seconds, and anything queued alongside the junk is wiped with it.
+    # So retry the PING until a PONG proves the connection alive.
     try:
-        raw = await asyncio.wait_for(client._reader.read(1), timeout=timeout)
-        if raw == b"":
-            raise ConnectionError("Connection closed by server")
-        # Unexpected data is fine; put it back is not possible, but EOF is the kill signal.
-    except asyncio.TimeoutError:
-        return  # still connected
-    except ConnectionError as exc:
+        for _ in range(4):
+            await client.send("PING :liveness-check")
+            try:
+                await client.wait_for("PONG", timeout=2.5)
+                return
+            except (TimeoutError, asyncio.TimeoutError):
+                continue
+        raise AssertionError(
+            f"No PONG within {4 * 2.5}s after {flood_bytes} bytes flood "
+            "(connection open but unresponsive)"
+        )
+    except (ConnectionError, OSError, BrokenPipeError) as exc:
         raise AssertionError(
             f"Client was killed after {flood_bytes} bytes flood "
-            f"(expected survival): {exc}"
+            f"(expected survival): {exc!r}"
         ) from exc
 
 

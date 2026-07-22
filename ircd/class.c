@@ -321,11 +321,15 @@ get_sendq(struct Client *cptr)
   if (cli_max_sendq(cptr))
     return cli_max_sendq(cptr);
 
-  if ((cl = class_resolve(cptr)))
+  if ((cl = class_resolve(cptr))) {
     cli_max_sendq(cptr) = MaxSendq(cl);
-  else
-    cli_max_sendq(cptr) = feature_int(FEAT_DEFAULTMAXSENDQLENGTH);
-  return cli_max_sendq(cptr);
+    return cli_max_sendq(cptr);
+  }
+  /* No class resolved: fall back to the feature default WITHOUT caching
+   * it, so a runtime /SET change applies to classless clients immediately
+   * and a value read before the client's conf is attached cannot stick.
+   */
+  return feature_int(FEAT_DEFAULTMAXSENDQLENGTH);
 }
 
 /** Return maximum flood for a client.
@@ -343,11 +347,14 @@ find_max_flood(struct Client *cptr)
   if (cli_max_flood(cptr))
     return cli_max_flood(cptr);
 
-  if ((cl = class_resolve(cptr)))
+  if ((cl = class_resolve(cptr))) {
     cli_max_flood(cptr) = MaxFlood(cl);
-  else
-    cli_max_flood(cptr) = feature_int(FEAT_CLIENT_FLOOD);
-  return cli_max_flood(cptr);
+    return cli_max_flood(cptr);
+  }
+  /* See get_sendq(): the feature-default fallback is deliberately not
+   * cached.
+   */
+  return feature_int(FEAT_CLIENT_FLOOD);
 }
 
 /** Report connection class memory statistics to a client.
