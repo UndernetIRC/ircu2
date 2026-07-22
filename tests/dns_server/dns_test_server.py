@@ -33,6 +33,7 @@ class Scenario(str, Enum):
     TC_AAAA = "tc_aaaa"
     TC_AAAA_EMPTY = "tc_aaaa_empty"
     SLOW_A = "slow_a"
+    TC_TCP_BADID = "tc_tcp_badid"
 
 
 class State:
@@ -86,6 +87,7 @@ def scenario_ptr_name() -> str:
         Scenario.TC_AAAA: "client.ok.test",
         Scenario.TC_AAAA_EMPTY: "client.ok.test",
         Scenario.SLOW_A: "client.slow.test",
+        Scenario.TC_TCP_BADID: "client.badid.test",
     }[STATE.scenario]
 
 
@@ -191,6 +193,7 @@ def answer_for_query(query: bytes, qname: str, qtype: int, transport: str) -> by
             Scenario.TC_TCP,
             Scenario.TC_TCP_FAIL,
             Scenario.TC_HOLD,
+            Scenario.TC_TCP_BADID,
         ):
             return build_response(query, [], tc=True)
         if transport == "tcp":
@@ -315,6 +318,10 @@ async def tcp_client_handler(reader: asyncio.StreamReader, writer: asyncio.Strea
         response = handle_query(query, "tcp")
         if not response:
             return
+        if STATE.scenario == Scenario.TC_TCP_BADID and len(response) >= 2:
+            # Corrupt the transaction ID so it no longer matches the query.
+            bad_id = bytes([response[0] ^ 0xFF, response[1] ^ 0xFF])
+            response = bad_id + response[2:]
         writer.write(struct.pack("!H", len(response)) + response)
         await writer.drain()
     except (asyncio.IncompleteReadError, ConnectionResetError, BrokenPipeError):

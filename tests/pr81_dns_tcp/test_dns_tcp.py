@@ -132,6 +132,33 @@ async def test_aaaa_empty_over_tcp_falls_back_to_a(ircd_dns_hub, dns_control):
 
 
 @pytest.mark.asyncio
+async def test_tcp_response_wrong_id_is_rejected(ircd_dns_hub, dns_control):
+    """A TCP DNS response whose transaction ID does not match is rejected.
+
+    The UDP path matches replies by ID via find_id(); the TCP path must do
+    the same, otherwise a misbehaving nameserver or off-path forwarder
+    could inject an answer for a different query.  Here the test server
+    corrupts the transaction ID of the TCP reply, so the lookup must fail
+    rather than accept the forged answer.
+    """
+    dns_control("tc_tcp_badid")
+    reset_stats()
+    nick = f"badid{random.randint(0, 999_999)}"
+    notices = await register_collect_auth_notices(
+        ircd_dns_hub["host"],
+        ircd_dns_hub["port"],
+        nick,
+    )
+    blob = notice_blob(notices)
+    assert AUTH_FOUND not in blob, (
+        f"wrong-ID TCP response must not be accepted, got: {blob!r}"
+    )
+    assert AUTH_FAIL in blob, f"expected hostname lookup failure, got: {blob!r}"
+    stats = get_stats()
+    assert stats["tcp_queries"] >= 1, f"expected a TCP retry, stats={stats}"
+
+
+@pytest.mark.asyncio
 async def test_iauth_ip_override_is_not_dns_mismatch(ircd_dns_hub, dns_control):
     """DNS answers for the pre-override IP must not be flagged as mismatch.
 

@@ -1113,6 +1113,21 @@ dns_tcp_read(struct reslist *request)
       return;
 
     header = (HEADER *)request->tcp_recv;
+
+    /*
+     * Match the response to the outstanding query by ID, as the UDP path
+     * does via find_id().  The id is not byte-swapped (the nameserver
+     * echoes it unchanged), so compare it as stored.
+     */
+    if (header->id != request->id)
+    {
+      Debug((DEBUG_DNS, "Request %p TCP reply id mismatch (got %d want %d)",
+             request, header->id, request->id));
+      (*request->callback)(request->callback_ctx, NULL, 0, NULL);
+      rem_request(request);
+      return;
+    }
+
     header->ancount = ntohs(header->ancount);
     header->qdcount = ntohs(header->qdcount);
     header->nscount = ntohs(header->nscount);
