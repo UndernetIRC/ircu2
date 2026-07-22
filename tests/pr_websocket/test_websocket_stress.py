@@ -23,6 +23,7 @@ HOST = "127.0.0.1"
 NORMAL_PORT = 6667
 WS_PORT = 7000
 WS_URL = f"ws://{HOST}:{WS_PORT}/"
+WS_EXEMPT_URL = f"ws://{HOST}:7002/"  # flood-exempt port for high-rate senders
 
 # Raw RFC6455 opening handshake (same key as tests/test_websocket_protocol_confusion.py)
 _WS_RAW_UPGRADE = (
@@ -101,7 +102,7 @@ async def test_ws_stress_parallel_clients(ircd_hub):
 async def test_ws_stress_rapid_privmsg_with_background_drain(ircd_hub):
     """High rate of sends while a task drains incoming (PING + numerics)."""
     ws = IRCWebSocketClient()
-    await ws.connect(WS_URL, subprotocols=["text.ircv3.net"])
+    await ws.connect(WS_EXEMPT_URL, subprotocols=["text.ircv3.net"])
     await ws.register("wsflood", "t", "Flood")
     await ws.send("JOIN #wsflood")
 

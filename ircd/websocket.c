@@ -505,16 +505,12 @@ static int websocket_write_pong(struct Client *cptr, const unsigned char *payloa
 
 /*
  * Parse one WebSocket frame; payload (text/binary/continuation) is pushed into
- * recvQ for line reassembly. *msg_ready is set to 1 when a data/continuation
- * frame completes a logical message (FIN set), so the caller knows when to drain
- * recvQ; fragmented messages (FIN=0 followed by continuation frames) accumulate
- * until the final fragment.
+ * recvQ for line reassembly. On the final fragment (FIN set) a newline is
+ * appended so recvQ holds a complete IRC line; fragmented messages (FIN=0
+ * followed by continuation frames) accumulate until the final fragment.
  * Return value: >0 bytes consumed from buf, 0 if more data needed, <0 on dbuf_put failure.
  */
-int websocket_parse_frame(struct Client *cptr, const char *buf, size_t buflen,
-                          int *msg_ready) {
-    if (msg_ready)
-        *msg_ready = 0;
+int websocket_parse_frame(struct Client *cptr, const char *buf, size_t buflen) {
     if (buflen < 2) return 0; /* need frame header */
 
     unsigned char fin = (buf[0] & 0x80) ? 1 : 0;
@@ -604,10 +600,10 @@ int websocket_parse_frame(struct Client *cptr, const char *buf, size_t buflen,
         if (dbuf_put(&(cli_recvQ(cptr)), irc_line, deliver) == 0)
             return -1; /* Buffer error */
 
-        /* Deliver only once the message is complete (FIN); otherwise keep
-         * buffering subsequent continuation fragments in recvQ. */
-        if (msg_ready)
-            *msg_ready = fin;
+        /* Terminate the IRC line on the final fragment; continuation frames
+         * (FIN=0) keep accumulating in recvQ until then. */
+        if (fin && dbuf_put(&(cli_recvQ(cptr)), "\n", 1) == 0)
+            return -1;
     }
 
     return header_len + payload_len;

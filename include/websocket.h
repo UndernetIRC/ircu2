@@ -29,10 +29,9 @@
 int websocket_handshake_handler(struct Client *cptr);
 /** Send an HTTP 400 response for a failed handshake (before closing). */
 int websocket_send_http_error(struct Client *cptr);
-/** Parse one WebSocket frame. On a data/continuation frame, *msg_ready is set
- * to 1 when the frame carries FIN (logical message complete), else 0. */
-int websocket_parse_frame(struct Client *cptr, const char *buf, size_t buflen,
-                          int *msg_ready);
+/** Parse one WebSocket frame; decoded payload is pushed into recvQ, with a
+ * newline appended on the final fragment (FIN) to terminate the IRC line. */
+int websocket_parse_frame(struct Client *cptr, const char *buf, size_t buflen);
 struct MsgBuf *websocket_frame_msgbuf(struct Client *cptr, const char *line, size_t linelen);
 /** RFC 6455 Ping (not IRC PING); 0 on success, -1 on write failure. */
 int websocket_send_keepalive_ping(struct Client *cptr);

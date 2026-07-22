@@ -26,6 +26,7 @@ services:
       - "4400:4400"
       - "7000:7000"
       - "7001:7001"
+      - "7002:7002"
     networks:
       ircu-test-net:
         ipv4_address: 10.55.0.10
