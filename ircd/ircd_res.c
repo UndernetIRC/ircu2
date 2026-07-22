@@ -855,12 +855,19 @@ proc_answer(struct reslist *request, HEADER* header, char* buf, char* eob)
           return(0);
         if (rd_length != sizeof(struct irc_in_addr))
           return(0);
-        
-        /* Add this IP address to our collection */
-        Debug((DEBUG_DNS, "Adding IPv6 address %s to request %p (now has %d IPs)", 
-               ircd_ntoa((struct irc_in_addr *)current), request, request->addr_count));
-        if (!add_addr_to_request(request, (struct irc_in_addr *)current))
-          return(0);
+
+        /* Copy into an aligned local before use: current points into the
+         * packet buffer at an arbitrary offset, and treating it directly
+         * as a struct irc_in_addr* is an unaligned access that faults on
+         * strict-alignment platforms. */
+        {
+          struct irc_in_addr ipv6_addr;
+          memcpy(&ipv6_addr, current, sizeof(ipv6_addr));
+          Debug((DEBUG_DNS, "Adding IPv6 address %s to request %p (now has %d IPs)",
+                 ircd_ntoa(&ipv6_addr), request, request->addr_count));
+          if (!add_addr_to_request(request, &ipv6_addr))
+            return(0);
+        }
         current += rd_length;
         break;
       case T_PTR:
