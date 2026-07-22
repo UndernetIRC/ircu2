@@ -29,7 +29,11 @@ run_as_ircu() {
 }
 
 run_normal() {
-  run_as_ircu "$IRCD" -f "$CONF" -n
+  # Honor docker CMD / compose `command:` args (e.g. -x 8 for DEBUGMODE).
+  if [ "$#" -eq 0 ]; then
+    set -- -f "$CONF" -n
+  fi
+  run_as_ircu "$IRCD" "$@"
 }
 
 run_gdb() {
@@ -78,7 +82,7 @@ setup_cores
 case "${IRCD_DEBUG:-}" in
   gdb) run_gdb ;;
   valgrind) run_valgrind ;;
-  ""|normal) run_normal ;;
+  ""|normal) run_normal "$@" ;;
   *)
     echo "ircd-entrypoint: unknown IRCD_DEBUG=${IRCD_DEBUG}" >&2
     exit 2

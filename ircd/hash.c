@@ -22,6 +22,7 @@
 #include "config.h"
 
 #include "hash.h"
+#include "class.h"
 #include "client.h"
 #include "channel.h"
 #include "ircd_alloc.h"
@@ -467,7 +468,7 @@ void list_next_channels(struct Client *cptr)
     }
     /* If, at the end of the bucket, client sendq is more than half
      * full, stop. */
-    if (MsgQLength(&cli_sendQ(cptr)) > cli_max_sendq(cptr) / 2)
+    if (MsgQLength(&cli_sendQ(cptr)) > get_sendq(cptr) / 2)
       break;
   }
 
