@@ -4,12 +4,17 @@ from __future__ import annotations
 
 import asyncio
 import os
+import subprocess
+import tempfile
 from pathlib import Path
 
 from irc_client import IRCClient
 
 REPO_ROOT = Path(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 CONF_PATH = REPO_ROOT / "tests/class_limits/ircd-limits.conf"
+
+CONTAINER = "ircu-limits"
+CONTAINER_CONF = "/opt/ircu/lib/ircd.conf"
 
 # Limits from ircd-limits.conf (kept low enough that one TCP segment can
 # exceed maxflood and trigger Excess Flood on loopback).
@@ -120,15 +125,40 @@ async def _wait_for_kill(client: IRCClient, *, timeout: float = 5.0) -> bool:
 # ---------------------------------------------------------------------------
 
 def read_config() -> str:
+    """Return the pristine config from the repo (the baseline for patches)."""
     return CONF_PATH.read_text()
 
 
 def write_config(text: str) -> None:
-    CONF_PATH.write_text(text)
+    """Push config text into the running container with docker cp.
+
+    Deliberately NOT written through the repo file: on macOS the VM file
+    sharing layer (colima / Docker Desktop) propagates host-side writes
+    into the container asynchronously, so an immediate REHASH can read a
+    stale or truncated view of a bind-mounted config.  A truncated read
+    silently drops the trailing Port blocks and the rehash closes every
+    listener, killing all subsequent tests in the session.  docker cp
+    writes the file inside the container before returning, so a REHASH
+    sent afterwards always sees the complete new config.  This also keeps
+    the git-tracked config file untouched during test runs.
+    """
+    tmp = tempfile.NamedTemporaryFile("w", suffix=".conf", delete=False)
+    try:
+        tmp.write(text)
+        tmp.close()
+        # docker cp preserves the source mode; NamedTemporaryFile creates
+        # 0600, which the in-container ircu user could not read.
+        os.chmod(tmp.name, 0o644)
+        subprocess.run(
+            ["docker", "cp", tmp.name, f"{CONTAINER}:{CONTAINER_CONF}"],
+            check=True, capture_output=True,
+        )
+    finally:
+        os.unlink(tmp.name)
 
 
 def patch_config(**replacements: str) -> str:
-    """Apply substring replacements and write the config file."""
+    """Apply substring replacements to the pristine config and push it."""
     text = read_config()
     for old, new in replacements.items():
         if old not in text:

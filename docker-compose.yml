@@ -103,6 +103,11 @@ services:
     depends_on:
       - ircd-tls-hub
 
+  # The config is baked into the image (IRCD_CONF); tests push config
+  # changes with docker cp (see tests/class_limits/helpers.py).  Do NOT
+  # bind-mount the config: macOS VM file sharing propagates host writes
+  # asynchronously, so a REHASH right after a host-side write can read a
+  # truncated config and silently close all listeners.
   ircd-limits:
     build:
       context: .
@@ -113,8 +118,6 @@ services:
     ports:
       - "6670:6670"
       - "4410:4410"
-    volumes:
-      - ./tests/class_limits/ircd-limits.conf:/opt/ircu/lib/ircd.conf
     networks:
       ircu-test-net:
         ipv4_address: 10.55.0.30

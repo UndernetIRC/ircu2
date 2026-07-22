@@ -187,12 +187,15 @@ def ircd_limits():
 
 @pytest.fixture(scope="session")
 def limits_config_snapshot():
-    """Preserve and restore the mounted limits config across tests."""
+    """Pristine limits config text, restored into the container at session end."""
     from class_limits.helpers import read_config, restore_config
 
     snapshot = read_config()
     yield snapshot
-    restore_config(snapshot)
+    try:
+        restore_config(snapshot)
+    except Exception:
+        pass  # container may already be gone at session teardown
 
 
 @pytest_asyncio.fixture

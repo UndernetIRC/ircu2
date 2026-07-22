@@ -19,6 +19,7 @@ from pathlib import Path
 import pytest
 
 from class_limits.helpers import (
+    CONTAINER,
     patch_config,
     rehash_config,
     restore_config,
@@ -26,7 +27,6 @@ from class_limits.helpers import (
 
 pytestmark = pytest.mark.limits
 
-CONTAINER = "ircu-limits"
 STALL_SCRIPT = Path(__file__).parent / "stall_server.pl"
 
 # The Connect block's class in ircd-limits.conf ("Server") has sendq = 9 MB.
