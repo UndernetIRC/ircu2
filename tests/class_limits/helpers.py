@@ -127,11 +127,6 @@ async def _wait_for_kill(client: IRCClient, *, timeout: float = 5.0) -> bool:
             pass
         except (ConnectionError, OSError, BrokenPipeError):
             return True
-        try:
-            client._writer.write(b"")
-            await asyncio.wait_for(client._writer.drain(), timeout=0.25)
-        except (ConnectionError, OSError, BrokenPipeError, asyncio.TimeoutError):
-            return True
     return False
 
 

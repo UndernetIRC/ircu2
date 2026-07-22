@@ -8,7 +8,6 @@ from class_limits.helpers import (
     FLOOD_KILL_MARGIN,
     FLOOD_SURVIVE_MARGIN,
     LOCAL_FLOOD,
-    REMOTE_OPER_FLOOD,
     assert_killed_by_flood,
     assert_survives_flood,
     patch_config,
