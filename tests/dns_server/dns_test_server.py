@@ -31,6 +31,7 @@ class Scenario(str, Enum):
     MISMATCH = "mismatch"
     TC_HOLD = "tc_hold"
     TC_AAAA = "tc_aaaa"
+    TC_AAAA_EMPTY = "tc_aaaa_empty"
 
 
 class State:
@@ -41,6 +42,7 @@ class State:
         self.tcp_sessions = 0
         self.tcp_queries = 0
         self.tcp_aaaa_queries = 0
+        self.a_fallback_queries = 0
         self.hold_tcp = False
 
 
@@ -81,6 +83,7 @@ def scenario_ptr_name() -> str:
         Scenario.MISMATCH: "client.bad.test",
         Scenario.TC_HOLD: "client.hold.test",
         Scenario.TC_AAAA: "client.ok.test",
+        Scenario.TC_AAAA_EMPTY: "client.ok.test",
     }[STATE.scenario]
 
 
@@ -200,16 +203,30 @@ def answer_for_query(query: bytes, qname: str, qtype: int, transport: str) -> by
             tc=False,
         )
 
-    if qtype == T_AAAA and qname_norm == "aaaa.tc.test":
-        if transport == "udp" and STATE.scenario == Scenario.TC_AAAA:
+    if qtype == T_AAAA and qname_norm in ("aaaa.tc.test", "aaaa.empty.test"):
+        if transport == "udp" and STATE.scenario in (
+            Scenario.TC_AAAA,
+            Scenario.TC_AAAA_EMPTY,
+        ):
             return build_response(query, [], tc=True)
         if transport == "tcp":
             STATE.tcp_aaaa_queries += 1
+            if STATE.scenario == Scenario.TC_AAAA_EMPTY:
+                # Complete, authoritative "no AAAA records" answer.
+                return build_response(query, [], tc=False)
             return build_response(
                 query,
-                [build_rr("aaaa.tc.test", T_AAAA, ipv6_to_bytes(AAAA_TARGET))],
+                [build_rr(qname_norm, T_AAAA, ipv6_to_bytes(AAAA_TARGET))],
                 tc=False,
             )
+
+    if qtype == T_A and qname_norm in ("aaaa.tc.test", "aaaa.empty.test"):
+        STATE.a_fallback_queries += 1
+        return build_response(
+            query,
+            [build_rr(qname_norm, T_A, ipv4_to_bytes("10.55.0.99"))],
+            tc=False,
+        )
 
     return build_response(query, [], rcode=3)
 
@@ -289,7 +306,8 @@ async def handle_http(reader: asyncio.StreamReader, writer: asyncio.StreamWriter
                 f'"observed_client_ipv4":"{STATE.client_ipv4 or ""}",'
                 f'"udp_queries":{STATE.udp_queries},'
                 f'"tcp_sessions":{STATE.tcp_sessions},"tcp_queries":{STATE.tcp_queries},'
-                f'"tcp_aaaa_queries":{STATE.tcp_aaaa_queries}}}\n'
+                f'"tcp_aaaa_queries":{STATE.tcp_aaaa_queries},'
+                f'"a_fallback_queries":{STATE.a_fallback_queries}}}\n'
             ).encode()
         elif method == "POST" and path.startswith("/scenario/"):
             name = path.split("/", 2)[2]
@@ -301,6 +319,7 @@ async def handle_http(reader: asyncio.StreamReader, writer: asyncio.StreamWriter
             STATE.tcp_sessions = 0
             STATE.tcp_queries = 0
             STATE.tcp_aaaa_queries = 0
+            STATE.a_fallback_queries = 0
             STATE.client_ipv4 = None
             STATE.hold_tcp = STATE.scenario == Scenario.TC_HOLD
             body = b'{"ok":true}\n'

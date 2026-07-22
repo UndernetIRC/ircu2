@@ -1342,12 +1342,15 @@ process_dns_reply(struct reslist *request, HEADER *header, char *buf,
     {
       /*
        * If we haven't already tried this, and we're looking up AAAA, try A
-       * now.  Skip this while in TCP mode: a truncated AAAA must not be
-       * treated as "no AAAA".
+       * now.  This is reached only for complete replies -- a truncated UDP
+       * reply is diverted to a TCP retry before we get here -- so an empty
+       * answer section is an authoritative "no AAAA" even in TCP mode, and
+       * the A fallback goes back to plain UDP.
        */
 
-      if (!request->tcp_mode && request->state == REQ_AAAA && request->type == T_AAAA)
+      if (request->state == REQ_AAAA && request->type == T_AAAA)
       {
+        request->tcp_mode = 0;
         request->timeout += feature_int(FEAT_IRCD_RES_TIMEOUT);
         resend_query(request);
       }

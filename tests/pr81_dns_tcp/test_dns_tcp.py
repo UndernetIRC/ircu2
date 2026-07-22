@@ -103,6 +103,35 @@ async def test_aaaa_tcp_fallback_on_connect(ircd_dns_hub, dns_control):
 
 
 @pytest.mark.asyncio
+async def test_aaaa_empty_over_tcp_falls_back_to_a(ircd_dns_hub, dns_control):
+    """A complete-but-empty AAAA answer over TCP must fall back to an A query.
+
+    The truncated UDP reply must not be treated as "no AAAA" (that is what
+    the TCP retry is for), but once the TCP response authoritatively says
+    there are no AAAA records, the resolver should query A like the plain
+    UDP path does -- not fail the lookup.
+    """
+    dns_control("tc_aaaa_empty")
+    reset_stats()
+    await trigger_oper_connect(
+        ircd_dns_hub["host"],
+        ircd_dns_hub["port"],
+        "aaaa.empty.test",
+    )
+    deadline = time.monotonic() + 10.0
+    stats = get_stats()
+    while time.monotonic() < deadline and stats["a_fallback_queries"] < 1:
+        await asyncio.sleep(0.5)
+        stats = get_stats()
+    assert stats["tcp_aaaa_queries"] >= 1, (
+        f"expected AAAA retry over TCP first, stats={stats}"
+    )
+    assert stats["a_fallback_queries"] >= 1, (
+        f"expected A fallback after empty AAAA over TCP, stats={stats}"
+    )
+
+
+@pytest.mark.asyncio
 async def test_tc_hold_keeps_tcp_session_pending(ircd_dns_hub, dns_control):
   """Truncated UDP with tc_hold keeps the DNS-over-TCP session open."""
   dns_control("tc_hold")
