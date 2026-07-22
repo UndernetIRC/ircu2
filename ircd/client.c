@@ -183,10 +183,7 @@ client_set_privs(struct Client *client, struct ConfItem *oper, int forceOper)
   }
   else
   {
-    class = find_class("RemoteOpers");
-    if (class && (!FlagHas(&class->privs_dirty, PRIV_PROPAGATE)
-              || !FlagHas(&class->privs, PRIV_PROPAGATE)))
-      class = NULL;
+    class = find_remote_oper_class();
   }
 
   /* Decide whether to use global or local oper defaults. */

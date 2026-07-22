@@ -107,6 +107,7 @@ extern void class_mark_delete(void);
 extern void class_delete_marked(void);
 
 extern struct ConnectionClass *do_find_class(const char *name, int extras);
+extern struct ConnectionClass *find_remote_oper_class(void);
 extern struct ConnectionClass *make_class(void);
 extern void free_class(struct ConnectionClass * tmp);
 extern char *get_conf_class(const struct ConfItem *aconf);

@@ -273,6 +273,23 @@ report_classes(struct Client *sptr, const struct StatDesc *sd,
                Links(cltmp) - 1, CCUmode(cltmp) ? CCUmode(cltmp) : "+");
 }
 
+/** Return the connection class that applies to opers without an
+ * attached Operator block (opers granted remotely, e.g. via OPMODE).
+ * The class must exist and have PRIV_PROPAGATE explicitly set to be
+ * eligible.
+ * @return Eligible "RemoteOpers" class, or NULL.
+ */
+struct ConnectionClass *
+find_remote_oper_class(void)
+{
+  struct ConnectionClass *cl = find_class("RemoteOpers");
+
+  if (cl && FlagHas(&cl->privs_dirty, PRIV_PROPAGATE)
+      && FlagHas(&cl->privs, PRIV_PROPAGATE))
+    return cl;
+  return NULL;
+}
+
 /** Resolve the connection class that governs limits for a client.
  * @param[in] cptr Client to check.
  * @return Connection class, or NULL if defaults apply.
@@ -288,12 +305,8 @@ class_resolve(struct Client *cptr)
       if (tmp->value.aconf && (tmp->value.aconf->status & CONF_OPERATOR))
         break;
     }
-    if (!tmp) {
-      cl = find_class("RemoteOpers");
-      if (cl && FlagHas(&cl->privs_dirty, PRIV_PROPAGATE)
-          && FlagHas(&cl->privs, PRIV_PROPAGATE))
-        return cl;
-    }
+    if (!tmp && (cl = find_remote_oper_class()))
+      return cl;
   }
 
   for (tmp = cli_confs(cptr); tmp; tmp = tmp->next) {
