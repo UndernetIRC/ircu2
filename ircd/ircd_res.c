@@ -1240,7 +1240,9 @@ start_dns_tcp(struct reslist *request, const struct irc_sockaddr *ns)
   if (request->tcp)
     close_dns_tcp(request);
 
-  /* maxconn == 0 means unlimited concurrent TCP DNS sessions. */
+  /* maxconn == 0 means unlimited concurrent TCP DNS sessions.  The count
+   * always tracks open sessions so it stays accurate if maxconn changes
+   * at runtime; only the enforcement below is gated on maxconn. */
   if (maxconn > 0 && dns_tcp_count >= maxconn)
   {
     Debug((DEBUG_DNS, "Request %p TCP denied (count %d max %d)",
@@ -1255,8 +1257,7 @@ start_dns_tcp(struct reslist *request, const struct irc_sockaddr *ns)
     return 0;
   }
 
-  if (maxconn > 0)
-    ++dns_tcp_count;
+  ++dns_tcp_count;
 
   memcpy(&request->tcp_ns, ns, sizeof(request->tcp_ns));
   request->tcp_mode = 1;
@@ -1272,8 +1273,7 @@ start_dns_tcp(struct reslist *request, const struct irc_sockaddr *ns)
 #ifdef AF_INET6
     family = AF_INET6;
 #else
-    if (maxconn > 0)
-      dns_tcp_release_slot();
+    dns_tcp_release_slot();
     return 0;
 #endif
   }
@@ -1282,8 +1282,7 @@ start_dns_tcp(struct reslist *request, const struct irc_sockaddr *ns)
   fd = os_socket(&local, SOCK_STREAM, "Resolver TCP socket", family);
   if (fd < 0)
   {
-    if (maxconn > 0)
-      dns_tcp_release_slot();
+    dns_tcp_release_slot();
     return 0;
   }
 
@@ -1299,8 +1298,7 @@ start_dns_tcp(struct reslist *request, const struct irc_sockaddr *ns)
   {
     close(fd);
     MyFree(session);
-    if (maxconn > 0)
-      dns_tcp_release_slot();
+    dns_tcp_release_slot();
     return 0;
   }
   request->tcp = session;
