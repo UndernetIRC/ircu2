@@ -163,6 +163,27 @@ def ircd_network():
 
 
 @pytest.fixture(scope="session")
+def ircd_tls_hub():
+    """Start only the TLS hub — no peer servers ever link.
+
+    Use this for standalone secure-path coverage: compute_secure_path_groups()
+    must run at boot, because link/SQUIT never fires on a lone server.
+    """
+    docker_compose("down", check=False)
+    _start_services("ircd-tls-hub")
+    try:
+        wait_for_port(TLS_HUB["host"], TLS_HUB["port"])
+        wait_for_port(TLS_HUB["host"], TLS_HUB["tls_port"])
+        wait_for_port(TLS_HUB["host"], TLS_HUB["wss_port"])
+        wait_for_port(TLS_HUB["host"], TLS_HUB["server_port"])
+        # Ident lookups during registration can take a moment on cold start.
+        time.sleep(2)
+        yield TLS_HUB
+    finally:
+        docker_compose("down", check=False)
+
+
+@pytest.fixture(scope="session")
 def ircd_tls_network():
     """Start TLS-enabled hub and leaf containers. Session-scoped."""
     docker_compose("down", check=False)
