@@ -1194,6 +1194,13 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc,
     {
       cli_handler(sptr) = CLIENT_HANDLER;
       det_confs_butmask(sptr, CONF_CLIENT & ~CONF_OPERATOR);
+      /* Invalidate the cached sendq/maxflood so the ex-oper drops back to
+       * its Client class limits (and loses the input-throttle exemption
+       * derived from the oper class maxflood) instead of keeping the oper
+       * limits until the next rehash.
+       */
+      cli_max_sendq(sptr) = 0;
+      cli_max_flood(sptr) = 0;
     }
 
     if (SendServNotice(sptr))

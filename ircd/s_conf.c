@@ -353,13 +353,13 @@ void conf_parse_userhost(struct ConfItem *aconf, char *host)
  * @param vptr Pointer to struct ConfItem for the block.
  * @param hp DNS reply, or NULL if the lookup failed.
  */
-static void conf_dns_callback(void* vptr, const struct irc_in_addr *addr, const char *h_name)
+static void conf_dns_callback(void* vptr, const struct irc_in_addr *addrs, int addr_count, const char *h_name)
 {
   struct ConfItem* aconf = (struct ConfItem*) vptr;
   assert(aconf);
   aconf->dns_pending = 0;
-  if (addr)
-    memcpy(&aconf->address.addr, addr, sizeof(aconf->address.addr));
+  if (addrs && addr_count > 0)
+    memcpy(&aconf->address.addr, &addrs[0], sizeof(aconf->address.addr));
 }
 
 /** Start a nameserver lookup of the conf host.  If the conf entry is
@@ -682,6 +682,17 @@ enum AuthorizationCheckResult attach_conf(struct Client *cptr, struct ConfItem *
   ++aconf->clients;
   if (aconf->status & CONF_CLIENT_MASK)
     ConfLinks(aconf)++;
+  /* Reset the cached limits for any conf type that carries a connection
+   * class (Client, Operator, Connect).  get_sendq()/find_max_flood() may
+   * already have cached the feature-default fallback from a message queued
+   * before registration completed (e.g. a pre-registration numeric or TLS
+   * auth notice); without this, an inbound server link stays capped at
+   * DEFAULTMAXSENDQLENGTH instead of its Connect class sendq.
+   */
+  if (MyConnect(cptr) && (aconf->status & CONF_CLIENT_MASK)) {
+    cli_max_flood(cptr) = 0;
+    cli_max_sendq(cptr) = 0;
+  }
   return ACR_OK;
 }
 
@@ -1152,12 +1163,15 @@ int rehash(struct Client *cptr, int sig)
     if ((acptr = LocalClientArray[i])) {
       const struct wline *wline;
       assert(!IsMe(acptr));
-      /* Invalidate the cached per-client flood limit so maxflood -- and the
+
+      /* Invalidate the cached per-client limit so maxflood and sendq -- and the
        * input-throttle exemption read_packet() derives from it -- re-resolves
        * from the rehashed connection class instead of a value frozen at connect
        * time.  Mirrors the reset done on /OPER in m_oper.c.
        */
       cli_max_flood(acptr) = 0;
+      cli_max_sendq(acptr) = 0;
+
       if (IsServer(acptr))
         det_confs_butmask(acptr, ~(CONF_UWORLD | CONF_ILLEGAL));
       /* Because admin's are getting so uppity about people managing to

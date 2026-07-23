@@ -44,6 +44,14 @@ TLS_LEAF = {
     "name": "tls-leaf.test.net",
 }
 
+DNS_HUB = {
+    "host": "127.0.0.1",
+    "port": 6671,
+    "spoof_port": 6672,
+    "name": "dns-hub.test.net",
+    "dns_control_port": 8053,
+}
+
 
 def wait_for_port(host: str, port: int, timeout: float = 30.0):
     """Block until a TCP port is accepting connections."""
@@ -84,6 +92,14 @@ def docker_compose(*args, check=True):
             f"docker compose {' '.join(args)} failed:\n{result.stderr}"
         )
     return result
+
+
+LIMITS = {
+    "host": "127.0.0.1",
+    "port": 6670,
+    "server_port": 4410,
+    "name": "limits.test.net",
+}
 
 
 def _start_services(*services):
@@ -163,6 +179,130 @@ def ircd_tls_network():
         yield {"hub": TLS_HUB, "leaf": TLS_LEAF}
     finally:
         docker_compose("down", check=False)
+
+
+@pytest.fixture(scope="session")
+def ircd_limits():
+    """Start the dedicated limits-test ircd with a volume-mounted config."""
+    _start_services("ircd-limits")
+    try:
+        wait_for_port(LIMITS["host"], LIMITS["port"])
+        # Ident lookups during registration can take a moment on cold start.
+        time.sleep(2)
+        yield LIMITS
+    finally:
+        docker_compose("down", check=False)
+
+
+@pytest.fixture(scope="session")
+def limits_config_snapshot():
+    """Pristine limits config text, restored into the container at session end."""
+    from class_limits.helpers import read_config, restore_config
+
+    snapshot = read_config()
+    yield snapshot
+    try:
+        restore_config(snapshot)
+    except Exception:
+        pass  # container may already be gone at session teardown
+
+
+@pytest_asyncio.fixture
+async def limits_oper(ircd_limits):
+    """Connected global operator on the limits test server."""
+    from class_limits.helpers import make_oper
+
+    oper = await make_oper(ircd_limits)
+    yield oper
+    try:
+        await oper.send("QUIT :test cleanup")
+    except Exception:
+        pass
+    await oper.disconnect()
+
+
+@pytest_asyncio.fixture
+async def limits_services(ircd_limits):
+    """UWorld-capable P10 services server for remote oper tests."""
+    from p10_server import P10Server
+
+    srv = P10Server(
+        name="services.test.net",
+        numeric=4,
+        password="testpass",
+    )
+    await srv.connect(ircd_limits["host"], ircd_limits["server_port"])
+    await srv.handshake()
+    yield srv
+    await srv.disconnect()
+
+
+@pytest_asyncio.fixture
+async def make_limits_client(ircd_limits):
+    """Factory for registered clients on the limits test server."""
+    clients: list[IRCClient] = []
+
+    async def _make(
+        nick: str,
+        username: str = "testuser",
+        realname: str = "Test User",
+    ) -> IRCClient:
+        client = IRCClient()
+        await client.connect(ircd_limits["host"], ircd_limits["port"])
+        await client.register(nick, username, realname)
+        clients.append(client)
+        return client
+
+    yield _make
+
+    for client in clients:
+        try:
+            await client.send("QUIT :test cleanup")
+        except Exception:
+            pass
+        await client.disconnect()
+
+
+def _start_dns_services(*ircd_services: str):
+    """Start test-dns and selected ircd DNS test containers."""
+    from pr81_dns_tcp.helpers import reset_stats, set_scenario, wait_for_dns_control
+
+    prepare_debug_session()
+    docker_compose("down", "--remove-orphans", check=False)
+    docker_compose("up", "--build", "--force-recreate", "-d", "test-dns")
+    wait_for_dns_control()
+    set_scenario("ok_udp")
+    reset_stats()
+    docker_compose("up", "--build", "--force-recreate", "-d", *ircd_services)
+
+
+@pytest.fixture(scope="session")
+def ircd_dns_hub():
+    """Start test-dns and the DNS-enabled hub for resolver integration tests."""
+    from pr81_dns_tcp.helpers import reset_stats, set_scenario, wait_for_dns_control
+
+    _start_dns_services("ircd-dns-hub")
+    try:
+        wait_for_dns_control()
+        wait_for_port(DNS_HUB["host"], DNS_HUB["port"])
+        time.sleep(2)
+        set_scenario("ok_udp")
+        reset_stats()
+        yield DNS_HUB
+    finally:
+        docker_compose("down", "--remove-orphans", check=False)
+
+
+@pytest.fixture
+def dns_control():
+    """Switch DNS server scenario and reset per-test counters."""
+    from pr81_dns_tcp.helpers import reset_stats, set_scenario
+
+    def _set(name: str) -> None:
+        set_scenario(name)
+        reset_stats()
+
+    return _set
 
 
 @pytest_asyncio.fixture

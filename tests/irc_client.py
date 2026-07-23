@@ -383,3 +383,8 @@ class IRCClient:
         """
         await self.send(f"SILENCE +{pattern}")
         return await self.wait_for("SILENCE", timeout=timeout)
+
+    async def chan_modes(self, channel: str, timeout: float = 5.0) -> str:
+        """Return a channel's mode string (e.g. "+ntu") from RPL_CHANNELMODEIS."""
+        msg = await self.send_and_expect(f"MODE {channel}", "324", timeout=timeout)
+        return next((p for p in msg.params if p.startswith("+")), "")

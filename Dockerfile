@@ -65,6 +65,10 @@ RUN chown ircu:ircu /opt/ircu/lib/ircd.conf
 COPY tests/docker/certs /opt/ircu/lib/certs
 RUN chown -R ircu:ircu /opt/ircu/lib/certs
 
+# IAuth stub used by the DNS resolver tests (harmless for other configs)
+COPY tests/docker/iauth-dns-stub.pl /opt/ircu/lib/iauth-dns-stub.pl
+RUN chown ircu:ircu /opt/ircu/lib/iauth-dns-stub.pl
+
 # Create empty motd file
 RUN touch /opt/ircu/lib/ircd.motd && chown ircu:ircu /opt/ircu/lib/ircd.motd
 

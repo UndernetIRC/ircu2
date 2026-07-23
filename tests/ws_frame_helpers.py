@@ -13,6 +13,7 @@ import struct
 HOST = "127.0.0.1"
 WS_PORT = 7000
 WS_CF_PORT = 7001
+WS_EXEMPT_PORT = 7002  # connections here are flood-exempt (Exempt class)
 
 # Minimal RFC 6455 opening handshake (key is the example from the RFC).
 RAW_HANDSHAKE = (

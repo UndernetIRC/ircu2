@@ -273,6 +273,52 @@ report_classes(struct Client *sptr, const struct StatDesc *sd,
                Links(cltmp) - 1, CCUmode(cltmp) ? CCUmode(cltmp) : "+");
 }
 
+/** Return the connection class that applies to opers without an
+ * attached Operator block (opers granted remotely, e.g. via OPMODE).
+ * The class must exist and have PRIV_PROPAGATE explicitly set to be
+ * eligible.
+ * @return Eligible "RemoteOpers" class, or NULL.
+ */
+struct ConnectionClass *
+find_remote_oper_class(void)
+{
+  struct ConnectionClass *cl = find_class("RemoteOpers");
+
+  if (cl && FlagHas(&cl->privs_dirty, PRIV_PROPAGATE)
+      && FlagHas(&cl->privs, PRIV_PROPAGATE))
+    return cl;
+  return NULL;
+}
+
+/** Resolve the connection class that governs limits for a client.
+ * @param[in] cptr Client to check.
+ * @return Connection class, or NULL if defaults apply.
+ */
+static struct ConnectionClass *
+class_resolve(struct Client *cptr)
+{
+  struct SLink *tmp;
+  struct ConnectionClass *cl;
+
+  if (IsOper(cptr)) {
+    for (tmp = cli_confs(cptr); tmp; tmp = tmp->next) {
+      if (tmp->value.aconf && (tmp->value.aconf->status & CONF_OPERATOR))
+        break;
+    }
+    if (!tmp && (cl = find_remote_oper_class()))
+      return cl;
+  }
+
+  for (tmp = cli_confs(cptr); tmp; tmp = tmp->next) {
+    if (!tmp->value.aconf || !(cl = tmp->value.aconf->conn_class))
+      continue;
+    if (!cl->valid || !ConClass(cl))
+      continue;
+    return cl;
+  }
+  return NULL;
+}
+
 /** Return maximum SendQ length for a client.
  * @param[in] cptr Local client to check.
  * @return Number of bytes allowed in SendQ for \a cptr.
@@ -280,25 +326,22 @@ report_classes(struct Client *sptr, const struct StatDesc *sd,
 unsigned int
 get_sendq(struct Client *cptr)
 {
+  struct ConnectionClass *cl;
+
   assert(0 != cptr);
   assert(0 != cli_local(cptr));
 
   if (cli_max_sendq(cptr))
     return cli_max_sendq(cptr);
 
-  else if (cli_confs(cptr)) {
-    struct SLink*     tmp;
-    struct ConnectionClass* cl;
-
-    for (tmp = cli_confs(cptr); tmp; tmp = tmp->next) {
-      if (!tmp->value.aconf || !(cl = tmp->value.aconf->conn_class))
-        continue;
-      if (ConClass(cl) != NULL) {
-        cli_max_sendq(cptr) = MaxSendq(cl);
-        return cli_max_sendq(cptr);
-      }
-    }
+  if ((cl = class_resolve(cptr))) {
+    cli_max_sendq(cptr) = MaxSendq(cl);
+    return cli_max_sendq(cptr);
   }
+  /* No class resolved: fall back to the feature default WITHOUT caching
+   * it, so a runtime /SET change applies to classless clients immediately
+   * and a value read before the client's conf is attached cannot stick.
+   */
   return feature_int(FEAT_DEFAULTMAXSENDQLENGTH);
 }
 
@@ -309,22 +352,21 @@ get_sendq(struct Client *cptr)
 unsigned int
 find_max_flood(struct Client *cptr)
 {
+  struct ConnectionClass *cl;
+
   assert(0 != cptr);
   assert(0 != cli_local(cptr));
 
-  if (cli_confs(cptr)) {
-    struct SLink*     tmp;
-    struct ConnectionClass* cl;
+  if (cli_max_flood(cptr))
+    return cli_max_flood(cptr);
 
-    for (tmp = cli_confs(cptr); tmp; tmp = tmp->next) {
-      if (!tmp->value.aconf || !(cl = tmp->value.aconf->conn_class))
-        continue;
-      if (ConClass(cl) != NULL) {
-        cli_max_flood(cptr) = MaxFlood(cl);
-        return cli_max_flood(cptr);
-      }
-    }
+  if ((cl = class_resolve(cptr))) {
+    cli_max_flood(cptr) = MaxFlood(cl);
+    return cli_max_flood(cptr);
   }
+  /* See get_sendq(): the feature-default fallback is deliberately not
+   * cached.
+   */
   return feature_int(FEAT_CLIENT_FLOOD);
 }
 
