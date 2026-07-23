@@ -68,7 +68,7 @@ struct irc_sockaddr
 };
 
 /** DNS callback function signature. */
-typedef void (*dns_callback_f)(void *vptr, const struct irc_in_addr *addr, const char *h_name);
+typedef void (*dns_callback_f)(void *vptr, const struct irc_in_addr *addrs, int addr_count, const char *h_name);
 
 /** DNS query and response header. */
 typedef struct

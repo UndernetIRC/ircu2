@@ -43,6 +43,14 @@ TLS_LEAF = {
     "name": "tls-leaf.test.net",
 }
 
+DNS_HUB = {
+    "host": "127.0.0.1",
+    "port": 6671,
+    "spoof_port": 6672,
+    "name": "dns-hub.test.net",
+    "dns_control_port": 8053,
+}
+
 
 def wait_for_port(host: str, port: int, timeout: float = 30.0):
     """Block until a TCP port is accepting connections."""
@@ -252,6 +260,48 @@ async def make_limits_client(ircd_limits):
         except Exception:
             pass
         await client.disconnect()
+
+
+def _start_dns_services(*ircd_services: str):
+    """Start test-dns and selected ircd DNS test containers."""
+    from pr81_dns_tcp.helpers import reset_stats, set_scenario, wait_for_dns_control
+
+    prepare_debug_session()
+    docker_compose("down", "--remove-orphans", check=False)
+    docker_compose("up", "--build", "--force-recreate", "-d", "test-dns")
+    wait_for_dns_control()
+    set_scenario("ok_udp")
+    reset_stats()
+    docker_compose("up", "--build", "--force-recreate", "-d", *ircd_services)
+
+
+@pytest.fixture(scope="session")
+def ircd_dns_hub():
+    """Start test-dns and the DNS-enabled hub for resolver integration tests."""
+    from pr81_dns_tcp.helpers import reset_stats, set_scenario, wait_for_dns_control
+
+    _start_dns_services("ircd-dns-hub")
+    try:
+        wait_for_dns_control()
+        wait_for_port(DNS_HUB["host"], DNS_HUB["port"])
+        time.sleep(2)
+        set_scenario("ok_udp")
+        reset_stats()
+        yield DNS_HUB
+    finally:
+        docker_compose("down", "--remove-orphans", check=False)
+
+
+@pytest.fixture
+def dns_control():
+    """Switch DNS server scenario and reset per-test counters."""
+    from pr81_dns_tcp.helpers import reset_stats, set_scenario
+
+    def _set(name: str) -> None:
+        set_scenario(name)
+        reset_stats()
+
+    return _set
 
 
 @pytest_asyncio.fixture

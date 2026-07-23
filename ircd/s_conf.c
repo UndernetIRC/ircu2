@@ -353,13 +353,13 @@ void conf_parse_userhost(struct ConfItem *aconf, char *host)
  * @param vptr Pointer to struct ConfItem for the block.
  * @param hp DNS reply, or NULL if the lookup failed.
  */
-static void conf_dns_callback(void* vptr, const struct irc_in_addr *addr, const char *h_name)
+static void conf_dns_callback(void* vptr, const struct irc_in_addr *addrs, int addr_count, const char *h_name)
 {
   struct ConfItem* aconf = (struct ConfItem*) vptr;
   assert(aconf);
   aconf->dns_pending = 0;
-  if (addr)
-    memcpy(&aconf->address.addr, addr, sizeof(aconf->address.addr));
+  if (addrs && addr_count > 0)
+    memcpy(&aconf->address.addr, &addrs[0], sizeof(aconf->address.addr));
 }
 
 /** Start a nameserver lookup of the conf host.  If the conf entry is

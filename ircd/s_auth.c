@@ -1055,10 +1055,11 @@ static void auth_timeout_callback(struct Event* ev)
  * connection completion, regardless of success or failure -- unless
  * there was a mismatch and KILL_IPMISMATCH is set.
  * @param[in] vptr The pending struct AuthRequest.
- * @param[in] addr IP address being resolved.
+ * @param[in] addrs Array of IP addresses being resolved.
+ * @param[in] addr_count Number of IP addresses in the array.
  * @param[in] h_name Resolved name, or NULL if lookup failed.
  */
-static void auth_dns_callback(void* vptr, const struct irc_in_addr *addr, const char *h_name)
+static void auth_dns_callback(void* vptr, const struct irc_in_addr *addrs, int addr_count, const char *h_name)
 {
   struct AuthRequest* auth = (struct AuthRequest*) vptr;
   assert(0 != auth);
@@ -1066,39 +1067,73 @@ static void auth_dns_callback(void* vptr, const struct irc_in_addr *addr, const 
   /* Clear the dns-pending flag so exit_client() cleans up properly. */
   FlagClr(&auth->flags, AR_DNS_PENDING);
 
-  if (!addr) {
+  Debug((DEBUG_DNS, "DNS callback for client %s: hostname='%s', resolved %d IPs", 
+         cli_sock_ip(auth->client), h_name ? h_name : "NULL", addr_count));
+
+  if (!addrs || addr_count == 0) {
     /* DNS entry was missing for the IP. */
+    Debug((DEBUG_DNS, "DNS lookup failed for client %s", cli_sock_ip(auth->client)));
     if (IsUserPort(auth->client) || IsWebsocketPort(auth->client))
       sendheader(auth->client, REPORT_FAIL_DNS);
-  } else if (!irc_in_addr_valid(addr)
-             || (irc_in_addr_cmp(&cli_ip(auth->client), addr)
-                 && irc_in_addr_cmp(&auth->original, addr))) {
-    if (IsUserPort(auth->client) || IsWebsocketPort(auth->client)) {
-      /* IP for hostname did not match client's IP. */
-      sendto_opmask_butone(0, SNO_IPMISMATCH, "IP# Mismatch: %s != %s[%s]",
-                           cli_sock_ip(auth->client), h_name,
-                           ircd_ntoa(addr));
-      sendheader(auth->client, REPORT_IP_MISMATCH);
-    } else {
-      /* Mismatch for a server, do not send to opers. */
-      log_write(LS_NETWORK, L_NOTICE, LOG_NOSNOTICE,
-                "IP# Mismatch: %s != %s[%s]",
-                cli_sock_ip(auth->client), h_name,
-                ircd_ntoa(addr));
-    }
-    if (feature_bool(FEAT_KILL_IPMISMATCH)) {
-      exit_client(auth->client, auth->client, &me, "IP mismatch");
-      return;
-    }
-  } else if (!auth_verify_hostname(h_name, HOSTLEN)) {
-    /* Hostname did not look valid. */
-    if (IsUserPort(auth->client) || IsWebsocketPort(auth->client))
-      sendheader(auth->client, REPORT_INVAL_DNS);
   } else {
-    /* Hostname and mappings checked out. */
-    if (IsUserPort(auth->client) || IsWebsocketPort(auth->client))
-      sendheader(auth->client, REPORT_FIN_DNS);
-    ircd_strncpy(cli_sockhost(auth->client), h_name, HOSTLEN);
+    /* Check if the client's IP is among the resolved IPs */
+    int found = 0;
+    int i;
+    
+    Debug((DEBUG_DNS, "Checking client IP %s against %d resolved IPs for hostname '%s':", 
+           cli_sock_ip(auth->client), addr_count, h_name));
+    
+    for (i = 0; i < addr_count; i++) {
+      char resolved_ip[64];
+      ircd_strncpy(resolved_ip, ircd_ntoa(&addrs[i]), sizeof(resolved_ip));
+      Debug((DEBUG_DNS, "  IP[%d]: %s", i, resolved_ip));
+      
+      /* Accept a match against the client's current IP or, when IAuth
+       * rewrote the address mid-lookup, its original IP.  A DNS answer
+       * for the pre-override IP is expected and must not be flagged as a
+       * mismatch. */
+      if (!irc_in_addr_cmp(&cli_ip(auth->client), &addrs[i])
+          || (irc_in_addr_valid(&auth->original)
+              && !irc_in_addr_cmp(&auth->original, &addrs[i]))) {
+        found = 1;
+        Debug((DEBUG_DNS, "  MATCH FOUND! Client IP %s matches resolved IP[%d]: %s",
+               cli_sock_ip(auth->client), i, resolved_ip));
+        break;
+      }
+    }
+    
+    if (!found) {
+      /* Client's IP not found among the resolved IPs - this is a real mismatch */
+      Debug((DEBUG_DNS, "NO MATCH: Client IP %s not found among %d resolved IPs for hostname '%s'", 
+             cli_sock_ip(auth->client), addr_count, h_name));
+      if (IsUserPort(auth->client) || IsWebsocketPort(auth->client)) {
+        sendto_opmask_butone(0, SNO_IPMISMATCH, "IP# Mismatch: %s != %s[%s]",
+                             cli_sock_ip(auth->client), h_name,
+                             ircd_ntoa(&addrs[0]));
+        sendheader(auth->client, REPORT_IP_MISMATCH);
+      } else {
+        log_write(LS_NETWORK, L_NOTICE, LOG_NOSNOTICE,
+                  "IP# Mismatch: %s != %s[%s]",
+                  cli_sock_ip(auth->client), h_name,
+                  ircd_ntoa(&addrs[0]));
+      }
+      if (feature_bool(FEAT_KILL_IPMISMATCH)) {
+        exit_client(auth->client, auth->client, &me, "IP mismatch");
+        return;
+      }
+    } else if (!auth_verify_hostname(h_name, HOSTLEN)) {
+      /* Hostname did not look valid. */
+      Debug((DEBUG_DNS, "Hostname validation failed for '%s'", h_name));
+      if (IsUserPort(auth->client) || IsWebsocketPort(auth->client))
+        sendheader(auth->client, REPORT_INVAL_DNS);
+    } else {
+      /* Hostname and mappings checked out. */
+      Debug((DEBUG_DNS, "DNS validation successful for client %s: hostname='%s'", 
+             cli_sock_ip(auth->client), h_name));
+      if (IsUserPort(auth->client) || IsWebsocketPort(auth->client))
+        sendheader(auth->client, REPORT_FIN_DNS);
+      ircd_strncpy(cli_sockhost(auth->client), h_name, HOSTLEN);
+    }
   }
   check_auth_finished(auth, AR_DNS_PENDING);
 }

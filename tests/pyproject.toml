@@ -20,6 +20,7 @@ markers = [
     "single_server: tests that need only the hub server",
     "multi_server: tests that need the full hub + 2 leaves topology",
     "tls: tests that need the TLS hub + leaf containers",
+    "dns: tests that need the DNS test server and DNS-enabled ircd containers",
     "websocket_stress: aggressive WebSocket load / edge-case tests (pr_websocket/, hub + port 7000)",
     "limits: tests that need the dedicated limits server",
 ]

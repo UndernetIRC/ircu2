@@ -118,6 +118,51 @@ services:
       ircu-test-net:
         ipv4_address: 10.55.0.30
 
+  test-dns:
+    build:
+      context: .
+      dockerfile: tests/dns_server/Dockerfile
+    container_name: ircu-test-dns
+    environment:
+      CLIENT_IPV4: "10.55.0.1"
+      AAAA_TARGET: "fdaa:1:1::42"
+    ports:
+      - "8053:8053"
+    networks:
+      ircu-test-net:
+        ipv4_address: 10.55.0.31
+
+  ircd-dns-hub:
+    build:
+      context: .
+      args:
+        IRCD_CONF: tests/docker/ircd-dns-hub.conf
+        TLS_BACKEND: ${TLS_BACKEND:-openssl}
+        SANITIZE: ${IRCD_SANITIZE:-}
+    container_name: ircu-dns-hub
+    environment:
+      IRCD_DEBUG: ${IRCD_DEBUG:-}
+      ASAN_OPTIONS: ${ASAN_OPTIONS:-abort_on_error=1:halt_on_error=1:detect_leaks=0:log_path=/opt/ircu/debug/asan}
+    volumes:
+      - ${IRCD_DEBUG_DIR:-./tests/debug-output}:/opt/ircu/debug
+    security_opt:
+      - seccomp:unconfined
+    ulimits:
+      core:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 4096
+        hard: 4096
+    ports:
+      - "6671:6670"
+      - "6672:6672"
+    networks:
+      ircu-test-net:
+        ipv4_address: 10.55.0.15
+    depends_on:
+      - test-dns
+
 networks:
   ircu-test-net:
     driver: bridge
