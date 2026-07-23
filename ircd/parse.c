@@ -923,7 +923,7 @@ parse_client(struct Client *cptr, char *buffer, char *bufend)
   if ((ch = parse_msg_tags(ch, bufend)) == NULL)
     return -1;
 
-  /* RFC 1459 body limit excl. CRLF (BUFSIZE includes \\r\\n); tags are extra. */
+  /* RFC 1459 body limit excl. CRLF (BUFSIZE includes \r\n); tags are extra. */
   if ((size_t)(bufend - ch) > (BUFSIZE - 2)) {
     send_reply(cptr, ERR_INPUTTOOLONG);
     return -1;
