@@ -295,9 +295,9 @@ async def test_same_server_tls_clients_share_secure_path(ircd_tls_network):
     server-to-server hop is involved), even when that server has no TLS
     server links.
 
-    The buggy code only assigns the local server a secure group when it has
-    TLS *server* links, so the WHOIS 671 secure-path suffix never appears on
-    a standalone server.
+    Prefer tests/secure_path/test_single_server.py for the true never-linked
+    case: this test SQUITs the leaf, which itself recomputes groups and can
+    mask a missing startup call to compute_secure_path_groups().
     """
     hub = ircd_tls_network["hub"]
     op = await _make_oper(hub, "srf4op")

@@ -54,6 +54,7 @@
 #include "s_conf.h"
 #include "s_debug.h"
 #include "s_misc.h"
+#include "s_serv.h"
 #include "s_stats.h"
 #include "sasl.h"
 #include "send.h"
@@ -792,6 +793,12 @@ int main(int argc, char **argv) {
 
   hAddClient(&me);
   SetIPv6(&me);
+
+  /* Seed &me's secure group before any server links.  Without this,
+   * a standalone server keeps sid == 0 and same-server TLS clients
+   * are never reported as sharing a secure path.
+   */
+  compute_secure_path_groups();
 
   write_pidfile();
   init_counters();

@@ -289,7 +289,8 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf)
  * links forms a group of its own, so two TLS clients on the same
  * server share a secure path (no server link is involved between
  * them).
- * This function should be called whenever the network topology changes.
+ * This function should be called at startup (after &me is registered)
+ * and whenever the network topology changes.
  */
 void compute_secure_path_groups(void)
 {
