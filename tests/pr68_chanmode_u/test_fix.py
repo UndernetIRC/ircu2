@@ -11,11 +11,6 @@ from irc_client import IRCClient
 pytestmark = pytest.mark.single_server
 
 
-async def chan_modes(client, channel):
-    msg = await client.send_and_expect(f"MODE {channel}", "324")
-    return next((p for p in msg.params if p.startswith("+")), "")
-
-
 async def make_op(make_client, nick, channel):
     op = await make_client(nick)
     await op.send(f"JOIN {channel}")
@@ -63,11 +58,11 @@ async def test_chanmode_u_set_and_unset(make_client):
 
     await op.send("MODE #pr68set +u")
     await op.wait_for("MODE")
-    assert "u" in await chan_modes(op, "#pr68set")
+    assert "u" in await op.chan_modes("#pr68set")
 
     await op.send("MODE #pr68set -u")
     await op.wait_for("MODE")
-    assert "u" not in await chan_modes(op, "#pr68set")
+    assert "u" not in await op.chan_modes("#pr68set")
 
 
 async def test_part_reason_suppressed_with_u(make_client):

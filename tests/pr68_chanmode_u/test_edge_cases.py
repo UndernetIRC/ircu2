@@ -5,11 +5,6 @@ import pytest
 pytestmark = pytest.mark.single_server
 
 
-async def chan_modes(client, channel):
-    msg = await client.send_and_expect(f"MODE {channel}", "324")
-    return next((p for p in msg.params if p.startswith("+")), "")
-
-
 async def test_nonop_cannot_set_u(make_client):
     """A non-op cannot set +u."""
     op = await make_client("op68perm")
@@ -22,7 +17,7 @@ async def test_nonop_cannot_set_u(make_client):
 
     msg = await user.send_and_expect("MODE #pr68perm +u", "482")  # ERR_CHANOPRIVSNEEDED
     assert msg.command == "482"
-    assert "u" not in await chan_modes(op, "#pr68perm")
+    assert "u" not in await op.chan_modes("#pr68perm")
 
 
 async def test_old_chanmode_P_is_unknown(make_client):
@@ -33,4 +28,4 @@ async def test_old_chanmode_P_is_unknown(make_client):
 
     msg = await op.send_and_expect("MODE #pr68oldp +P", "472")  # ERR_UNKNOWNMODE
     assert msg.command == "472"
-    assert "P" not in await chan_modes(op, "#pr68oldp")
+    assert "P" not in await op.chan_modes("#pr68oldp")
