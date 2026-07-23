@@ -37,6 +37,26 @@ async def test_myinfo_advertises_chanmode_u(ircd_hub):
         await client.disconnect()
 
 
+async def test_isupport_advertises_chanmode_u(ircd_hub):
+    """+u is advertised in the RPL_ISUPPORT (005) CHANMODES token."""
+    client = IRCClient()
+    await client.connect(ircd_hub["host"], ircd_hub["port"])
+    try:
+        await client.send("NICK isupp68")
+        await client.send("USER testuser 0 * :Test User")
+        chanmodes = None
+        while chanmodes is None:
+            msg = await client.wait_for("005", timeout=10.0)
+            chanmodes = next(
+                (p for p in msg.params if p.startswith("CHANMODES=")), None
+            )
+        modes = chanmodes.removeprefix("CHANMODES=")
+        assert "u" in modes, f"chanmode u not in 005 CHANMODES: {modes!r}"
+        assert "P" not in modes, f"old chanmode P still in 005 CHANMODES: {modes!r}"
+    finally:
+        await client.disconnect()
+
+
 async def test_chanmode_u_set_and_unset(make_client):
     """A chanop can set and clear +u on a channel."""
     op = await make_op(make_client, "op68set", "#pr68set")
