@@ -120,3 +120,57 @@ async def test_hub_forwards_time_tag_on_s2s_channel(ircd_network, services):
         except Exception:
             pass
         await user.disconnect()
+
+
+async def test_network_features_off_suppresses_s2s_tags(ircd_network, services):
+    """NETWORK_FEATURES=FALSE must not prefix S2S PRIVMSG with @time=."""
+    hub = ircd_network["hub"]
+    channel = "#s2snofeat"
+
+    oper = IRCClient()
+    await oper.connect(hub["host"], hub["port"])
+    await oper.register("nofeatop", "oper", "Oper")
+    await oper.send("OPER testoper operpass")
+    await oper.wait_for("381", timeout=10.0)
+    await oper.send("SET NETWORK_FEATURES FALSE")
+    await oper.wait_for("284", timeout=8.0)
+
+    down_num = await services.send_downstream_server("down.nofeat.test", 91)
+    await services.send_downstream_nick(
+        down_num, "NoFeatBot", server_numeric=91, client_num=1,
+    )
+    await services.send_downstream_join("NoFeatBot", channel)
+    await asyncio.sleep(0.3)
+
+    user = IRCClient()
+    await user.connect(hub["host"], hub["port"])
+    await user.register("nofeatloc", "testuser", "Local User")
+
+    try:
+        await user.send(f"JOIN {channel}")
+        await asyncio.sleep(0.3)
+        await user.send(f"PRIVMSG {channel} :no tags please")
+
+        deadline = asyncio.get_event_loop().time() + 5.0
+        saw = None
+        while asyncio.get_event_loop().time() < deadline:
+            remaining = deadline - asyncio.get_event_loop().time()
+            line = await services._recv(timeout=max(remaining, 0.1))
+            if " P " in f" {line} " and channel in line and "no tags please" in line:
+                saw = line
+                break
+        assert saw, "expected S2S PRIVMSG without requiring tags"
+        assert not saw.lstrip().startswith("@"), saw
+        assert "@time=" not in saw, saw
+    finally:
+        try:
+            await oper.send("SET NETWORK_FEATURES TRUE")
+            await oper.wait_for("284", timeout=8.0)
+        except Exception:
+            pass
+        for c in (user, oper):
+            try:
+                await c.send("QUIT :cleanup")
+            except Exception:
+                pass
+            await c.disconnect()

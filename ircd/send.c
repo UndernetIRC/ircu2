@@ -337,8 +337,11 @@ void send_buffer(struct Client* to, struct Client* from, struct MsgBuf* buf, int
   }
 
   if (IsServer(to)) {
-    taglen = msg_tag_format_s2s(tagbuf, sizeof(tagbuf), tags, local_time);
-    prefix = tagbuf;
+    /* Older peers cannot parse @tags; gate on NETWORK_FEATURES. */
+    if (feature_bool(FEAT_NETWORK_FEATURES)) {
+      taglen = msg_tag_format_s2s(tagbuf, sizeof(tagbuf), tags, local_time);
+      prefix = taglen ? tagbuf : 0;
+    }
   } else if (cache) {
     if (cache->client_relay) {
       taglen = msg_tag_format(cache->prefix, sizeof(cache->prefix),
