@@ -101,6 +101,12 @@
  * See the IRCv3 message-tags specification.
  */
 #define TAGSLEN         8191
+/** Maximum tag-data bytes a client may send (excludes leading '@' and
+ * separating space).  See IRCv3 message-tags size limits.
+ */
+#define TAGDATA_CLIENT_MAX 4094
+/** Maximum tag-data bytes a server may add to a message. */
+#define TAGDATA_SERVER_MAX 4094
 /** Incoming line buffer large enough for optional tags plus one
  * protocol message body (BUFSIZE).
  */

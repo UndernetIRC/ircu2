@@ -70,6 +70,14 @@ def parse_numnick(numnick: str) -> tuple[int, int]:
     return b64_to_int(numnick[:2]), b64_to_int(numnick[2:])
 
 
+def strip_msg_tags(line: str) -> str:
+    """Remove a leading IRCv3 @tag-section from an S2S line if present."""
+    if not line.startswith("@"):
+        return line
+    sp = line.find(" ")
+    return line[sp + 1 :] if sp != -1 else line
+
+
 class P10Server:
     """A fake IRC server speaking the P10 protocol.
 
@@ -195,12 +203,13 @@ class P10Server:
         """
         while True:
             line = await self._recv_raw(timeout=timeout)
-            tokens = line.split()
+            payload = strip_msg_tags(line)
+            tokens = payload.split()
 
             # Handle PING in both forms:
             #   PING :<origin>                    (unprefixed, pre-handshake)
             #   <prefix> G !<cookie> <target> ... (token form, post-handshake)
-            if tokens[0] == "PING":
+            if tokens and tokens[0] == "PING":
                 origin = tokens[1].lstrip(":")
                 await self._send(f"{self._num} Z {self._num} :{origin}")
                 continue
@@ -213,13 +222,13 @@ class P10Server:
 
             # Parse NICK (N) messages to track users
             if len(tokens) >= 2 and tokens[1] == "N":
-                self._parse_nick(line)
+                self._parse_nick(payload)
 
             return line
 
     def _get_token(self, line: str) -> str | None:
         """Extract the P10 token (second space-delimited word) from a line."""
-        parts = line.split(" ", 2)
+        parts = strip_msg_tags(line).split(" ", 2)
         return parts[1] if len(parts) >= 2 else None
 
     async def handshake(self, timeout: float = 15.0):
@@ -491,7 +500,7 @@ class P10Server:
             line = await self._recv(timeout=remaining)
             collected.append(line)
             tok = self._get_token(line)
-            if tok == token or line.split()[0] == token:
+            if tok == token or strip_msg_tags(line).split()[0] == token:
                 return collected
 
     async def drain_messages(self, timeout: float = 0.5):

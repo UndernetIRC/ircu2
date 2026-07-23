@@ -23,6 +23,7 @@
 #include "config.h"
 
 #include "ircd_features.h"
+#include "msg_tag.h"
 #include "channel.h"	/* list_set_default */
 #include "class.h"
 #include "client.h"
@@ -161,6 +162,13 @@ feature_log_reset(struct Client* from, const char* const* fields, int count)
     (*desc->set)(fields[0], 0); /* default should always be accepted */
 
   return 0;
+}
+
+/** Handle an update to FEAT_CLIENTTAGDENY. */
+static void
+feature_notify_clienttagdeny(void)
+{
+  msg_tag_clienttagdeny_rebuild();
 }
 
 /** Handle an update to FEAT_HIS_SERVERNAME. */
@@ -384,7 +392,14 @@ static struct FeatureDesc {
   F_B(CAP_EXTJOIN, 0, 1, 0),
   F_B(CAP_INVITENOTIFY, 0, 1, 0),
   F_B(CAP_UHNAMES, 0, 1, 0),
+  F_B(CAP_MESSAGE_TAGS, 0, 1, 0),
+  F_B(CAP_SERVER_TIME, 0, 1, 0),
+  F_B(CAP_ACCOUNT_TAG, 0, 1, 0),
   F_B(CAP_SASL, 0, 1, 0),
+
+  /* IRCv3 CLIENTTAGDENY: deny-list / allow-list for client-only (+) tags.
+   * Default "*" denies all; empty (FEAT_NULL) allows all. Rebuilds via notify. */
+  F_S(CLIENTTAGDENY, FEAT_NULL, "*", feature_notify_clienttagdeny),
 
   /* HEAD_IN_SAND Features */
   F_B(HIS_SNOTICES, 0, 1, 0),
@@ -838,6 +853,7 @@ feature_init(void)
   cli_status(&his) = STAT_SERVER;
   feature_notify_servername();
   feature_notify_serverinfo();
+  feature_notify_clienttagdeny();
 }
 
 /** Report all F-lines to a user.

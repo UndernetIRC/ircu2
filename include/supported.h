@@ -27,6 +27,7 @@
 
 #include "channel.h"
 #include "ircd_defs.h"
+#include "ircd_features.h"
 
 /* 
  * 'Features' supported by this ircd
@@ -56,7 +57,8 @@
                 " STATUSMSG=%s" \
                 " CHANMODES=%s" \
                 " CASEMAPPING=%s" \
-                " NETWORK=%s"
+                " NETWORK=%s" \
+                " CLIENTTAGDENY=%s"
 
 #define FEATURESVALUES1 feature_int(FEAT_MAXSILES), MAXMODEPARAMS, \
 			feature_int(FEAT_MAXCHANNELSPERUSER), \
@@ -68,7 +70,8 @@
                         (feature_bool(FEAT_OPLEVELS) \
                         ? "b,AkU,l,imnpstrDdRcCuMZ" \
                         :   "b,k,l,imnpstrDdRcCuMZ"), \
-                        "rfc1459", feature_str(FEAT_NETWORK)
+                        "rfc1459", feature_str(FEAT_NETWORK), \
+                        feature_str(FEAT_CLIENTTAGDENY)
 
 #endif /* INCLUDED_supported_h */
 

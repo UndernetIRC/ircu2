@@ -31,11 +31,13 @@
 #include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_chattr.h"
+#include "ircd_defs.h"
 #include "ircd_features.h"
 #include "ircd_log.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "msg.h"
+#include "msg_tag.h"
 #include "numeric.h"
 #include "numnicks.h"
 #include "opercmds.h"
@@ -47,6 +49,7 @@
 #include "s_misc.h"
 #include "s_numeric.h"
 #include "s_user.h"
+#include "msg_tag.h"
 #include "send.h"
 #include "struct.h"
 #include "sys.h"
@@ -126,6 +129,13 @@ struct Message msgtab[] = {
     0, MAXPARA, MFLG_SLOW | MFLG_IGNORE, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_ignore, m_notice, ms_notice, mo_notice, m_ignore }
+  },
+  {
+    MSG_TAGMSG,
+    TOK_TAGMSG,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_tagmsg, ms_tagmsg, mo_tagmsg, m_ignore }
   },
   {
     MSG_WALLCHOPS,
@@ -685,6 +695,43 @@ struct Message msgtab[] = {
 /** Array of command parameters. */
 static char *para[MAXPARA + 2]; /* leave room for prefix and null */
 
+/** Tags from the current input line (if any). */
+static struct MsgTag *current_tags;
+
+struct MsgTag *
+parse_tags(void)
+{
+  return current_tags;
+}
+
+/** Parse optional IRCv3 tags at the start of a line.
+ * @param[in,out] ch Current parse position.
+ * @param[in] bufend End of line.
+ * @return Updated position after tags and separating space, or NULL on error.
+ */
+static char *
+parse_msg_tags(char *ch, char *bufend)
+{
+  char *tag_start;
+  char *tag_end;
+
+  current_tags = NULL;
+
+  if (*ch != '@')
+    return ch;
+
+  tag_start = ch + 1;
+  tag_end = ch;
+  while (tag_end < bufend && *tag_end != ' ')
+    tag_end++;
+
+  if (tag_end >= bufend || *tag_end != ' ')
+    return NULL;
+
+  current_tags = msg_tag_parse(tag_start, tag_end);
+  return tag_end + 1;
+}
+
 
 /** Add a message to the lookup trie.
  * @param[in,out] mtree_p Trie node to insert under.
@@ -860,6 +907,31 @@ parse_client(struct Client *cptr, char *buffer, char *bufend)
 
   para[0] = cli_name(from);
   for (ch = buffer; *ch == ' '; ch++);  /* Eat leading spaces */
+
+  if (*ch == '@' && !IsServer(cptr)) {
+    char *tag_data = ch + 1;
+    char *tag_end = tag_data;
+
+    while (tag_end < bufend && *tag_end != ' ')
+      tag_end++;
+    if ((size_t)(tag_end - tag_data) > TAGDATA_CLIENT_MAX) {
+      send_reply(cptr, ERR_INPUTTOOLONG);
+      return -1;
+    }
+  }
+
+  if ((ch = parse_msg_tags(ch, bufend)) == NULL)
+    return -1;
+
+  /* RFC 1459 body limit excl. CRLF (BUFSIZE includes \\r\\n); tags are extra. */
+  if ((size_t)(bufend - ch) > (BUFSIZE - 2)) {
+    send_reply(cptr, ERR_INPUTTOOLONG);
+    return -1;
+  }
+
+  if (!IsServer(cptr))
+    current_tags = msg_tag_filter_client(current_tags);
+
   if (*ch == ':')               /* Is any client doing this ? */
   {
     for (++ch; *ch && *ch != ' '; ++ch)
@@ -1000,21 +1072,13 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
     return 0;
 
   /*
-   * Skip IRCv3 message-tags if present.  Tags are ignored for now so
-   * tagged server-server traffic stays backwards compatible; real tag
-   * handling lands in a later release.
+   * Parse IRCv3 message-tags when present.
    * Format: @key=value;key2=value2 <rest of message>
    */
-  if (*ch == '@')
-  {
-    while (ch < bufend && *ch != ' ')
-      ++ch;
-    if (ch >= bufend || *ch != ' ')
-      return -1;
-    ++ch;                       /* skip the separating space */
-    if (ch >= bufend || !*ch)
-      return -1;
-  }
+  for (; ch < bufend && *ch == ' '; ch++)
+    ;
+  if ((ch = parse_msg_tags(ch, bufend)) == NULL)
+    return -1;
 
   para[0] = cli_name(from);
 

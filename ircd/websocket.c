@@ -23,6 +23,7 @@
 #include "client.h"
 #include "class.h"
 #include "ircd.h"
+#include "ircd_defs.h"
 #include "ircd_features.h"
 #include "IPcheck.h"
 #include "listener.h"
@@ -211,7 +212,7 @@ int websocket_handshake_handler(struct Client *cptr) {
     }
 
     /* Parse headers */
-    char header_copy[WEBSOCKET_MAX_HEADER + 1];
+    char header_copy[WEBSOCKET_HANDSHAKE_MAX + 1];
     strncpy(header_copy, buf, buflen);
     header_copy[buflen] = '\0';
     for (line = strtok_r(header_copy, "\r\n", &saveptr); line; line = strtok_r(NULL, "\r\n", &saveptr)) {
@@ -585,7 +586,7 @@ int websocket_parse_frame(struct Client *cptr, const char *buf, size_t buflen) {
      * uses the returned full frame length). This means only header + up to one
      * line need be buffered, not the whole frame. */
     {
-        char irc_line[513];
+        char irc_line[READBUFSIZE + 1];
         size_t deliver = payload_len < sizeof(irc_line) - 1
                        ? payload_len : sizeof(irc_line) - 1;
 

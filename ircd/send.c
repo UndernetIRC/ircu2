@@ -1,5 +1,5 @@
 /*
- * IRC - Internet Relay Chat, common/send.c
+ * IRC - Internet Relay Chat, ircd/send.c
  * Copyright (C) 1990 Jarkko Oikarinen and
  *                    University of Oulu, Computing Center
  *
@@ -36,6 +36,7 @@
 #include "match.h"
 #include "msg.h"
 #include "msgq.h"
+#include "msg_tag.h"
 #include "websocket.h"
 #include "numnicks.h"
 #include "parse.h"
@@ -255,13 +256,65 @@ send_raw_buffer(struct Client *to, struct MsgBuf *mb, int prio)
   send_queued(to);
 }
 
+/** Cached tag-prefix state for fan-out to many local users. */
+struct TagSendCache {
+  unsigned int profile;
+  char prefix[TAGSLEN];
+  unsigned int prefix_len;
+  time_t local_time;
+  struct MsgTag *tags;
+  int client_relay;
+};
+
+static void
+tagsendcache_init(struct TagSendCache *cache)
+{
+  cache->profile = (unsigned int)-1;
+  cache->prefix_len = 0;
+  cache->local_time = CurrentTime;
+  cache->tags = parse_tags();
+  cache->client_relay = msg_tag_have_client_relay(cache->tags);
+}
+static struct MsgBuf *
+make_wire_msgbuf(struct Client *to, struct MsgBuf *body,
+                 const char *prefix, unsigned int prefix_len)
+{
+  struct MsgBuf *wire = body;
+
+  if (prefix_len > 0) {
+    struct MsgBuf *combined;
+
+    combined = msgq_raw_alloc(to, prefix_len + body->length + 1);
+    if (!combined)
+      return body;
+    memcpy(combined->msg, prefix, prefix_len);
+    memcpy(combined->msg + prefix_len, body->msg, body->length);
+    combined->length = prefix_len + body->length;
+    wire = combined;
+  }
+
+  return wire;
+}
+
 /** Try to send a buffer to a client, queueing it if needed.
  * @param[in,out] to Client to send message to.
- * @param[in] buf Message to send.
+ * @param[in] from Message source (for account-tag; may be NULL).
+ * @param[in] buf Message body (without tags).
  * @param[in] prio If non-zero, send as high priority.
+ * @param[in] cache Optional tag-prefix cache for fan-out (may be NULL).
  */
-void send_buffer(struct Client* to, struct MsgBuf* buf, int prio)
+void send_buffer(struct Client* to, struct Client* from, struct MsgBuf* buf, int prio,
+                 struct TagSendCache *cache)
 {
+  struct MsgBuf *wire = buf;
+  struct MsgBuf *owned = 0;
+  struct MsgBuf *ws_framed = 0;
+  char tagbuf[TAGSLEN];
+  const char *prefix = 0;
+  unsigned int taglen = 0;
+  time_t local_time = cache ? cache->local_time : CurrentTime;
+  struct MsgTag *tags = cache ? cache->tags : parse_tags();
+
   assert(0 != to);
   assert(0 != buf);
 
@@ -283,28 +336,63 @@ void send_buffer(struct Client* to, struct MsgBuf* buf, int prio)
     return;
   }
 
-  Debug((DEBUG_SEND, "Sending [%p] to %s", buf, cli_name(to)));
+  if (IsServer(to)) {
+    taglen = msg_tag_format_s2s(tagbuf, sizeof(tagbuf), tags, local_time);
+    prefix = tagbuf;
+  } else if (cache) {
+    if (cache->client_relay) {
+      taglen = msg_tag_format(cache->prefix, sizeof(cache->prefix),
+                              to, from, cache->tags, cache->local_time);
+      prefix = taglen ? cache->prefix : 0;
+    } else {
+      unsigned int profile = msg_tag_profile(to);
+
+      if (profile != cache->profile) {
+        cache->profile = profile;
+        cache->prefix_len = profile
+          ? msg_tag_format(cache->prefix, sizeof(cache->prefix),
+                           to, from, cache->tags, cache->local_time)
+          : 0;
+      }
+      taglen = cache->prefix_len;
+      prefix = taglen ? cache->prefix : 0;
+    }
+  } else {
+    taglen = msg_tag_format(tagbuf, sizeof(tagbuf), to, from, tags, local_time);
+    prefix = taglen ? tagbuf : 0;
+  }
+
+  if (prefix && taglen) {
+    wire = make_wire_msgbuf(to, buf, prefix, taglen);
+    if (wire != buf)
+      owned = wire;
+  }
+
+  Debug((DEBUG_SEND, "Sending [%p] to %s", wire, cli_name(to)));
 
 
   /* For websocket clients, replace the IRC MsgBuf with a framed one before
    * queueing. The original buf is still owned and cleaned by the caller
    * (sendrawto_one, sendcmdto_one, ...); the framed buffer is owned here. */
-  struct MsgBuf *ws_framed = 0;
   if (IsWebsocket(to)) {
-    ws_framed = websocket_frame_msgbuf(to, buf->msg, buf->length);
+    ws_framed = websocket_frame_msgbuf(to, wire->msg, wire->length);
     if (!ws_framed) {
+      if (owned)
+        msgq_clean(owned);
       dead_link(to, "Websocket frame error");
       return;
     }
-    buf = ws_framed;
+    wire = ws_framed;
   }
 
-  msgq_add(&(cli_sendQ(to)), buf, prio);
+  msgq_add(&(cli_sendQ(to)), wire, prio);
   /* msgq_add() took its own reference on the queued buffer, so release the
    * reference websocket_frame_msgbuf() handed us. Without this, one MsgBuf
    * leaks per outbound WebSocket message and exhausts the buffer pool. */
   if (ws_framed)
     msgq_clean(ws_framed);
+  if (owned)
+    msgq_clean(owned);
   client_add_sendq(cli_connect(to), &send_queues);
   update_write(to);
 
@@ -367,7 +455,7 @@ void sendrawto_one(struct Client *to, const char *pattern, ...)
   mb = msgq_vmake(to, pattern, vl);
   va_end(vl);
 
-  send_buffer(to, mb, 0);
+  send_buffer(to, NULL, mb, 0, NULL);
 
   msgq_clean(mb);
 }
@@ -395,7 +483,7 @@ void sendcmdto_one(struct Client *from, const char *cmd, const char *tok,
 
   va_end(vd.vd_args);
 
-  send_buffer(to, mb, 0);
+  send_buffer(to, from, mb, 0, NULL);
 
   msgq_clean(mb);
 }
@@ -424,7 +512,7 @@ void sendcmdto_prio_one(struct Client *from, const char *cmd, const char *tok,
 
   va_end(vd.vd_args);
 
-  send_buffer(to, mb, 1);
+  send_buffer(to, from, mb, 1, NULL);
 
   msgq_clean(mb);
 }
@@ -464,7 +552,7 @@ void sendcmdto_flag_serv_butone(struct Client *from, const char *cmd,
       continue;
     if ((forbid < FLAG_LAST_FLAG) && HasFlag(lp->value.cptr, forbid))
       continue;
-    send_buffer(lp->value.cptr, mb, 0);
+    send_buffer(lp->value.cptr, NULL, mb, 0, NULL);
   }
 
   msgq_clean(mb);
@@ -497,7 +585,7 @@ void sendcmdto_serv_butone(struct Client *from, const char *cmd,
   for (lp = cli_serv(&me)->down; lp; lp = lp->next) {
     if (one && lp->value.cptr == cli_from(one))
       continue;
-    send_buffer(lp->value.cptr, mb, 0);
+    send_buffer(lp->value.cptr, NULL, mb, 0, NULL);
   }
 
   msgq_clean(mb);
@@ -540,6 +628,7 @@ void sendcmdto_common_channels_butone(struct Client *from, const char *cmd,
   struct MsgBuf *mb;
   struct Membership *chan;
   struct Membership *member;
+  struct TagSendCache tcache;
 
   assert(0 != from);
   assert(0 != cli_from(from));
@@ -554,6 +643,7 @@ void sendcmdto_common_channels_butone(struct Client *from, const char *cmd,
   mb = msgq_make(0, "%:#C %s %v", from, cmd, &vd);
   va_end(vd.vd_args);
 
+  tagsendcache_init(&tcache);
   bump_sentalong(from);
   /*
    * loop through from's channels, and the members on their channels
@@ -568,12 +658,12 @@ void sendcmdto_common_channels_butone(struct Client *from, const char *cmd,
           && member->user != one
           && cli_sentalong(member->user) != sentalong_marker) {
 	cli_sentalong(member->user) = sentalong_marker;
-	send_buffer(member->user, mb, 0);
+	send_buffer(member->user, from, mb, 0, &tcache);
       }
   }
 
   if (MyConnect(from) && from != one)
-    send_buffer(from, mb, 0);
+    send_buffer(from, from, mb, 0, &tcache);
 
   msgq_clean(mb);
 }
@@ -596,6 +686,7 @@ void sendcmdto_capflag_common_channels_butone(struct Client *from, const char *c
   struct MsgBuf *mb;
   struct Membership *chan;
   struct Membership *member;
+  struct TagSendCache tcache;
 
   assert(0 != from);
   assert(0 != cli_from(from));
@@ -610,6 +701,7 @@ void sendcmdto_capflag_common_channels_butone(struct Client *from, const char *c
   mb = msgq_make(0, "%:#C %s %v", from, cmd, &vd);
   va_end(vd.vd_args);
 
+  tagsendcache_init(&tcache);
   bump_sentalong(from);
   /*
    * loop through from's channels, and the members on their channels
@@ -629,7 +721,7 @@ void sendcmdto_capflag_common_channels_butone(struct Client *from, const char *c
           && (forbid == 0 || !CapHas(cli_active(member->user), forbid)))
       {
           cli_sentalong(member->user) = sentalong_marker;
-          send_buffer(member->user, mb, 0);
+          send_buffer(member->user, from, mb, 0, &tcache);
       }
     }
   }
@@ -638,7 +730,7 @@ void sendcmdto_capflag_common_channels_butone(struct Client *from, const char *c
       && from != one
       && (require == 0 || CapHas(cli_active(from), require))
       && (forbid == 0 || !CapHas(cli_active(from), forbid)))
-    send_buffer(from, mb, 0);
+    send_buffer(from, from, mb, 0, &tcache);
 
   msgq_clean(mb);
 }
@@ -663,6 +755,7 @@ void sendcmdto_capflag_channel_butserv_butone(struct Client *from, const char *c
   struct VarData vd;
   struct MsgBuf *mb;
   struct Membership *member;
+  struct TagSendCache tcache;
 
   vd.vd_format = pattern; /* set up the struct VarData for %v */
   va_start(vd.vd_args, pattern);
@@ -671,6 +764,7 @@ void sendcmdto_capflag_channel_butserv_butone(struct Client *from, const char *c
   mb = msgq_make(0, "%:#C %s %v", from, cmd, &vd);
   va_end(vd.vd_args);
 
+  tagsendcache_init(&tcache);
   /* send the buffer to each local channel member */
   for (member = to->members; member; member = member->next_member) {
     if (!MyConnect(member->user)
@@ -683,7 +777,7 @@ void sendcmdto_capflag_channel_butserv_butone(struct Client *from, const char *c
         || (forbid && CapHas(cli_active(member->user), forbid)))
         continue;
 
-    send_buffer(member->user, mb, 0);
+    send_buffer(member->user, from, mb, 0, &tcache);
   }
 
   msgq_clean(mb);
@@ -740,6 +834,7 @@ void sendcmdto_channel_butserv_butone(struct Client *from, const char *cmd,
   struct VarData vd;
   struct MsgBuf *mb;
   struct Membership *member;
+  struct TagSendCache tcache;
 
   vd.vd_format = pattern; /* set up the struct VarData for %v */
   va_start(vd.vd_args, pattern);
@@ -748,6 +843,7 @@ void sendcmdto_channel_butserv_butone(struct Client *from, const char *cmd,
   mb = msgq_make(0, "%:#C %s %v", from, cmd, &vd);
   va_end(vd.vd_args);
 
+  tagsendcache_init(&tcache);
   /* send the buffer to each local channel member */
   for (member = to->members; member; member = member->next_member) {
     if (!MyConnect(member->user)
@@ -757,7 +853,7 @@ void sendcmdto_channel_butserv_butone(struct Client *from, const char *cmd,
         || (skip & SKIP_NONOPS && !IsChanOp(member))
         || (skip & SKIP_NONVOICES && !IsChanOp(member) && !HasVoice(member)))
         continue;
-      send_buffer(member->user, mb, 0);
+      send_buffer(member->user, from, mb, 0, &tcache);
   }
 
   msgq_clean(mb);
@@ -800,7 +896,7 @@ void sendcmdto_channel_servers_butone(struct Client *from, const char *cmd,
         || (skip & SKIP_NONVOICES && !IsChanOp(member) && !HasVoice(member)))
       continue;
     cli_sentalong(member->user) = sentalong_marker;
-    send_buffer(member->user, serv_mb, 0);
+    send_buffer(member->user, NULL, serv_mb, 0, NULL);
   }
   msgq_clean(serv_mb);
 }
@@ -826,6 +922,7 @@ void sendcmdto_channel_butone(struct Client *from, const char *cmd,
   struct VarData vd;
   struct MsgBuf *user_mb;
   struct MsgBuf *serv_mb;
+  struct TagSendCache tcache;
 
   vd.vd_format = pattern;
 
@@ -840,6 +937,7 @@ void sendcmdto_channel_butone(struct Client *from, const char *cmd,
   serv_mb = msgq_make(&me, "%C %s %v", from, tok, &vd);
   va_end(vd.vd_args);
 
+  tagsendcache_init(&tcache);
   /* send buffer along! */
   bump_sentalong(one);
   for (member = to->members; member; member = member->next_member) {
@@ -855,9 +953,9 @@ void sendcmdto_channel_butone(struct Client *from, const char *cmd,
     cli_sentalong(member->user) = sentalong_marker;
 
     if (MyConnect(member->user)) /* pick right buffer to send */
-      send_buffer(member->user, user_mb, 0);
+      send_buffer(member->user, from, user_mb, 0, &tcache);
     else
-      send_buffer(member->user, serv_mb, 0);
+      send_buffer(member->user, NULL, serv_mb, 0, NULL);
   }
 
   msgq_clean(user_mb);
@@ -917,7 +1015,7 @@ void sendwallto_group_butone(struct Client *from, int type, struct Client *one,
          (!SendWallops(cptr) || (his_wallops && !IsAnOper(cptr)))) ||
         (type == WALL_WALLUSERS && !SendWallops(cptr)))
       continue; /* skip it */
-    send_buffer(cptr, mb, 1);
+    send_buffer(cptr, from, mb, 1, NULL);
   }
 
   msgq_clean(mb);
@@ -931,7 +1029,7 @@ void sendwallto_group_butone(struct Client *from, int type, struct Client *one,
   for (lp = cli_serv(&me)->down; lp; lp = lp->next) {
     if (one && lp->value.cptr == cli_from(one))
       continue;
-    send_buffer(lp->value.cptr, mb, 1);
+    send_buffer(lp->value.cptr, NULL, mb, 1, NULL);
   }
 
   msgq_clean(mb);
@@ -956,6 +1054,7 @@ void sendcmdto_match_butone(struct Client *from, const char *cmd,
   struct Client *cptr;
   struct MsgBuf *user_mb;
   struct MsgBuf *serv_mb;
+  struct TagSendCache tcache;
 
   vd.vd_format = pattern;
 
@@ -969,6 +1068,7 @@ void sendcmdto_match_butone(struct Client *from, const char *cmd,
   serv_mb = msgq_make(&me, "%C %s %v", from, tok, &vd);
   va_end(vd.vd_args);
 
+  tagsendcache_init(&tcache);
   /* send buffer along */
   bump_sentalong(one);
   for (cptr = GlobalClientList; cptr; cptr = cli_next(cptr)) {
@@ -979,9 +1079,9 @@ void sendcmdto_match_butone(struct Client *from, const char *cmd,
     cli_sentalong(cptr) = sentalong_marker;
 
     if (MyConnect(cptr)) /* send right buffer */
-      send_buffer(cptr, user_mb, 0);
+      send_buffer(cptr, from, user_mb, 0, &tcache);
     else
-      send_buffer(cptr, serv_mb, 0);
+      send_buffer(cptr, NULL, serv_mb, 0, NULL);
   }
 
   msgq_clean(user_mb);
@@ -1060,7 +1160,7 @@ void vsendto_opmask_butone(struct Client *one, unsigned int mask,
 
   for (; opslist; opslist = opslist->next)
     if (opslist->value.cptr != one)
-      send_buffer(opslist->value.cptr, mb, 0);
+      send_buffer(opslist->value.cptr, NULL, mb, 0, NULL);
 
   msgq_clean(mb);
 }

@@ -5,17 +5,25 @@ import logging
 import ssl
 from collections import namedtuple
 
-Message = namedtuple("Message", ["prefix", "command", "params"])
+Message = namedtuple("Message", ["prefix", "command", "params", "tags", "raw"])
 
 
 def parse_message(line: str) -> Message:
     """Parse a raw IRC message into a Message namedtuple.
 
-    Follows RFC 1459 message format:
-      [':' prefix SPACE] command {SPACE param} [SPACE ':' trailing]
+    Follows RFC 1459 message format with optional IRCv3 message-tags:
+      ['@' tag [';' tag ...] SPACE] [':' prefix SPACE] command {SPACE param} [SPACE ':' trailing]
     """
+    raw = line
+    tags = ""
     prefix = None
     trailing = None
+
+    if line.startswith("@"):
+        sp = line.find(" ")
+        if sp != -1:
+            tags = line[1:sp]
+            line = line[sp + 1:]
 
     if line.startswith(":"):
         prefix, line = line[1:].split(" ", 1)
@@ -30,7 +38,7 @@ def parse_message(line: str) -> Message:
     if trailing is not None:
         params.append(trailing)
 
-    return Message(prefix=prefix, command=command, params=params)
+    return Message(prefix=prefix, command=command, params=params, tags=tags, raw=raw)
 
 
 def is_server_msg(msg: Message) -> bool:
@@ -144,9 +152,21 @@ class IRCClient:
         If there are buffered messages (from wait_for stashing), return
         the oldest one first. Otherwise read from the stream.
         """
-        if self._buffer:
-            return self._buffer.pop(0)
+        while self._buffer:
+            msg = self._buffer.pop(0)
+            if await self._maybe_pong(msg):
+                continue
+            return msg
         return await self._recv_from_stream(timeout)
+
+    async def _maybe_pong(self, msg: Message) -> bool:
+        """Auto-reply to PING (including tag-prefixed ones). Return True if handled."""
+        if msg.command != "PING":
+            return False
+        # Cookie is the last param (PING :cookie or PING cookie).
+        cookie = msg.params[-1] if msg.params else ""
+        await self.send(f"PONG :{cookie}" if cookie else "PONG")
+        return True
 
     async def _recv_from_stream(self, timeout: float = 5.0) -> Message:
         """Read one line from the stream and parse it."""
@@ -158,13 +178,12 @@ class IRCClient:
         line = raw.decode("utf-8", errors="replace").strip()
         self._logger.debug("<< %s", line)
 
-        # Auto-respond to PING
-        if line.startswith("PING"):
-            pong = "PONG" + line[4:]
-            await self.send(pong)
+        msg = parse_message(line)
+        # Auto-respond to PING even when prefixed with IRCv3 tags
+        # (e.g. @time=... PING :cookie after server-time is enabled).
+        if await self._maybe_pong(msg):
             return await self._recv_from_stream(timeout)
 
-        msg = parse_message(line)
         self.received_messages.append(msg)
         return msg
 

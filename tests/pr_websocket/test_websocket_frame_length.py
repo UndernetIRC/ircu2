@@ -5,11 +5,10 @@ length byte >= 0x80 sign-extended and corrupted the decoded length. The fix
 casts each byte to unsigned char before shifting.
 
 Note: the specific sign-extension path requires a 16-bit length >= 0x8000
-(>= 32768), but the frame-reassembly buffer (finding #2) caps a single frame at
-WEBSOCKET_MAX_HEADER (4096) and rejects anything larger, so that path is not
-reachable behaviorally. This test therefore guards the 126-form (16-bit)
-extended-length decode within the supported range and verifies the parser stays
-in sync afterwards.
+(>= 32768), which exceeds the post-handshake frame-reassembly buffer
+(READBUFSIZE + header), so that path is not reachable behaviorally. This test
+therefore guards the 126-form (16-bit) extended-length decode within the
+supported range and verifies the parser stays in sync afterwards.
 
 Requires the Docker hub (``ircd_hub``). Marked ``websocket_stress``.
 """

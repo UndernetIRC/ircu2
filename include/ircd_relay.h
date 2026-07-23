@@ -37,6 +37,10 @@ extern void relay_masked_message(struct Client* sptr, const char* mask, const ch
 extern void relay_masked_notice(struct Client* sptr, const char* mask, const char* text);
 extern void relay_private_message(struct Client* sptr, const char* name, const char* text);
 extern void relay_private_notice(struct Client* sptr, const char* name, const char* text);
+extern void relay_channel_tagmsg(struct Client* sptr, const char* name);
+extern void relay_directed_tagmsg(struct Client* sptr, char* name, char* server);
+extern void relay_masked_tagmsg(struct Client* sptr, const char* mask);
+extern void relay_private_tagmsg(struct Client* sptr, const char* name);
 
 extern void server_relay_channel_message(struct Client* sptr, const char* name, const char* text);
 extern void server_relay_channel_notice(struct Client* sptr, const char* name, const char* text);
@@ -44,5 +48,8 @@ extern void server_relay_masked_message(struct Client* sptr, const char* mask, c
 extern void server_relay_masked_notice(struct Client* sptr, const char* mask, const char* text);
 extern void server_relay_private_message(struct Client* sptr, const char* name, const char* text);
 extern void server_relay_private_notice(struct Client* sptr, const char* name, const char* text);
+extern void server_relay_channel_tagmsg(struct Client* sptr, const char* name);
+extern void server_relay_masked_tagmsg(struct Client* sptr, const char* mask);
+extern void server_relay_private_tagmsg(struct Client* sptr, const char* name);
 
 #endif /* INCLUDED_IRCD_RELAY_H */

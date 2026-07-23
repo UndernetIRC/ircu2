@@ -47,6 +47,9 @@
 	_CAP(EXTJOIN, FEAT_CAP_EXTJOIN, 0, "extended-join"), \
 	_CAP(INVITENOTIFY, FEAT_CAP_INVITENOTIFY, 0, "invite-notify"), \
 	_CAP(UHNAMES, FEAT_CAP_UHNAMES, 0, "userhost-in-names"), \
+	_CAP(MESSAGE_TAGS, FEAT_CAP_MESSAGE_TAGS, 0, "message-tags"), \
+	_CAP(SERVER_TIME, FEAT_CAP_SERVER_TIME, 0, "server-time"), \
+	_CAP(ACCOUNT_TAG, FEAT_CAP_ACCOUNT_TAG, 0, "account-tag"), \
 	_CAP(CAPNOTIFY, 0, CAPFL_HIDDEN_302 | CAPFL_STICKY_302, "cap-notify"), \
 	_CAP(SASL, FEAT_CAP_SASL, CAPFL_UNAVAILABLE, "sasl")
 
