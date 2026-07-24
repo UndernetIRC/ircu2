@@ -35,10 +35,18 @@ uv run pytest test_irc_client.py
 # By marker
 uv run pytest -m single_server    # tests needing only the hub
 uv run pytest -m multi_server     # tests needing hub + 2 leaves
-uv run pytest -m tls              # TLS trust / verification tests
+uv run pytest -m tls              # TLS trust / verification tests (hub + TLS leaf)
+uv run pytest -m tls_single       # standalone TLS hub (no peer server ever links)
 
 # TLS suite only
 uv run pytest tls/ -v
+
+All docker topologies (hub-only, full network, TLS, limits, DNS, standalone
+TLS hub) share one compose project and are mutually exclusive. `conftest.py`
+manages them explicitly: an autouse fixture starts the topology each test
+needs and tests are grouped by topology at collection time, so any selection
+(`-m`, `-k`, paths) is safe — mixing topologies in one run just costs extra
+docker restarts.
 
 ## TLS integration tests (`tls/`)
 

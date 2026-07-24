@@ -22,6 +22,12 @@ import pytest
 
 from irc_client import IRCClient, Message
 from p10_server import P10Server
+from secure_path.helpers import (
+    channel_mode_flags as _channel_mode_flags,
+    collect_whois as _collect_whois,
+    join as _join,
+    whois_secure_text as _whois_secure_text,
+)
 from tls.helpers import connect_link, oper_up
 from tls_certs import client_ssl_context
 
@@ -29,18 +35,6 @@ pytestmark = [pytest.mark.tls, pytest.mark.asyncio]
 
 TLS_GATEWAY = "tlspeer.test.net"
 TLS_GATEWAY_NUM = 49
-
-
-async def _collect_whois(client: IRCClient, target: str, timeout: float = 10.0) -> list[Message]:
-    await client.send(f"WHOIS {target}")
-    return await client.collect_until("318", timeout=timeout)
-
-
-def _whois_secure_text(msgs: list[Message]) -> str | None:
-    for msg in msgs:
-        if msg.command == "671":
-            return msg.params[-1] if msg.params else None
-    return None
 
 
 async def _ensure_tls_leaf_link(hub: dict) -> None:
@@ -100,20 +94,6 @@ async def _gateway_ready(gateway: P10Server) -> None:
     """No-op placeholder; the fixture keeps the gateway link alive."""
     if not gateway.connected:
         raise ConnectionError("TLS gateway server link is down")
-
-
-async def _join(client: IRCClient, channel: str) -> None:
-    await client.send(f"JOIN {channel}")
-    await client.wait_for("JOIN", timeout=5.0)
-
-
-async def _channel_mode_flags(client: IRCClient, channel: str) -> str | None:
-    await client.send(f"MODE {channel}")
-    msgs = await client.collect_until("324", timeout=5.0)
-    for msg in msgs:
-        if msg.command == "324" and len(msg.params) >= 3:
-            return msg.params[2]
-    return None
 
 
 async def _join_rejected(

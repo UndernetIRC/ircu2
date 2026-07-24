@@ -110,6 +110,194 @@ def _start_services(*services):
     docker_compose(*args)
 
 
+# ---------------------------------------------------------------------------
+# Docker topology management
+#
+# All docker fixtures share one compose project, and every topology start is
+# destructive: _start_services() begins with `docker compose down`, so
+# bringing up one topology kills the containers of every other. Plain
+# session-scoped fixtures therefore break as soon as topologies interleave —
+# a cached fixture would describe containers that a later fixture's setup
+# already tore down.
+#
+# Topology state is managed explicitly instead:
+#   * the ircd_* fixtures below only return connection info (host/port dicts)
+#   * the autouse _ircd_topology fixture inspects which ircd_* fixtures a
+#     test (transitively) uses and (re)starts the matching topology, but only
+#     when the currently running topology does not satisfy it
+#   * pytest_collection_modifyitems groups tests by topology so each
+#     topology normally goes through a single up/down cycle per run
+#
+# Correctness never depends on test/collection order; grouping is purely a
+# docker-cycle optimization.
+# ---------------------------------------------------------------------------
+
+
+def _wait_tls_hub_ports():
+    wait_for_port(TLS_HUB["host"], TLS_HUB["port"])
+    wait_for_port(TLS_HUB["host"], TLS_HUB["tls_port"])
+    wait_for_port(TLS_HUB["host"], TLS_HUB["wss_port"])
+    wait_for_port(TLS_HUB["host"], TLS_HUB["server_port"])
+
+
+def _start_topology_hub():
+    _start_services("ircd-hub")
+    wait_for_hub_ports(HUB["host"])
+
+
+def _start_topology_network():
+    _start_services()
+    for server in (HUB, LEAF1, LEAF2):
+        wait_for_port(server["host"], server["port"])
+    # Wait for servers to link
+    time.sleep(3)
+
+
+def _start_topology_tls_network():
+    _start_services("ircd-tls-hub", "ircd-tls-leaf")
+    _wait_tls_hub_ports()
+    wait_for_port(TLS_LEAF["host"], TLS_LEAF["server_port"])
+    # Allow autoconnect TLS links hub <-> tls-leaf
+    time.sleep(20)
+
+
+def _start_topology_tls_hub():
+    _start_services("ircd-tls-hub")
+    _wait_tls_hub_ports()
+    # Ident lookups during registration can take a moment on cold start.
+    time.sleep(2)
+
+
+def _start_topology_limits():
+    _start_services("ircd-limits")
+    wait_for_port(LIMITS["host"], LIMITS["port"])
+    # Ident lookups during registration can take a moment on cold start.
+    time.sleep(2)
+
+
+def _start_topology_dns():
+    from pr81_dns_tcp.helpers import reset_stats, set_scenario, wait_for_dns_control
+
+    _start_dns_services("ircd-dns-hub")
+    wait_for_dns_control()
+    wait_for_port(DNS_HUB["host"], DNS_HUB["port"])
+    time.sleep(2)
+    set_scenario("ok_udp")
+    reset_stats()
+
+
+_TOPOLOGIES = {
+    "hub": _start_topology_hub,
+    "network": _start_topology_network,
+    "tls_network": _start_topology_tls_network,
+    "tls_hub": _start_topology_tls_hub,
+    "limits": _start_topology_limits,
+    "dns": _start_topology_dns,
+}
+
+# A running topology satisfies a required one iff listed here. "network"
+# is a superset of "hub" (same hub service plus the leaves); everything
+# else is mutually exclusive. Note that "tls_hub" is NOT satisfied by
+# "tls_network": standalone secure-path tests require a hub that no leaf
+# has ever linked to.
+_SATISFIED_BY = {
+    "hub": {"hub", "network"},
+    "network": {"network"},
+    "tls_network": {"tls_network"},
+    "tls_hub": {"tls_hub"},
+    "limits": {"limits"},
+    "dns": {"dns"},
+}
+
+_FIXTURE_TOPOLOGY = {
+    "ircd_hub": "hub",
+    "ircd_network": "network",
+    "ircd_tls_network": "tls_network",
+    "ircd_tls_hub": "tls_hub",
+    "ircd_limits": "limits",
+    "ircd_dns_hub": "dns",
+}
+
+# Collection order: tests with no docker dependency first, then one
+# contiguous block per topology. "network" runs before "hub" so hub-only
+# tests reuse the already-running network (see _SATISFIED_BY).
+_TOPOLOGY_ORDER = ["network", "hub", "limits", "dns", "tls_network", "tls_hub"]
+
+_active_topology = None
+
+
+def _required_topology(fixturenames):
+    """Topology a test needs, derived from its (transitive) fixture closure."""
+    required = {
+        _FIXTURE_TOPOLOGY[name]
+        for name in fixturenames
+        if name in _FIXTURE_TOPOLOGY
+    }
+    if "network" in required:
+        required.discard("hub")
+    if len(required) > 1:
+        raise RuntimeError(
+            "test requires mutually exclusive docker topologies: "
+            f"{sorted(required)}"
+        )
+    return required.pop() if required else None
+
+
+def _ensure_topology(name):
+    global _active_topology
+    if _active_topology in _SATISFIED_BY[name]:
+        return
+    # The starter begins by tearing everything down; forget the old
+    # topology first so a failed start is not mistaken for it still
+    # running when the next test retries.
+    _active_topology = None
+    _TOPOLOGIES[name]()
+    _active_topology = name
+
+
+@pytest.fixture(autouse=True)
+def _ircd_topology(request):
+    """Bring up the docker topology the current test needs.
+
+    Autouse and function-scoped, so it runs before the test's other
+    function-scoped fixtures (make_client, limits_oper, ...) connect to
+    the server — even right after a topology switch.
+    """
+    required = _required_topology(request.fixturenames)
+    if required:
+        _ensure_topology(required)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _docker_teardown():
+    """Tear all containers down once at the end of the session."""
+    yield
+    if _active_topology is not None:
+        docker_compose("down", "--remove-orphans", check=False)
+
+
+def pytest_collection_modifyitems(config, items):
+    """Group tests into one contiguous block per docker topology.
+
+    Correctness does not depend on this (_ircd_topology restarts topologies
+    on demand), but grouping keeps each topology to a single docker
+    up/down cycle per run. The sort is stable: relative order within a
+    topology group is unchanged.
+    """
+    def sort_key(item):
+        try:
+            required = _required_topology(getattr(item, "fixturenames", ()))
+        except RuntimeError:
+            # Impossible topology mix: let _ircd_topology fail the test
+            # with a clear message instead of aborting collection.
+            return len(_TOPOLOGY_ORDER) + 1
+        if required is None:
+            return 0
+        return 1 + _TOPOLOGY_ORDER.index(required)
+
+    items.sort(key=sort_key)
+
+
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
     """On test failure, snapshot docker/gdb/valgrind output into debug-output/."""
@@ -132,86 +320,41 @@ def pytest_report_header(config):
 
 @pytest.fixture(scope="session")
 def ircd_hub():
-    """Start the hub ircd container. Session-scoped — shared across all tests.
+    """Connection info for the hub ircd.
 
-    Always rebuilds the image from the current working tree to ensure
-    the test runs against the checked-out code.
+    The container lifecycle is handled by _ircd_topology, which always
+    rebuilds the image from the current working tree.
     """
-    _start_services("ircd-hub")
-    try:
-        wait_for_hub_ports(HUB["host"])
-        yield HUB
-    finally:
-        docker_compose("down", check=False)
+    return HUB
 
 
 @pytest.fixture(scope="session")
 def ircd_network():
-    """Start all three ircd containers (hub + 2 leaves). Session-scoped.
-
-    Always rebuilds from the current working tree.
-    """
-    _start_services()
-    try:
-        for server in (HUB, LEAF1, LEAF2):
-            wait_for_port(server["host"], server["port"])
-        # Wait for servers to link
-        time.sleep(3)
-        yield {"hub": HUB, "leaf1": LEAF1, "leaf2": LEAF2}
-    finally:
-        docker_compose("down", check=False)
+    """Connection info for all three ircd containers (hub + 2 leaves)."""
+    return {"hub": HUB, "leaf1": LEAF1, "leaf2": LEAF2}
 
 
 @pytest.fixture(scope="session")
 def ircd_tls_hub():
-    """Start only the TLS hub — no peer servers ever link.
+    """Connection info for the standalone TLS hub — no peer server ever links.
 
     Use this for standalone secure-path coverage: compute_secure_path_groups()
     must run at boot, because link/SQUIT never fires on a lone server.
+    _ircd_topology guarantees a fresh hub that no leaf has connected to.
     """
-    docker_compose("down", check=False)
-    _start_services("ircd-tls-hub")
-    try:
-        wait_for_port(TLS_HUB["host"], TLS_HUB["port"])
-        wait_for_port(TLS_HUB["host"], TLS_HUB["tls_port"])
-        wait_for_port(TLS_HUB["host"], TLS_HUB["wss_port"])
-        wait_for_port(TLS_HUB["host"], TLS_HUB["server_port"])
-        # Ident lookups during registration can take a moment on cold start.
-        time.sleep(2)
-        yield TLS_HUB
-    finally:
-        docker_compose("down", check=False)
+    return TLS_HUB
 
 
 @pytest.fixture(scope="session")
 def ircd_tls_network():
-    """Start TLS-enabled hub and leaf containers. Session-scoped."""
-    docker_compose("down", check=False)
-    _start_services("ircd-tls-hub", "ircd-tls-leaf")
-    try:
-        wait_for_port(TLS_HUB["host"], TLS_HUB["port"])
-        wait_for_port(TLS_HUB["host"], TLS_HUB["tls_port"])
-        wait_for_port(TLS_HUB["host"], TLS_HUB["wss_port"])
-        wait_for_port(TLS_HUB["host"], TLS_HUB["server_port"])
-        wait_for_port(TLS_LEAF["host"], TLS_LEAF["server_port"])
-        # Allow autoconnect TLS links hub <-> tls-leaf
-        time.sleep(20)
-        yield {"hub": TLS_HUB, "leaf": TLS_LEAF}
-    finally:
-        docker_compose("down", check=False)
+    """Connection info for the TLS-enabled hub and leaf containers."""
+    return {"hub": TLS_HUB, "leaf": TLS_LEAF}
 
 
 @pytest.fixture(scope="session")
 def ircd_limits():
-    """Start the dedicated limits-test ircd with a volume-mounted config."""
-    _start_services("ircd-limits")
-    try:
-        wait_for_port(LIMITS["host"], LIMITS["port"])
-        # Ident lookups during registration can take a moment on cold start.
-        time.sleep(2)
-        yield LIMITS
-    finally:
-        docker_compose("down", check=False)
+    """Connection info for the dedicated limits-test ircd."""
+    return LIMITS
 
 
 @pytest.fixture(scope="session")
@@ -298,19 +441,8 @@ def _start_dns_services(*ircd_services: str):
 
 @pytest.fixture(scope="session")
 def ircd_dns_hub():
-    """Start test-dns and the DNS-enabled hub for resolver integration tests."""
-    from pr81_dns_tcp.helpers import reset_stats, set_scenario, wait_for_dns_control
-
-    _start_dns_services("ircd-dns-hub")
-    try:
-        wait_for_dns_control()
-        wait_for_port(DNS_HUB["host"], DNS_HUB["port"])
-        time.sleep(2)
-        set_scenario("ok_udp")
-        reset_stats()
-        yield DNS_HUB
-    finally:
-        docker_compose("down", "--remove-orphans", check=False)
+    """Connection info for test-dns and the DNS-enabled hub."""
+    return DNS_HUB
 
 
 @pytest.fixture
