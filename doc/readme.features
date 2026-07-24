@@ -972,10 +972,21 @@ NETWORK_FEATURES
 
 When TRUE, this server emits non-backwards-compatible S2S extensions:
 TLS certificate fingerprints on NICK/umode bursts, and IRCv3 message-tags
-prefixes (e.g. @time=) on server links.  Set FALSE while some peers still
-run older ircu that cannot parse those fields, then turn it back on once
-the network is fully upgraded.  Inbound extensions are still accepted
-when this is FALSE.
+prefixes on server links.  Set FALSE while some peers still run older
+ircu that cannot parse those fields, then turn it back on once the
+network is fully upgraded.  Inbound extensions are still accepted when
+this is FALSE.  Federating @time= specifically is controlled by
+NETWORK_TIME.
+
+NETWORK_TIME
+ * Type: boolean
+ * Default: TRUE
+
+When TRUE, this server invents and forwards @time= on P10 for
+client-visible events (subject to NETWORK_FEATURES).  When FALSE, time
+is not sent on S2S; clients that negotiated server-time or message-tags
+receive a stamp based on CurrentTime at local delivery instead of any
+upstream time tag.
 
 TLS_CIPHERS
  * Type: string

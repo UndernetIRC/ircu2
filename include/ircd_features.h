@@ -106,10 +106,8 @@ enum Feature {
   FEAT_ANNOUNCE_INVITES,
   FEAT_TLS_CIPHERS,
   FEAT_TLS_SYSTEMCA,
-  /* Emit non-backwards-compatible S2S extensions (TLS fingerprint on
-   * NICK/umode burst, IRCv3 message-tags prefixes).  Set FALSE while
-   * peering with older servers during a rolling upgrade. */
   FEAT_NETWORK_FEATURES,
+  FEAT_NETWORK_TIME,
 
   /* features that affect all operators */
   FEAT_CONFIG_OPERCMDS,

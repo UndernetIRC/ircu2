@@ -19,6 +19,7 @@
 #include "ircd_features.h"
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
+#include "msg.h"
 
 #include <string.h>
 #include <time.h>
@@ -341,6 +342,37 @@ msg_tag_key_federated(const char *key)
   return !ircd_strcmp(key, "time") || !ircd_strcmp(key, "batch");
 }
 
+int
+msg_tag_s2s_needs_time(const char *tok)
+{
+  if (!tok)
+    return 0;
+  /* Omit @time= on link/state and net-admin protocol.  Everything else that
+   * hits S2S is treated as (eventually) client-visible. */
+  if (!ircd_strcmp(tok, TOK_BURST)
+      || !ircd_strcmp(tok, TOK_END_OF_BURST)
+      || !ircd_strcmp(tok, TOK_END_OF_BURST_ACK)
+      || !ircd_strcmp(tok, TOK_SERVER)
+      || !ircd_strcmp(tok, TOK_PING)
+      || !ircd_strcmp(tok, TOK_PONG)
+      || !ircd_strcmp(tok, TOK_SETTIME)
+      || !ircd_strcmp(tok, TOK_ASLL)
+      || !ircd_strcmp(tok, TOK_RPING)
+      || !ircd_strcmp(tok, TOK_RPONG)
+      || !ircd_strcmp(tok, TOK_UPING)
+      || !ircd_strcmp(tok, TOK_PASS)
+      || !ircd_strcmp(tok, TOK_ERROR)
+      || !ircd_strcmp(tok, TOK_PROTO)
+      || !ircd_strcmp(tok, TOK_SQUIT)
+      || !ircd_strcmp(tok, TOK_CONFIG)
+      || !ircd_strcmp(tok, TOK_JUPE)
+      || !ircd_strcmp(tok, TOK_GLINE)
+      || !ircd_strcmp(tok, TOK_SLINE)
+      || !ircd_strcmp(tok, TOK_DESTRUCT))
+    return 0;
+  return 1;
+}
+
 /** Append one tag to a wire prefix; \a *wrote tracks whether '@' was emitted. */
 static char *
 msg_tag_append(char *pos, char *end, int *wrote, const char *key,
@@ -369,27 +401,32 @@ msg_tag_append(char *pos, char *end, int *wrote, const char *key,
 
 unsigned int
 msg_tag_format_s2s(char *buf, size_t buflen, struct MsgTag *tags,
-                   time_t local_time)
+                   time_t local_time, int invent_time)
 {
   char *pos = buf;
   char *end = buf + buflen;
   int wrote = 0;
   struct MsgTag *tag;
   const struct MsgTag *time_tag = msg_tag_find(tags, "time");
-  char tbuf[32];
 
   if (buflen < 3)
     return 0;
 
-  if (time_tag && time_tag->value)
-    ircd_strncpy(tbuf, time_tag->value, sizeof(tbuf) - 1);
-  else
-    msg_tag_format_time(tbuf, sizeof(tbuf), local_time);
-  tbuf[sizeof(tbuf) - 1] = '\0';
+  /* Only stamp/forward time on client-event commands, and only when
+   * NETWORK_TIME is enabled. */
+  if (invent_time && feature_bool(FEAT_NETWORK_TIME)) {
+    char tbuf[32];
 
-  pos = msg_tag_append(pos, end, &wrote, "time", tbuf);
-  if (!pos)
-    return 0;
+    if (time_tag && time_tag->value)
+      ircd_strncpy(tbuf, time_tag->value, sizeof(tbuf) - 1);
+    else
+      msg_tag_format_time(tbuf, sizeof(tbuf), local_time);
+    tbuf[sizeof(tbuf) - 1] = '\0';
+
+    pos = msg_tag_append(pos, end, &wrote, "time", tbuf);
+    if (!pos)
+      return 0;
+  }
 
   for (tag = tags; tag; tag = tag->next) {
     if (!ircd_strcmp(tag->key, "time") || !ircd_strcmp(tag->key, "account"))
@@ -444,11 +481,13 @@ msg_tag_format(char *buf, size_t buflen, struct Client *to,
 
   time_tag = msg_tag_find(tags, "time");
 
-  /* server-time (before client tags, per IRCv3 ordering) */
+  /* server-time (before client tags, per IRCv3 ordering).
+   * With NETWORK_TIME, prefer an upstream stamp; otherwise always use
+   * the local queue/delivery time. */
   if (msg_tag_wants_time(to)) {
     char tbuf[32];
 
-    if (time_tag && time_tag->value)
+    if (feature_bool(FEAT_NETWORK_TIME) && time_tag && time_tag->value)
       ircd_strncpy(tbuf, time_tag->value, sizeof(tbuf) - 1);
     else
       msg_tag_format_time(tbuf, sizeof(tbuf), local_time);

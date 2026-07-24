@@ -174,3 +174,97 @@ async def test_network_features_off_suppresses_s2s_tags(ircd_network, services):
             except Exception:
                 pass
             await c.disconnect()
+
+
+async def test_s2s_protocol_commands_have_no_time_tag(ircd_network, services):
+    """Link/state tokens (PONG) must not get invented @time= on S2S."""
+    # Ping the hub (dest = hub name) so it replies with Z rather than forwarding.
+    await services._send(f"{services._num} G !notime :hub.test.net")
+    deadline = asyncio.get_event_loop().time() + 5.0
+    saw_pong = False
+    while asyncio.get_event_loop().time() < deadline:
+        remaining = deadline - asyncio.get_event_loop().time()
+        line = await services._recv_raw(timeout=max(remaining, 0.1))
+        payload = line.lstrip()
+        body = payload.split(" ", 1)[-1] if payload.startswith("@") else payload
+        tokens = body.split()
+        if len(tokens) >= 2 and tokens[1] == "Z":
+            saw_pong = True
+            assert not payload.startswith("@"), line
+            assert "@time=" not in line, line
+            break
+        # Keep the link healthy if the hub PINgs us first.
+        if len(tokens) >= 2 and tokens[1] == "G":
+            cookie = tokens[2].lstrip("!") if len(tokens) > 2 else tokens[-1]
+            await services._send(f"{services._num} Z {services._num} :{cookie}")
+    assert saw_pong, "expected an S2S PONG (Z) without @time="
+
+
+async def test_network_time_off_local_stamp_no_s2s_time(ircd_network, services):
+    """NETWORK_TIME=FALSE: no @time= on P10; clients get a local stamp."""
+    hub = ircd_network["hub"]
+    channel = "#s2snettime"
+
+    oper = IRCClient()
+    await oper.connect(hub["host"], hub["port"])
+    await oper.register("nettimeop", "oper", "Oper")
+    await oper.send("OPER testoper operpass")
+    await oper.wait_for("381", timeout=10.0)
+    await oper.send("SET NETWORK_TIME FALSE")
+    await oper.wait_for("284", timeout=8.0)
+
+    observer = IRCClient()
+    await observer.connect(hub["host"], hub["port"])
+    await observer.negotiate_cap(["server-time", "message-tags"])
+    await observer.register("nettimeobs", "testuser", "Net Time Obs")
+
+    down_num = await services.send_downstream_server("down.nettime.test", 92)
+    await services.send_downstream_nick(
+        down_num, "NetTimeBot", server_numeric=92, client_num=1,
+    )
+    await services.send_downstream_join("NetTimeBot", channel)
+    await asyncio.sleep(0.3)
+
+    user = IRCClient()
+    await user.connect(hub["host"], hub["port"])
+    await user.register("nettimeloc", "testuser", "Local User")
+
+    try:
+        numnick = await services.wait_for_user("nettimeobs")
+        stamp = "2020-01-15T12:34:56.789Z"
+        await services._send(
+            f"@time={stamp} {services._num} P {numnick} :hello remote"
+        )
+        msg = await observer.wait_for("PRIVMSG", timeout=5.0)
+        assert msg.tags.startswith("time="), msg.raw
+        assert stamp not in msg.tags, msg.raw
+        assert re.match(r"time=\d{4}-\d{2}-\d{2}T", msg.tags), msg.tags
+        assert msg.params[-1] == "hello remote"
+
+        await user.send(f"JOIN {channel}")
+        await observer.send(f"JOIN {channel}")
+        await asyncio.sleep(0.3)
+        await user.send(f"PRIVMSG {channel} :no federated time")
+
+        deadline = asyncio.get_event_loop().time() + 5.0
+        saw = None
+        while asyncio.get_event_loop().time() < deadline:
+            remaining = deadline - asyncio.get_event_loop().time()
+            line = await services._recv(timeout=max(remaining, 0.1))
+            if " P " in f" {line} " and channel in line and "no federated time" in line:
+                saw = line
+                break
+        assert saw, "expected S2S PRIVMSG"
+        assert "@time=" not in saw, saw
+    finally:
+        try:
+            await oper.send("SET NETWORK_TIME TRUE")
+            await oper.wait_for("284", timeout=8.0)
+        except Exception:
+            pass
+        for c in (user, observer, oper):
+            try:
+                await c.send("QUIT :cleanup")
+            except Exception:
+                pass
+            await c.disconnect()

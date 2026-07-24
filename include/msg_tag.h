@@ -69,14 +69,19 @@ unsigned int msg_tag_profile(struct Client *to);
 /** Return non-zero if \a key is federated on server-server links. */
 int msg_tag_key_federated(const char *key);
 
+/** Return non-zero if P10 token \a tok should carry a network-stable
+ * \a time tag on S2S.  Link/state and net-admin tokens return zero. */
+int msg_tag_s2s_needs_time(const char *tok);
+
 /** Format federated tags for a server-server wire line.
- * Always includes \a time (from \a tags or \a local_time).  Also forwards
- * other federated keys present in \a tags (e.g. \a batch in the future).
+ * When \a invent_time is non-zero, include \a time (from \a tags or
+ * \a local_time).  Otherwise never invent or forward \a time.
+ * Also forwards other federated keys present in \a tags (e.g. \a batch).
  * Never includes \a account or client-only tags.
  * @return Length of prefix beginning with '@' and ending with a space, or 0.
  */
 unsigned int msg_tag_format_s2s(char *buf, size_t buflen, struct MsgTag *tags,
-                                time_t local_time);
+                                time_t local_time, int invent_time);
 
 /** Format tags for a client into \a buf.
  * @param[out] buf Output buffer.
