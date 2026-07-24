@@ -378,8 +378,6 @@ static char *
 msg_tag_append(char *pos, char *end, int *wrote, const char *key,
                const char *value)
 {
-  char esc[256];
-
   if (!key || pos + 1 >= end)
     return NULL;
 
@@ -397,8 +395,10 @@ msg_tag_append(char *pos, char *end, int *wrote, const char *key,
   if (pos >= end)
     return NULL;
   if (value) {
-    msg_tag_escape(value, esc, sizeof(esc));
-    pos += ircd_snprintf(0, pos, end - pos, "=%s", esc);
+    *pos++ = '=';
+    /* Escape straight into the output buffer (bounded by end): no fixed
+     * scratch buffer, so long tag values are not truncated. */
+    pos += msg_tag_escape(value, pos, end - pos);
   }
 
   return (pos < end) ? pos : NULL;
