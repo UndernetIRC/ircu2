@@ -281,6 +281,26 @@ async def test_unauth_oper_invite_allowed(make_client):
 
 
 # --------------------------------------------------------------------
+# should_block_unauth_user() exemption: messages to self
+# --------------------------------------------------------------------
+#
+# Also mirrors commonchans_drop(): sptr == acptr is exempt, so an
+# unauthenticated user who sets +R can still message their own nick.
+
+
+@pytest.mark.parametrize("command", ["PRIVMSG", "NOTICE"])
+async def test_unauth_self_message_allowed(make_client, command):
+    """An unauthenticated +R user can PRIVMSG/NOTICE their own nick."""
+    user = await make_client("self33")
+    await user.set_umode("+R")
+
+    await user.send(f"{command} {user.nick} :note to self")
+    msg = await user.wait_for_user_msg(command, timeout=5.0)
+    assert msg.params[-1] == "note to self"
+    await user.assert_no_message(command="477", timeout=2.0)
+
+
+# --------------------------------------------------------------------
 # should_block_unauth_user() exemptions: channel services and servers
 # --------------------------------------------------------------------
 #

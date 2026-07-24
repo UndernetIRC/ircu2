@@ -823,13 +823,13 @@ int whisper(struct Client* source, const char* nick, const char* channel,
 
 /** Return true if the source client isn't authenticated to a registered
  *  username, and the dest client has mode +R (block unauthed users).
- *  Servers, services (+k) and IRC operators are exempt.
+ *  Servers, services (+k), IRC operators and messages to self are exempt.
  * @param[in] source Client sending the message.
  * @param[in] dest Destination of the message.
  */
 int should_block_unauth_user(struct Client *source, struct Client *dest)
 {
-  if (!IsBlockUnauthUsers(dest))
+  if (!IsBlockUnauthUsers(dest) || source == dest)
     return 0;
   if (!IsUser(source) || IsChannelService(source) || IsAnOper(source))
     return 0;
