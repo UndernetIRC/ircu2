@@ -1,10 +1,12 @@
-"""Edge case: +R block must be checked before SILENCE, or it leaks the
-recipient's silence list.
+"""Edge case: +R responses must not leak the recipient's SILENCE list.
 
-should_block_unauth_user() sends an explicit error (477
-ERR_NEEDREGGEDNICK) back to the sender. is_silenced() drops the message
-with no reply at all. In every call site (ircd/ircd_relay.c,
-ircd/m_invite.c) the +R check runs first:
+The invariant these tests pin is uniformity per command: an
+unauthenticated sender blocked by +R gets the same observable outcome
+whether or not they are on the target's silence list.
+
+For PRIVMSG and INVITE that outcome is 477 (ERR_NEEDREGGEDNICK), and
+the ordering in every call site (ircd/ircd_relay.c, ircd/m_invite.c)
+matters -- the +R check must run before is_silenced():
 
     if (should_block_unauth_user(sptr, acptr)) {
       send_reply_blocked_unauth_user(sptr, acptr);
@@ -17,9 +19,11 @@ If that order were reversed, an unauthenticated sender could
 distinguish "target has +R and I'm not silenced" (gets 477) from
 "target has +R and I *am* silenced" (gets nothing) -- turning the +R
 error into an oracle for the target's SILENCE list, which is otherwise
-never exposed to anyone but the target. These tests pin the correct
-order: a silenced, unauthenticated sender must still get 477, exactly
-as an unsilenced one would.
+never exposed to anyone but the target.
+
+For NOTICE the outcome is silence: RFC 2812 forbids automatic replies
+to NOTICE, so a +R block drops the notice without a reply -- which is
+indistinguishable from a SILENCE drop by construction, silenced or not.
 """
 
 import asyncio
@@ -30,26 +34,42 @@ import pytest
 pytestmark = pytest.mark.single_server
 
 
-@pytest.mark.parametrize("command", ["PRIVMSG", "NOTICE"])
-async def test_silenced_unauth_sender_still_gets_477(make_client, command):
-    """A silenced AND unauthenticated sender must still receive 477.
+async def test_silenced_unauth_sender_still_gets_477(make_client):
+    """A silenced AND unauthenticated PRIVMSG sender must still receive 477.
 
     If SILENCE were checked first, this message would be dropped
     silently instead -- letting the sender infer they're on the
     target's silence list just from the absence of an error.
     """
-    target = await make_client(f"tgtR{command[0]}a")
-    sender = await make_client(f"sndR{command[0]}a")
+    target = await make_client("tgtRPa")
+    sender = await make_client("sndRPa")
     await target.set_umode("+R")
     await target.silence(f"{sender.nick}!*@*")
 
-    await sender.send(f"{command} {target.nick} :leak check")
+    await sender.send(f"PRIVMSG {target.nick} :leak check")
     msg = await sender.wait_for("477", timeout=5.0)
     assert target.nick in msg.params, (
         f"silenced+unauth sender did not get 477 (info leak via silent drop): {msg}"
     )
 
-    await target.assert_no_message(command)
+    await target.assert_no_message("PRIVMSG")
+
+
+async def test_silenced_unauth_notice_also_dropped_silently(make_client):
+    """A silenced AND unauthenticated NOTICE sender gets nothing -- the
+    same outcome as an unsilenced one (pinned in test_fix.py by
+    test_unauth_notice_blocked_silently), so the silent NOTICE drop
+    leaks nothing about the silence list either.
+    """
+    target = await make_client("tgtRNa")
+    sender = await make_client("sndRNa")
+    await target.set_umode("+R")
+    await target.silence(f"{sender.nick}!*@*")
+
+    await sender.send(f"NOTICE {target.nick} :leak check")
+    await sender.assert_no_message("477", timeout=2.0)
+
+    await target.assert_no_message("NOTICE")
 
 
 @pytest.mark.parametrize("command", ["PRIVMSG", "NOTICE"])

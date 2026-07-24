@@ -2,8 +2,10 @@
 
 Usermode +R makes a client reject PRIVMSG, NOTICE and INVITE from
 senders that are not authenticated to a registered account
-(IsAccount() false). Blocked senders get ERR_NEEDREGGEDNICK (477).
-Servers and channel services (+k) are always exempt.
+(IsAccount() false). Blocked PRIVMSG/CPRIVMSG/INVITE get
+ERR_NEEDREGGEDNICK (477); blocked NOTICE/CNOTICE are dropped silently,
+since RFC 2812 forbids automatic replies to NOTICE. Servers, channel
+services (+k), IRC operators and messages to self are always exempt.
 
 See ircd/s_user.c: should_block_unauth_user() / send_reply_blocked_unauth_user(),
 and its call sites in ircd/ircd_relay.c and ircd/m_invite.c.
@@ -113,17 +115,17 @@ async def test_unauth_privmsg_blocked_with_477(make_client):
     await target.assert_no_message(command="PRIVMSG")
 
 
-async def test_unauth_notice_blocked_with_477(make_client):
+async def test_unauth_notice_blocked_silently(make_client):
     """Core feature: NOTICE from an unauthenticated sender to a +R user
-    is rejected the same way as PRIVMSG.
+    is blocked like PRIVMSG, but silently -- no 477, since RFC 2812
+    forbids automatic replies to NOTICE.
     """
     target = await make_client("tgt33c")
     sender = await make_client("snd33c")
     await target.set_umode("+R")
 
     await sender.send(f"NOTICE {target.nick} :should be blocked")
-    msg = await sender.wait_for("477", timeout=5.0)
-    assert target.nick in msg.params, f"477 missing target nick: {msg}"
+    await sender.assert_no_message(command="477", timeout=2.0)
 
     await target.assert_no_message(command="NOTICE")
 
@@ -135,7 +137,8 @@ async def test_unauth_notice_allowed_after_unset_R(make_client):
     await target.set_umode("+R")
 
     await sender.send(f"NOTICE {target.nick} :should be blocked")
-    await sender.wait_for("477", timeout=5.0)
+    await sender.assert_no_message(command="477", timeout=2.0)
+    await target.assert_no_message(command="NOTICE")
 
     await target.set_umode("-R")
 
@@ -234,6 +237,50 @@ async def test_authenticated_sender_allowed(make_client, ulined_server):
     await ulined_server.send_privmsg(fake, target_num, "authenticated hello")
     msg = await target.wait_for("PRIVMSG", timeout=5.0)
     assert msg.params[-1] == "authenticated hello"
+
+
+# --------------------------------------------------------------------
+# whisper() call site: CPRIVMSG replies with 477, CNOTICE stays silent
+# --------------------------------------------------------------------
+
+
+async def test_unauth_cprivmsg_blocked_with_477(make_client):
+    """CPRIVMSG (whisper) to a +R user from an unauthenticated sender is
+    rejected with 477, like PRIVMSG.
+    """
+    target = await make_client("tgt33t")
+    sender = await make_client("snd33t")
+    await target.set_umode("+R")
+
+    await sender.send("JOIN #t33cpriv")
+    await sender.wait_for("366")  # sender is auto-opped as channel founder
+    await target.send("JOIN #t33cpriv")
+    await target.wait_for("366")
+
+    await sender.send(f"CPRIVMSG {target.nick} #t33cpriv :whispered")
+    msg = await sender.wait_for("477", timeout=5.0)
+    assert target.nick in msg.params, f"477 missing target nick: {msg}"
+
+    await target.assert_no_message(command="PRIVMSG")
+
+
+async def test_unauth_cnotice_blocked_silently(make_client):
+    """CNOTICE (whisper) to a +R user from an unauthenticated sender is
+    blocked silently, like NOTICE.
+    """
+    target = await make_client("tgt33u")
+    sender = await make_client("snd33u")
+    await target.set_umode("+R")
+
+    await sender.send("JOIN #t33cnote")
+    await sender.wait_for("366")  # sender is auto-opped as channel founder
+    await target.send("JOIN #t33cnote")
+    await target.wait_for("366")
+
+    await sender.send(f"CNOTICE {target.nick} #t33cnote :whispered")
+    await sender.assert_no_message(command="477", timeout=2.0)
+
+    await target.assert_no_message(command="NOTICE")
 
 
 # --------------------------------------------------------------------

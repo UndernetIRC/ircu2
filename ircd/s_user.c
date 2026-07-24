@@ -804,8 +804,10 @@ int whisper(struct Client* source, const char* nick, const char* channel,
     return send_reply(source, ERR_USERNOTINCHANNEL, cli_name(dest), chptr->chname);
   }
 
+  /* No error reply for CNOTICE: RFC 2812 forbids automatic replies
+   * to NOTICE. */
   if (should_block_unauth_user(source, dest))
-    return send_reply_blocked_unauth_user(source, dest);
+    return is_notice ? 0 : send_reply_blocked_unauth_user(source, dest);
 
   if (is_silenced(source, dest))
     return 0;
