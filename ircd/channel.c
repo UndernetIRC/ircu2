@@ -446,15 +446,23 @@ struct Membership* find_channel_member(struct Client* cptr, struct Channel* chpt
 struct Ban *find_ban(struct Client *cptr, struct Ban *banlist)
 {
   char        nu[NICKLEN + USERLEN + 2];
+  char        nuh_vis[NICKLEN + USERLEN + HOSTLEN + 3];
   char        tmphost[HOSTLEN + 1];
   char        iphost[SOCKIPLEN + 1];
   char       *hostmask;
   char       *sr;
+  const char *vis_user;
   struct Ban *found;
 
   /* Build nick!user and alternate host names. */
   ircd_snprintf(0, nu, sizeof(nu), "%s!%s",
                 cli_name(cptr), cli_user(cptr)->username);
+  vis_user = visible_username(cptr);
+  if (vis_user != cli_user(cptr)->username)
+    ircd_snprintf(0, nuh_vis, sizeof(nuh_vis), "%s!%s@%s",
+                  cli_name(cptr), vis_user, cli_user(cptr)->host);
+  else
+    nuh_vis[0] = '\0';
   ircd_ntoa_r(iphost, &cli_ip(cptr));
   if (!IsAccount(cptr))
     sr = NULL;
@@ -477,15 +485,14 @@ struct Ban *find_ban(struct Client *cptr, struct Ban *banlist)
     banlist->banstr[banlist->nu_len] = '\0';
     res = match(banlist->banstr, nu);
     banlist->banstr[banlist->nu_len] = '@';
-    if (res)
-      continue;
-    /* Compare host portion of ban. */
+    /* Compare host portion of ban (or full visible nick!user@host). */
     hostmask = banlist->banstr + banlist->nu_len + 1;
-    if (!((banlist->flags & BAN_IPMASK)
+    if (res ? !nuh_vis[0] || match(banlist->banstr, nuh_vis)
+        : (!((banlist->flags & BAN_IPMASK)
          && ipmask_check(&cli_ip(cptr), &banlist->address, banlist->addrbits))
         && match(hostmask, cli_user(cptr)->host)
         && match(hostmask, iphost)
-        && !(sr && !match(hostmask, sr)))
+        && !(sr && !match(hostmask, sr))))
         continue;
     /* If an exception matches, no ban can match. */
     if (banlist->flags & BAN_EXCEPTION)

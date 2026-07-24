@@ -7,6 +7,7 @@ from irc_client import IRCClient
 from p10_server import P10Server
 
 from trust_username.helpers import (
+    HIDDEN_HOST_SUFFIX,
     add_gline,
     hidden_host,
     hide_via_services,
@@ -75,8 +76,8 @@ async def test_ban_matches_tilded_username_mask(ircd_network, services):
             await client.disconnect()
 
 
-async def test_ban_does_not_match_untilded_username_mask(ircd_network, services):
-    """A ban on user without ~ must not match a hidden user whose record is ~user."""
+async def test_ban_matches_untilded_username_mask(ircd_network, services):
+    """A ban on the visible (untilded) username must match a fully hidden user."""
     hub = ircd_network["hub"]
     channel = "#tu71_ban2"
     account = "BanAcct72"
@@ -105,9 +106,9 @@ async def test_ban_does_not_match_untilded_username_mask(ircd_network, services)
         await asyncio.sleep(0.3)
 
         await victim.send(f"JOIN {channel}")
-        msg = await victim.wait_for("366", timeout=5.0)
-        assert msg.command == "366", (
-            f"Untilded username ban should not match hidden user: {msg}"
+        msg = await victim.wait_for("474", timeout=5.0)
+        assert msg.command == "474", (
+            f"Untilded username ban should match hidden user: {msg}"
         )
     finally:
         for client in (chanop, victim):
@@ -151,6 +152,100 @@ async def test_ban_matches_hidden_host_mask(ircd_network, services):
         await victim.send(f"JOIN {channel}")
         msg = await victim.wait_for("474", timeout=5.0)
         assert msg.command == "474"
+    finally:
+        for client in (chanop, victim):
+            try:
+                await client.send("QUIT :cleanup")
+            except Exception:
+                pass
+            await client.disconnect()
+
+
+async def test_ban_matches_visible_userhost_mask(ircd_network, services):
+    """Ban on visible user@hiddenhost (no ~) must match a fully hidden user."""
+    hub = ircd_network["hub"]
+    channel = "#tu71_ban4"
+    account = "BanAcct74"
+
+    chanop = IRCClient()
+    await chanop.connect(hub["host"], hub["port"])
+    await chanop.register("tu74bo", "testuser", "Test User")
+
+    victim = IRCClient()
+    await victim.connect(hub["host"], hub["port"])
+    await victim.register("tu74bv", "testuser", "Test User")
+
+    try:
+        await chanop.send(f"JOIN {channel}")
+        await chanop.wait_for("366")
+        await victim.send(f"JOIN {channel}")
+        await victim.wait_for("366")
+
+        await hide_via_services(services, "tu74bv", account)
+        ban_host = hidden_host(account)
+
+        await victim.send(f"PART {channel}")
+        await victim.wait_for("PART")
+
+        await chanop.send(f"MODE {channel} +b *!testuser@{ban_host}")
+        await chanop.wait_for("MODE")
+        await asyncio.sleep(0.3)
+
+        await victim.send(f"JOIN {channel}")
+        msg = await victim.wait_for("474", timeout=5.0)
+        assert msg.command == "474", (
+            f"Visible user@hiddenhost ban should match: {msg}"
+        )
+    finally:
+        for client in (chanop, victim):
+            try:
+                await client.send("QUIT :cleanup")
+            except Exception:
+                pass
+            await client.disconnect()
+
+
+async def test_ban_does_not_match_mixed_user_realhost(ircd_network, services):
+    """Visible username must not match when paired with the real host."""
+    hub = ircd_network["hub"]
+    channel = "#tu71_ban5"
+    account = "BanAcct75"
+
+    chanop = IRCClient()
+    await chanop.connect(hub["host"], hub["port"])
+    await chanop.register("tu75bo", "testuser", "Test User")
+
+    victim = IRCClient()
+    await victim.connect(hub["host"], hub["port"])
+    await victim.register("tu75bv", "testuser", "Test User")
+
+    try:
+        await chanop.send(f"JOIN {channel}")
+        await chanop.wait_for("366")
+        await victim.send(f"JOIN {channel}")
+        await victim.wait_for("366")
+
+        # Capture real host before hide; WHOIS will show the hidden host after.
+        _, real_host = await whois_userline(chanop, "tu75bv")
+        assert not real_host.endswith(HIDDEN_HOST_SUFFIX), (
+            f"Expected real host before hide, got {real_host!r}"
+        )
+
+        await hide_via_services(services, "tu75bv", account)
+
+        await victim.send(f"PART {channel}")
+        await victim.wait_for("PART")
+
+        # Mixed identity: untilded user + real host must not ban.
+        await chanop.send(f"MODE {channel} +b *!testuser@{real_host}")
+        await chanop.wait_for("MODE")
+        await asyncio.sleep(0.3)
+
+        await victim.send(f"JOIN {channel}")
+        msg = await victim.wait_for("366", timeout=5.0)
+        assert msg.command == "366", (
+            f"Mixed user@realhost ban should not match: {msg}"
+        )
     finally:
         for client in (chanop, victim):
             try:

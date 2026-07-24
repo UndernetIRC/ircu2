@@ -258,8 +258,11 @@ TRUST_USERNAME
 When enabled, other users see a fully hidden client's username without
 a leading tilde (~) in WHOIS, USERHOST, USERIP, NAMES (UHNAMES), and
 similar user-facing output.  Both umode +x and a registered account
-are required (see HOST_HIDING).  Internal username records, server
-propagation, and ban/gline matching still use the real tilded username.
+are required (see HOST_HIDING).  Internal username records and server
+propagation still use the real tilded username.  Channel bans (and
+silence) match those two complete identities only (~user@realhost and
+user@account.hiddenhost), not mixed forms such as user@realhost.
+G-lines continue to match only the real tilded username and real host.
 
 CONNEXIT_NOTICES
  * Type: boolean
