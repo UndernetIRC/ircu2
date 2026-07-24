@@ -237,6 +237,50 @@ async def test_authenticated_sender_allowed(make_client, ulined_server):
 
 
 # --------------------------------------------------------------------
+# should_block_unauth_user() exemption: IRC operators
+# --------------------------------------------------------------------
+#
+# Mirrors the umode +c precedent (commonchans_drop() in ircd_relay.c):
+# IsAnOper(sptr) is exempt, so +R cannot be used to dodge oper contact.
+# The testoper O-line comes from tests/docker/ircd-hub.conf.
+
+
+@pytest.mark.parametrize("command", ["PRIVMSG", "NOTICE"])
+async def test_unauth_oper_sender_allowed(make_client, command):
+    """An IRC operator without an account bypasses +R for PRIVMSG/NOTICE."""
+    target = await make_client("tgt33r")
+    oper = await make_client("opr33r")
+    await target.set_umode("+R")
+
+    await oper.send("OPER testoper operpass")
+    await oper.wait_for("381", timeout=10.0)
+
+    await oper.send(f"{command} {target.nick} :oper calling")
+    msg = await target.wait_for_user_msg(command, timeout=5.0)
+    assert msg.params[-1] == "oper calling"
+
+
+async def test_unauth_oper_invite_allowed(make_client):
+    """An IRC operator without an account bypasses +R for INVITE."""
+    target = await make_client("tgt33s")
+    oper = await make_client("opr33s")
+    await target.set_umode("+R")
+
+    await oper.send("OPER testoper operpass")
+    await oper.wait_for("381", timeout=10.0)
+
+    await oper.send("JOIN #t33oper")
+    await oper.wait_for("366")  # oper is auto-opped as channel founder
+
+    await oper.send(f"INVITE {target.nick} #t33oper")
+    msg = await oper.wait_for("341", timeout=5.0)  # RPL_INVITING
+    assert target.nick in msg.params, f"RPL_INVITING missing target nick: {msg}"
+
+    invite_msg = await target.wait_for_user_msg("INVITE", timeout=5.0)
+    assert invite_msg.params[-1] == "#t33oper"
+
+
+# --------------------------------------------------------------------
 # should_block_unauth_user() exemptions: channel services and servers
 # --------------------------------------------------------------------
 #
