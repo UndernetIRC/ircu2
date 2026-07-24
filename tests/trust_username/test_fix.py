@@ -117,6 +117,68 @@ async def test_join_without_chghost_shows_untilded_prefix(ircd_network, services
             await client.disconnect()
 
 
+async def test_chghost_shows_untilded_username(ircd_network, services):
+    """Clients with CAP chghost should see CHGHOST with untilded username."""
+    hub = ircd_network["hub"]
+    account = "ChgAcct71"
+    channel = "#tu71_chghost"
+
+    user = IRCClient()
+    await user.connect(hub["host"], hub["port"])
+    await user.register("tu71c", "testuser", "Test User")
+
+    observer = IRCClient()
+    await observer.connect(hub["host"], hub["port"])
+    acked = await observer.negotiate_cap(["chghost"])
+    if "chghost" not in acked:
+        await observer.disconnect()
+        pytest.skip("chghost not supported on this build")
+    await observer.register("tu71cg", "testuser", "Test User")
+
+    try:
+        await user.send(f"JOIN {channel}")
+        await user.wait_for("366")
+        await observer.send(f"JOIN {channel}")
+        await observer.wait_for("366")
+        await user.wait_for("JOIN")
+
+        await hide_via_services(services, "tu71c", account)
+
+        chg_msg = None
+        seen = []
+        deadline = asyncio.get_event_loop().time() + 5.0
+        while asyncio.get_event_loop().time() < deadline:
+            msg = await observer.recv(timeout=2.0)
+            seen.append(msg)
+            if msg.command == "CHGHOST" and msg.prefix and msg.prefix.startswith("tu71c!"):
+                chg_msg = msg
+                break
+            if msg.command == "JOIN" and msg.prefix and msg.prefix.startswith("tu71c!"):
+                pytest.fail(
+                    f"chghost client saw QUIT/JOIN hide cycle instead of CHGHOST: {msg}"
+                )
+        assert chg_msg is not None, f"Did not see CHGHOST for tu71c; got: {seen}"
+        assert len(chg_msg.params) >= 2, f"CHGHOST params incomplete: {chg_msg}"
+        assert chg_msg.params[0] == "testuser", (
+            f"CHGHOST user should be untilded, got {chg_msg.params[0]!r}"
+        )
+        assert not chg_msg.params[0].startswith("~"), chg_msg.params[0]
+        assert chg_msg.params[1] == hidden_host(account), (
+            f"CHGHOST host should be hidden host, got {chg_msg.params[1]!r}"
+        )
+        prefix_user = user_from_prefix(chg_msg.prefix)
+        assert prefix_user == "testuser", (
+            f"CHGHOST prefix should use untilded username, got {chg_msg.prefix!r}"
+        )
+    finally:
+        for client in (user, observer):
+            try:
+                await client.send("QUIT :cleanup")
+            except Exception:
+                pass
+            await client.disconnect()
+
+
 async def test_s2s_nick_keeps_tilded_username(ircd_network, services):
     """Server propagation must still carry the tilded username in NICK bursts."""
     hub = ircd_network["hub"]
