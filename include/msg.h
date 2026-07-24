@@ -196,6 +196,10 @@ struct Client;
 #define TOK_NOTICE              "O"
 #define CMD_NOTICE		MSG_NOTICE, TOK_NOTICE
 
+#define MSG_TAGMSG              "TAGMSG"
+#define TOK_TAGMSG              "TM"
+#define CMD_TAGMSG		MSG_TAGMSG, TOK_TAGMSG
+
 #define MSG_WALLCHOPS           "WALLCHOPS"     /* WC */
 #define TOK_WALLCHOPS           "WC"
 #define CMD_WALLCHOPS		MSG_WALLCHOPS, TOK_WALLCHOPS

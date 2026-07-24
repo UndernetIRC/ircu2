@@ -21,10 +21,17 @@
 #define INCLUDED_WEBSOCKET_H
 
 #include <stddef.h>
+#ifndef INCLUDED_ircd_defs_h
+#include "ircd_defs.h"
+#endif
 #include "client.h"
 
-/* Maximum size of a WebSocket header */
-#define WEBSOCKET_MAX_HEADER 4096
+/** Maximum bytes accumulated during the HTTP Upgrade handshake. */
+#define WEBSOCKET_HANDSHAKE_MAX 4096
+/** Frame-reassembly buffer: max RFC6455 header (14) plus one IRC line
+ * (READBUFSIZE, tags + body).  Post-handshake partial frames may span reads
+ * up to this size; see websocket_parse_frame(). */
+#define WEBSOCKET_MAX_HEADER (READBUFSIZE + 14)
 
 int websocket_handshake_handler(struct Client *cptr);
 /** Send an HTTP 400 response for a failed handshake (before closing). */

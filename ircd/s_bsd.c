@@ -659,7 +659,7 @@ static int read_packet(struct Client *cptr, int socket_ready)
   unsigned int length = 0;
 
   int is_ws_handshake = (IsWebsocketPort(cptr) && !IsWebsocket(cptr));
-  unsigned int flood_limit = is_ws_handshake ? WEBSOCKET_MAX_HEADER : GetMaxFlood(cptr);
+  unsigned int flood_limit = is_ws_handshake ? WEBSOCKET_HANDSHAKE_MAX : GetMaxFlood(cptr);
 
   /* A connection class whose maxflood exceeds the CLIENT_FLOOD default marks
    * its clients exempt from input throttling. Evaluated here in the shared
@@ -709,7 +709,7 @@ static int read_packet(struct Client *cptr, int socket_ready)
     struct Connection *con = cli_connect(cptr);
     if (length > 0) {
       size_t copylen = length;
-      if (con->con_ws_handshake_len + copylen > WEBSOCKET_MAX_HEADER)
+      if (con->con_ws_handshake_len + copylen > WEBSOCKET_HANDSHAKE_MAX)
         return exit_client(cptr, cptr, &me, "Excess Flood");
       if (copylen > 0) {
         memcpy(con->con_ws_handshake + con->con_ws_handshake_len, readbuf, copylen);
@@ -854,22 +854,23 @@ static int read_packet(struct Client *cptr, int socket_ready)
     while (DBufLength(&(cli_recvQ(cptr))) && !NoNewLine(cptr) &&
            (IsTrusted(cptr) || IsExemptThrottle(cptr) || cli_since(cptr) - CurrentTime < 10))
     {
-      dolen = dbuf_getmsg(&(cli_recvQ(cptr)), cli_buffer(cptr), BUFSIZE);
+      /* READBUFSIZE: IRCv3 message-tags may precede the 512-byte body. */
+      dolen = dbuf_getmsg(&(cli_recvQ(cptr)), cli_buffer(cptr), READBUFSIZE);
       /*
        * Devious looking...whats it do ? well..if a client
        * sends a *long* message without any CR or LF, then
        * dbuf_getmsg fails and we pull it out using this
-       * loop which just gets the next 512 bytes and then
+       * loop which just gets the next READBUFSIZE bytes and then
        * deletes the rest of the buffer contents.
        * -avalon
        */
       if (dolen == 0)
       {
-        if (DBufLength(&(cli_recvQ(cptr))) < 510)
+        if (DBufLength(&(cli_recvQ(cptr))) < READBUFSIZE - 2)
           SetFlag(cptr, FLAG_NONL);
         else
         {
-          /* More than 512 bytes in the line - drop the input and yell
+          /* Line exceeds tags+body limit - drop the input and yell
            * at the client.
            */
           DBufClear(&(cli_recvQ(cptr)));

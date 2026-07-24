@@ -79,6 +79,7 @@ ircd_SOURCES = \
 	m_pass.c \
 	m_ping.c \
 	m_pong.c \
+	m_tagmsg.c \
 	m_privmsg.c \
 	m_privs.c \
 	m_proto.c \
@@ -119,6 +120,7 @@ ircd_SOURCES = \
 	memdebug.c \
 	motd.c \
 	msgq.c \
+	msg_tag.c \
 	numnicks.c \
 	opercmds.c \
 	os_generic.c \

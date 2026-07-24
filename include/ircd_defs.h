@@ -92,8 +92,33 @@
 #define SLINELEN        470
 /** Exactly long enough to hold one protocol message (RFC 1459)
  * including the line termination (\\r\\n).  DO NOT CHANGE THIS!!!!
+ * This limit applies to the message body only; IRCv3 message-tags are
+ * additional (see TAGSLEN / READBUFSIZE).
  */
 #define BUFSIZE         512
+/** Maximum length of an IRCv3 message-tags section, including the
+ * leading '@' and the trailing space that separates tags from the body.
+ * See the IRCv3 message-tags specification.
+ */
+#define TAGSLEN         8191
+/** Maximum tag-data bytes a client may send (excludes leading '@' and
+ * separating space).  See IRCv3 message-tags size limits.
+ */
+#define TAGDATA_CLIENT_MAX 4094
+/** Maximum tag-data bytes a server may add to a message. */
+#define TAGDATA_SERVER_MAX 4094
+/** Incoming line buffer large enough for optional tags plus one
+ * protocol message body (BUFSIZE).
+ */
+#define READBUFSIZE     (TAGSLEN + BUFSIZE)
+/** Maximum length of a formatted OUTBOUND message-tags prefix (from the
+ * leading '@' through the separating space).  An outbound prefix can never
+ * exceed the largest tag data a client is allowed to send inbound
+ * (TAGDATA_CLIENT_MAX) plus server-added time/account tags and separators,
+ * so it is sized well below the inbound TAGSLEN limit.  The MsgBuf pool must
+ * be able to hold OUTBOUND_TAG_MAX + BUFSIZE (see MB_MAX_SHIFT in msgq.c).
+ */
+#define OUTBOUND_TAG_MAX (TAGDATA_CLIENT_MAX + 256)
 
 /** Maximum available targets for a user. */
 #define MAXTARGETS      20

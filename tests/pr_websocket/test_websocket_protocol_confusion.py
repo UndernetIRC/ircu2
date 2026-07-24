@@ -152,7 +152,7 @@ async def test_large_preamble_no_double_crlf_on_ws_port(ircd_hub):
 
 @pytest.mark.asyncio
 async def test_oversize_handshake_accumulation_on_ws_port(ircd_hub):
-    """Push past WEBSOCKET_MAX_HEADER (~4096) to trigger excess-flood path on that socket."""
+    """Push past WEBSOCKET_HANDSHAKE_MAX (4096) to trigger excess-flood on that socket."""
     r, w = await asyncio.open_connection(HOST, WS_PORT)
     w.write(b"X" * 5000)
     await w.drain()

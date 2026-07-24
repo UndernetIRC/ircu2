@@ -793,3 +793,219 @@ void server_relay_masked_notice(struct Client* sptr, const char* mask, const cha
 			 "%s :%s", mask, text);
 }
 
+/** Relay a local user's TAGMSG to a channel. */
+void
+relay_channel_tagmsg(struct Client *sptr, const char *name)
+{
+  struct Channel *chptr;
+  struct Membership *memb;
+
+  assert(0 != sptr);
+  assert(0 != name);
+
+  if (0 == (chptr = FindChannel(name))) {
+    send_reply(sptr, ERR_NOSUCHCHANNEL, name);
+    return;
+  }
+  if (!client_can_send_to_channel(sptr, chptr, 0)) {
+    send_reply(sptr, ERR_CANNOTSENDTOCHAN, chptr->chname);
+    return;
+  }
+  if ((chptr->mode.mode & MODE_NOPRIVMSGS) &&
+      check_target_limit(sptr, NULL, chptr))
+    return;
+  memb = find_member_link(chptr, sptr);
+  if (memb && IsDelayedTarget(memb))
+    ClearDelayedTarget(memb);
+
+  if (sline_check_chanmsg(sptr, chptr, "", MSG_PRIVATE))
+    return;
+
+  RevealDelayedJoinIfNeeded(sptr, chptr);
+  sendcmdto_channel_butone(sptr, CMD_TAGMSG, chptr, cli_from(sptr),
+			   SKIP_DEAF | SKIP_BURST, "%H", chptr);
+
+  if (CapHas(cli_active(sptr), CAP_ECHOMESSAGE))
+    sendcmdto_one(sptr, CMD_TAGMSG, cli_from(sptr), "%H", chptr);
+}
+
+/** Relay a local user's TAGMSG to a user. */
+void
+relay_private_tagmsg(struct Client *sptr, const char *name)
+{
+  struct Client *acptr;
+
+  assert(0 != sptr);
+  assert(0 != name);
+
+  if (0 == (acptr = FindUser(name))) {
+    send_reply(sptr, ERR_NOSUCHNICK, name);
+    return;
+  }
+  if ((!IsChannelService(acptr) &&
+       check_target_limit(sptr, acptr, NULL)) ||
+      is_silenced(sptr, acptr))
+    return;
+
+  if (sline_check_privmsg(sptr, acptr, "", MSG_PRIVATE))
+    return;
+
+  if (commonchans_drop(sptr, acptr))
+    return;
+
+  if (cli_user(acptr) && cli_user(acptr)->away)
+    send_reply(sptr, RPL_AWAY, cli_name(acptr), cli_user(acptr)->away);
+
+  if (MyUser(acptr))
+    add_target(acptr, sptr);
+
+  sendcmdto_one(sptr, CMD_TAGMSG, acptr, "%C", acptr);
+
+  if (CapHas(cli_active(sptr), CAP_ECHOMESSAGE))
+    sendcmdto_one(sptr, CMD_TAGMSG, cli_from(sptr), "%C", acptr);
+}
+
+/** Relay a directed TAGMSG (see relay_directed_message()). */
+void
+relay_directed_tagmsg(struct Client *sptr, char *name, char *server)
+{
+  struct Client *acptr;
+  char *host;
+
+  assert(0 != sptr);
+  assert(0 != name);
+  assert(0 != server);
+
+  if ((acptr = FindServer(server + 1)) == NULL || !IsService(acptr)) {
+    send_reply(sptr, ERR_NOSUCHNICK, name);
+    return;
+  }
+  if (!IsMe(acptr)) {
+    sendcmdto_one(sptr, CMD_TAGMSG, acptr, "%s", name);
+
+    if (CapHas(cli_active(sptr), CAP_ECHOMESSAGE))
+      sendcmdto_one(sptr, CMD_TAGMSG, cli_from(sptr), "%s", name);
+    return;
+  }
+
+  *server = '\0';
+  if ((host = strchr(name, '%')))
+    *host++ = '\0';
+
+  if (!(acptr = FindUser(name)) || !MyUser(acptr) ||
+      !IsChannelService(acptr) ||
+      (!EmptyString(host) && 0 != match(host, cli_user(acptr)->host))) {
+    send_reply(sptr, ERR_NOSUCHNICK, name);
+    return;
+  }
+
+  if (sline_check_privmsg(sptr, acptr, "", MSG_PRIVATE))
+    return;
+
+  *server = '@';
+  if (host)
+    *--host = '%';
+
+  if (!is_silenced(sptr, acptr)) {
+    sendcmdto_one(sptr, CMD_TAGMSG, acptr, "%s", name);
+
+    if (CapHas(cli_active(sptr), CAP_ECHOMESSAGE))
+      sendcmdto_one(sptr, CMD_TAGMSG, cli_from(sptr), "%s", name);
+  }
+}
+
+/** Relay a masked TAGMSG from a local oper. */
+void
+relay_masked_tagmsg(struct Client *sptr, const char *mask)
+{
+  const char *s;
+  int host_mask = 0;
+
+  assert(0 != sptr);
+  assert(0 != mask);
+
+  if (!IsOper(sptr))
+    return;
+
+  s = mask;
+  if (*s == '$')
+    ++s;
+  if (*s == '#')
+    ++s;
+  if (*s == '~')
+    host_mask = 1;
+
+  sendcmdto_match_butone(sptr, CMD_TAGMSG, s,
+			 IsServer(cli_from(sptr)) ? cli_from(sptr) : 0,
+			 host_mask ? MATCH_HOST : MATCH_SERVER,
+			 "%s", mask);
+}
+
+/** Relay a server-originated TAGMSG to a channel. */
+void
+server_relay_channel_tagmsg(struct Client *sptr, const char *name)
+{
+  struct Channel *chptr;
+
+  assert(0 != sptr);
+  assert(0 != name);
+
+  if (IsLocalChannel(name) || 0 == (chptr = FindChannel(name))) {
+    send_reply(sptr, ERR_NOSUCHCHANNEL, name);
+    return;
+  }
+  if (client_can_send_to_channel(sptr, chptr, 1) || IsChannelService(sptr)) {
+    sendcmdto_channel_butone(sptr, CMD_TAGMSG, chptr, cli_from(sptr),
+			     SKIP_DEAF | SKIP_BURST, "%H", chptr);
+  } else {
+    send_reply(sptr, ERR_CANNOTSENDTOCHAN, chptr->chname);
+  }
+}
+
+/** Relay a server-originated TAGMSG to a user. */
+void
+server_relay_private_tagmsg(struct Client *sptr, const char *name)
+{
+  struct Client *acptr;
+
+  assert(0 != sptr);
+  assert(0 != name);
+
+  if (0 == (acptr = findNUser(name)) || !IsUser(acptr))
+    return;
+
+  if (is_silenced(sptr, acptr))
+    return;
+
+  if (commonchans_drop(sptr, acptr))
+    return;
+
+  if (MyUser(acptr))
+    add_target(acptr, sptr);
+
+  sendcmdto_one(sptr, CMD_TAGMSG, acptr, "%C", acptr);
+}
+
+/** Relay a server-originated masked TAGMSG. */
+void
+server_relay_masked_tagmsg(struct Client *sptr, const char *mask)
+{
+  const char *s;
+  int host_mask = 0;
+
+  assert(0 != sptr);
+  assert(0 != mask);
+
+  s = mask;
+  if (*s == '$')
+    ++s;
+  if (*s == '#')
+    ++s;
+  if (*s == '~')
+    host_mask = 1;
+
+  sendcmdto_match_butone(sptr, CMD_TAGMSG, s,
+			 IsServer(cli_from(sptr)) ? cli_from(sptr) : 0,
+			 host_mask ? MATCH_HOST : MATCH_SERVER,
+			 "%s", mask);
+}
