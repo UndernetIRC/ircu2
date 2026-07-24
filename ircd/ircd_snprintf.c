@@ -26,6 +26,7 @@
 #include "channel.h"
 #include "ircd_log.h"
 #include "ircd_snprintf.h"
+#include "s_user.h"
 #include "struct.h"
 
 /* #include <assert.h> -- Now using assert in ircd_log.h */
@@ -2057,7 +2058,7 @@ doprintf(struct Client *dest, struct BufData *buf_p, const char *fmt,
 	if (!IsServer(cptr) && !IsMe(cptr) && fld_s.flags & FLAG_ALT) {
 	  assert(0 != cli_user(cptr));
 	  assert(0 != *(cli_name(cptr)));
-	  str2 = cli_user(cptr)->username;
+	  str2 = visible_username(cptr);
 	  str3 = cli_user(cptr)->host;
 	} else
 	  fld_s.flags &= ~FLAG_ALT;

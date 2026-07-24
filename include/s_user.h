@@ -80,6 +80,7 @@ extern void send_user_info(struct Client* to, char* names, int rpl,
                            InfoFormatter fmt);
 
 extern int hide_hostmask(struct Client *cptr, unsigned int flags);
+extern const char *visible_username(const struct Client *cptr);
 extern int set_user_mode(struct Client *cptr, struct Client *sptr,
                          int parc, char *parv[], int allow_modes);
 extern int is_silenced(struct Client *sptr, struct Client *acptr);

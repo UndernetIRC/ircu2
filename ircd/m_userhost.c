@@ -97,7 +97,7 @@ static void userhost_formatter(struct Client* cptr, struct Client *sptr, struct 
   assert(IsUser(cptr));
   msgq_append(0, mb, "%s%s=%c%s@%s", cli_name(cptr),
               SeeOper(sptr,cptr) ? "*" : "",
-	      cli_user(cptr)->away ? '-' : '+', cli_user(cptr)->username,
+	      cli_user(cptr)->away ? '-' : '+', visible_username(cptr),
 	      /* Do not *EVER* change this to give opers the real host.
 	       * Too many scripts rely on this data and can inadvertently
 	       * publish the user's real host, thus breaking the security
