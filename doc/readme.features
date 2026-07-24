@@ -971,12 +971,15 @@ NETWORK_FEATURES
  * Default: TRUE
 
 When TRUE, this server emits non-backwards-compatible S2S extensions:
-TLS certificate fingerprints on NICK/umode bursts, and IRCv3 message-tags
-prefixes on server links.  Set FALSE while some peers still run older
-ircu that cannot parse those fields, then turn it back on once the
-network is fully upgraded.  Inbound extensions are still accepted when
-this is FALSE.  Federating @time= specifically is controlled by
-NETWORK_TIME.
+TLS certificate fingerprints on NICK/umode bursts, relay of remote
+OPMODE +x toward a user's home server, relay of ACCOUNT updates for
+users who are already authenticated (e.g. account flag changes),
+IRCv3 message-tags prefixes on server links, and TAGMSG (TM) to
+servers.  Set FALSE while some peers still run older ircu that cannot
+parse those fields, then turn it back on once the network is fully
+upgraded.  Inbound extensions are still accepted when this is FALSE
+(TAGMSG is delivered to local clients only).  Federating @time=
+specifically is controlled by NETWORK_TIME.
 
 NETWORK_TIME
  * Type: boolean

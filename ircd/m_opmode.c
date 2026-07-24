@@ -184,6 +184,10 @@ int ms_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
     if (!MyConnect(dptr))
     {
+      /* Remote +x is a newer S2S extension; do not relay it while
+       * NETWORK_FEATURES is off (mixed-version upgrade). */
+      if (!strcmp(parv[2], "+x") && !feature_bool(FEAT_NETWORK_FEATURES))
+        return 0;
       sendcmdto_serv_butone(sptr, CMD_OPMODE, cptr, "%s %s",
         parv[1], parv[2]);
       return 0;

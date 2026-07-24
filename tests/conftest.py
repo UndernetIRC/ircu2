@@ -101,6 +101,30 @@ LIMITS = {
     "name": "limits.test.net",
 }
 
+# A (prod release) — B (new, NETWORK_FEATURES=FALSE) — C (new, NETWORK_FEATURES=TRUE)
+NF_A = {
+    "host": "127.0.0.1",
+    "port": 6671,
+    "server_port": 4420,
+    "name": "a.prod.test.net",
+    "role": "prod",
+}
+NF_B = {
+    "host": "127.0.0.1",
+    "port": 6672,
+    "tls_port": 7692,
+    "server_port": 4421,
+    "name": "b.test.net",
+    "role": "compat_hub",
+}
+NF_C = {
+    "host": "127.0.0.1",
+    "port": 6673,
+    "server_port": 4422,
+    "name": "c.test.net",
+    "role": "services_leaf",
+}
+
 
 def _start_services(*services):
     """Stop any running containers, rebuild, and start fresh."""
@@ -356,6 +380,40 @@ def ircd_tls_network():
 def ircd_limits():
     """Connection info for the dedicated limits-test ircd."""
     return LIMITS
+
+
+@pytest.fixture(scope="session")
+def ircd_nf_compat():
+    """Start A(prod)—B(NF=FALSE)—C(NF=TRUE) for NETWORK_FEATURES compat tests.
+
+    A is built from the UndernetIRC/ircu2 release tarball (see
+    Dockerfile target runtime-release).  B and C are built from the
+    working tree.  Services attach to C.
+    """
+    _start_services("ircd-nf-a", "ircd-nf-b", "ircd-nf-c")
+    try:
+        for server in (NF_A, NF_B, NF_C):
+            try:
+                wait_for_port(server["host"], server["port"], timeout=120.0)
+            except TimeoutError:
+                # Surface container logs — config/parse failures are otherwise silent.
+                for name in ("ircu-nf-a", "ircu-nf-b", "ircu-nf-c"):
+                    result = subprocess.run(
+                        ["docker", "logs", "--tail", "80", name],
+                        capture_output=True,
+                        text=True,
+                        timeout=30,
+                    )
+                    print(
+                        f"\n===== docker logs {name} =====\n"
+                        f"{result.stdout}{result.stderr}"
+                    )
+                raise
+        # Autoconnect A→B and C→B, then settle.
+        time.sleep(5)
+        yield {"a": NF_A, "b": NF_B, "c": NF_C}
+    finally:
+        docker_compose("down", check=False)
 
 
 @pytest.fixture(scope="session")

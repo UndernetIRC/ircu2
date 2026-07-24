@@ -37,9 +37,13 @@ uv run pytest -m single_server    # tests needing only the hub
 uv run pytest -m multi_server     # tests needing hub + 2 leaves
 uv run pytest -m tls              # TLS trust / verification tests (hub + TLS leaf)
 uv run pytest -m tls_single       # standalone TLS hub (no peer server ever links)
+uv run pytest -m nf_compat        # A(prod)-B(NF=FALSE)-C topology
 
 # TLS suite only
 uv run pytest tls/ -v
+
+# NETWORK_FEATURES rolling-upgrade compat (downloads prod release on first build)
+uv run pytest pr_network_features_compat/ -v
 
 All docker topologies (hub-only, full network, TLS, limits, DNS, standalone
 TLS hub) share one compose project and are mutually exclusive. `conftest.py`
@@ -127,6 +131,26 @@ The hub also has Connect blocks for two external test servers used by the P10 te
 | uworldonly.test.net | 6       | Yes (no oper) | U:lined without CONF_UWORLD_OPER   |
 
 Configs are baked into the Docker images (in `docker/`), not volume-mounted.
+
+### NETWORK_FEATURES compat topology (`pr_network_features_compat/`)
+
+Rolling-upgrade guard tests use a dedicated A—B—C chain.  **A** is built from
+the current [UndernetIRC/ircu2 release](https://github.com/UndernetIRC/ircu2/releases)
+(`Dockerfile` target `runtime-release`, default tag `u2.10.12.19`).  **B** and
+**C** are built from the working tree.
+
+| Service   | Server Name      | Binary   | NETWORK_FEATURES | Client | S2S  | IP         |
+|-----------|------------------|----------|------------------|--------|------|------------|
+| ircd-nf-a | a.prod.test.net  | release  | n/a (prod)       | 6671   | 4420 | 10.55.0.40 |
+| ircd-nf-b | b.test.net       | tree     | FALSE            | 6672   | 4421 | 10.55.0.41 |
+| ircd-nf-c | c.test.net       | tree     | TRUE (also HUB)  | 6673   | 4422 | 10.55.0.42 |
+
+Services (`P10Server`, numeric 4) attach to **C** (C sets `HUB` so it can
+accept that server link).  Assertions check that remote `OPMODE +x`,
+already-authed `ACCOUNT` flag updates, and `+z` TLS fingerprint tokens on
+NICK/umode bursts never reach **A** (prod would `protocol_violation` on a
+second ACCOUNT).  A P10 spy on **B** (`spy.test.net`) observes B's
+re-burst wire.  Override the release with `IRCD_RELEASE_TAG=...`.
 
 ## IRC Client API
 

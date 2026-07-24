@@ -163,6 +163,60 @@ services:
     depends_on:
       - test-dns
 
+  # NETWORK_FEATURES compat topology: A (prod release) — B (new, NF=FALSE) — C (new, NF=TRUE)
+  # Services attach to C; B must not relay remote OPMODE +x / already-authed ACCOUNT to A.
+  ircd-nf-a:
+    build:
+      context: .
+      target: runtime-release
+      args:
+        IRCD_CONF: tests/docker/ircd-nf-a.conf
+        IRCD_RELEASE_TAG: ${IRCD_RELEASE_TAG:-u2.10.12.19}
+    container_name: ircu-nf-a
+    ports:
+      - "6671:6671"
+      - "4420:4420"
+    networks:
+      ircu-test-net:
+        ipv4_address: 10.55.0.40
+    depends_on:
+      - ircd-nf-b
+
+  ircd-nf-b:
+    build:
+      context: .
+      target: runtime-tree
+      args:
+        IRCD_CONF: tests/docker/ircd-nf-b.conf
+        TLS_BACKEND: ${TLS_BACKEND:-openssl}
+        SANITIZE: ${IRCD_SANITIZE:-}
+    container_name: ircu-nf-b
+    ports:
+      - "6672:6672"
+      - "7692:7692"
+      - "4421:4421"
+    networks:
+      ircu-test-net:
+        ipv4_address: 10.55.0.41
+
+  ircd-nf-c:
+    build:
+      context: .
+      target: runtime-tree
+      args:
+        IRCD_CONF: tests/docker/ircd-nf-c.conf
+        TLS_BACKEND: ${TLS_BACKEND:-openssl}
+        SANITIZE: ${IRCD_SANITIZE:-}
+    container_name: ircu-nf-c
+    ports:
+      - "6673:6673"
+      - "4422:4422"
+    networks:
+      ircu-test-net:
+        ipv4_address: 10.55.0.42
+    depends_on:
+      - ircd-nf-b
+
 networks:
   ircu-test-net:
     driver: bridge

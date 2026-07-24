@@ -66,6 +66,9 @@ SERVICE_CONTAINERS: dict[str, str] = {
     "ircd-tls-hub": "ircu-tls-hub",
     "ircd-tls-leaf": "ircu-tls-leaf",
     "ircd-limits": "ircu-limits",
+    "ircd-nf-a": "ircu-nf-a",
+    "ircd-nf-b": "ircu-nf-b",
+    "ircd-nf-c": "ircu-nf-c",
 }
 
 DEBUG_LINE_RE = re.compile(r"DEBUG \[(\w+)\]: (.+)$")
