@@ -82,6 +82,7 @@
 
 #include "client.h"
 #include "ircd.h"
+#include "ircd_features.h"
 #include "ircd_log.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
@@ -112,6 +113,7 @@ int ms_account(struct Client* cptr, struct Client* sptr, int parc,
   struct Client *acptr;
   struct ConfItem *conf;
   uint64_t acc_id = 0, acc_flags = 0;
+  int already_account;
 
   if (parc < 3)
     return need_more_params(sptr, "ACCOUNT");
@@ -120,7 +122,10 @@ int ms_account(struct Client* cptr, struct Client* sptr, int parc,
     return protocol_violation(cptr, "ACCOUNT from non-server %s",
 			      cli_name(sptr));
 
-  if (!(conf = find_conf_byhost(cli_confs(cptr), cli_name(sptr), CONF_UWORLD)))
+  /* Prefer UWorld attached to the originator (works across multi-hop
+   * relays); fall back to the immediate uplink for direct links. */
+  if (!(conf = find_conf_byhost(cli_confs(sptr), cli_name(sptr), CONF_UWORLD)) &&
+      !(conf = find_conf_byhost(cli_confs(cptr), cli_name(sptr), CONF_UWORLD)))
     return protocol_violation(cptr, "ACCOUNT from non U:lined server %s", cli_name(sptr)); /* Ignore ACCOUNT from non U:lined servers. */
 
   if (!(acptr = findNUser(parv[1])))
@@ -132,8 +137,10 @@ int ms_account(struct Client* cptr, struct Client* sptr, int parc,
   if (parc > 4)
     acc_flags = atoi(parv[4]);
 
+  already_account = IsAccount(acptr);
+
   /* If the client already has an account, we do not accept changes to the account or acc_id. */
-  if (IsAccount(acptr)) {
+  if (already_account) {
     if (strcmp(cli_user(acptr)->account, parv[2]))
       return protocol_violation(cptr, "ACCOUNT for already registered user %s "
               "(%s -> %s)", cli_name(acptr),
@@ -169,6 +176,12 @@ int ms_account(struct Client* cptr, struct Client* sptr, int parc,
     Debug((DEBUG_DEBUG, "Received account flags: account \"%s\", "
            "flags %qu", parv[2], cli_user(acptr)->acc_flags));
   }
+
+  /* Flag-only ACCOUNT updates for already-authed users confuse older
+   * peers; do not relay them while NETWORK_FEATURES is off.  First-time
+   * ACCOUNT registration always propagates. */
+  if (already_account && !feature_bool(FEAT_NETWORK_FEATURES))
+    return 0;
 
   /* To propagate a 0 flag, we check the param number rather than whether acc_flags is true. */
   sendcmdto_serv_butone(sptr, CMD_ACCOUNT, cptr,

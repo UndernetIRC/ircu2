@@ -24,4 +24,5 @@ markers = [
     "tls_single: tests that need only the TLS hub (no peer servers)",
     "websocket_stress: aggressive WebSocket load / edge-case tests (pr_websocket/, hub + port 7000)",
     "limits: tests that need the dedicated limits server",
+    "nf_compat: NETWORK_FEATURES A(prod)-B(NF=FALSE)-C(NF=TRUE) topology",
 ]

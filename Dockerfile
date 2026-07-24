@@ -1,6 +1,18 @@
 # Multi-stage build for ircu2 test harness
-# Stage 1: Build ircu from source
-FROM debian:trixie-slim AS builder
+#
+# Targets:
+#   runtime-tree     — build from the working tree (default; last stage)
+#   runtime-release  — download and build a tagged UndernetIRC/ircu2 release
+#                      (used as the "prod" peer in NETWORK_FEATURES compat tests)
+
+ARG TLS_BACKEND=openssl
+ARG SANITIZE=
+ARG IRCD_RELEASE_TAG=u2.10.12.19
+
+# ---------------------------------------------------------------------------
+# Stage: build from the current working tree
+# ---------------------------------------------------------------------------
+FROM debian:trixie-slim AS builder-tree
 
 ARG TLS_BACKEND=openssl
 ARG SANITIZE=
@@ -35,8 +47,40 @@ RUN ./autogen.sh \
     ./configure --prefix=/opt/ircu --with-maxcon=256 --enable-debug --with-tls=${TLS_BACKEND} \
     && make
 
-# Stage 2: Runtime image
-FROM debian:trixie-slim
+# ---------------------------------------------------------------------------
+# Stage: build the current Undernet production release from GitHub
+# https://github.com/UndernetIRC/ircu2/releases
+# ---------------------------------------------------------------------------
+FROM debian:trixie-slim AS builder-release
+
+ARG IRCD_RELEASE_TAG=u2.10.12.19
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    make \
+    bison \
+    flex \
+    libc6-dev \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+RUN curl -fsSL \
+      "https://github.com/UndernetIRC/ircu2/archive/refs/tags/${IRCD_RELEASE_TAG}.tar.gz" \
+      -o /tmp/ircu-release.tar.gz \
+    && tar xzf /tmp/ircu-release.tar.gz \
+    && rm /tmp/ircu-release.tar.gz \
+    && SRC="$(echo ircu2-*)" \
+    && cd "$SRC" \
+    && ./configure --prefix=/opt/ircu --with-maxcon=256 --enable-debug \
+    && make \
+    && cp ircd/ircd /build/ircd
+
+# ---------------------------------------------------------------------------
+# Shared runtime base (no ircd binary yet)
+# ---------------------------------------------------------------------------
+FROM debian:trixie-slim AS runtime-base
 
 ARG TLS_BACKEND=openssl
 ARG SANITIZE=
@@ -51,17 +95,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     $(if [ -n "$SANITIZE" ]; then echo libasan8; fi) \
     && rm -rf /var/lib/apt/lists/*
 
-RUN useradd -r -m -d /opt/ircu ircu
+RUN useradd -r -m -d /opt/ircu ircu \
+    && mkdir -p /opt/ircu/lib /opt/ircu/bin \
+    && chown -R ircu:ircu /opt/ircu
 
-COPY --from=builder /build/ircu2/ircd/ircd /opt/ircu/bin/ircd
-RUN mkdir -p /opt/ircu/lib /opt/ircu/bin && chown -R ircu:ircu /opt/ircu
-
-# Copy config file into image (passed as build arg)
 ARG IRCD_CONF=tests/docker/ircd-hub.conf
 COPY ${IRCD_CONF} /opt/ircu/lib/ircd.conf
 RUN chown ircu:ircu /opt/ircu/lib/ircd.conf
 
-# TLS test certificates (no-op for non-TLS configs)
 COPY tests/docker/certs /opt/ircu/lib/certs
 RUN chown -R ircu:ircu /opt/ircu/lib/certs
 
@@ -79,3 +120,17 @@ WORKDIR /opt/ircu
 
 ENTRYPOINT ["/opt/ircu/lib/ircd-entrypoint.sh"]
 CMD ["-f", "/opt/ircu/lib/ircd.conf", "-n"]
+
+# ---------------------------------------------------------------------------
+# Final: production release binary (NETWORK_FEATURES compat peer "A")
+# ---------------------------------------------------------------------------
+FROM runtime-base AS runtime-release
+COPY --from=builder-release /build/ircd /opt/ircu/bin/ircd
+RUN chown ircu:ircu /opt/ircu/bin/ircd
+
+# ---------------------------------------------------------------------------
+# Final: working-tree binary (default target — must stay last)
+# ---------------------------------------------------------------------------
+FROM runtime-base AS runtime-tree
+COPY --from=builder-tree /build/ircu2/ircd/ircd /opt/ircu/bin/ircd
+RUN chown ircu:ircu /opt/ircu/bin/ircd
