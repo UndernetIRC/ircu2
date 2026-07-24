@@ -141,6 +141,14 @@ User modes:
   +g: List channel HACK:'s
   +s: Server messages - takes a parameter of which masks to send, see
       'snomask.html' for more details. (2.10.0+)
+  +R: Block unauthenticated users.  PRIVMSG, NOTICE and INVITE from users
+      that are not authenticated to a registered account are blocked.
+      PRIVMSG and INVITE are rejected with ERR_NEEDREGGEDNICK (477);
+      NOTICE is dropped silently, as automatic replies to NOTICE are
+      forbidden.  Servers, services (+k), IRC operators and messages to
+      self are exempt.  The check is applied before SILENCE, so a
+      silenced sender sees the same response as everyone else and cannot
+      use it to probe the silence list.
 
 LIST:
  Version: Unknown

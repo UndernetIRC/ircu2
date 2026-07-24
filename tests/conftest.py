@@ -15,6 +15,7 @@ from debug_support import (
     snapshot_failure_artifacts,
 )
 from irc_client import IRCClient
+from p10_server import P10Server
 
 # docker-compose.yml and Dockerfile live in the repo root (parent of tests/)
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -489,3 +490,17 @@ async def make_client(ircd_hub):
         except Exception:
             pass
         await client.disconnect()
+
+
+@pytest_asyncio.fixture
+async def ulined_server(ircd_hub):
+    """A U:lined P10 server linked to the hub.
+
+    U:lined as "services.test.net", matching the UWorld block in ircd-hub.conf,
+    so it can send traffic that only a U:lined server may, e.g. ACCOUNT.
+    """
+    srv = P10Server(name="services.test.net", numeric=4, password="testpass")
+    await srv.connect(ircd_hub["host"], ircd_hub["server_port"])
+    await srv.handshake()
+    yield srv
+    await srv.disconnect()

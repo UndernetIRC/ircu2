@@ -98,7 +98,9 @@ class P10Server:
         self.connected = False
         self.burst_complete = False
 
-        # Our server's base64 numeric prefix (2 chars)
+        # Our server's base64 numeric prefix (2 chars). Exposed via the
+        # `server_numick` property below for tests that need to send a message
+        # with the server itself (not one of its users) as the source.
         self._num = server_numeric(numeric)
         # Numnick mask: server numeric (2) + max clients (3)
         self._numnick_mask = self._num + int_to_b64(max_clients, 3)
@@ -109,6 +111,12 @@ class P10Server:
         self.received: list[str] = []
         # Next client numeric for users we introduce ourselves
         self._next_client_num = 0
+
+    @property
+    def server_numnick(self) -> str:
+        """This server's own base64 P10 numeric prefix, for server-sourced messages.
+        """
+        return self._num
 
     async def connect(self, host: str, port: int):
         """Open a TCP connection to the ircd's server port."""
@@ -442,6 +450,14 @@ class P10Server:
     async def send_notice(self, from_numnick: str, target: str, text: str):
         """Send a NOTICE (O) from one of our users to a target numnick."""
         await self._send(f"{from_numnick} O {target} :{text}")
+
+    async def send_invite(self, from_numnick: str, target_nick: str, channel: str):
+        """Send an INVITE (I) from one of our users to a target nick/channel.
+
+        Unlike PRIVMSG/NOTICE, ms_invite() takes the target by nickname
+        (see the outgoing "%s %H" format in m_invite.c), not numnick.
+        """
+        await self._send(f"{from_numnick} I {target_nick} {channel}")
 
     async def wait_for_user(self, nick: str, timeout: float = 5.0) -> str:
         """Wait until a user with the given nick appears, return their numnick.

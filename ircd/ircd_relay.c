@@ -324,6 +324,11 @@ void relay_directed_message(struct Client* sptr, char* name, char* server, const
     return;
   }
 
+  if (should_block_unauth_user(sptr, acptr)) {
+    send_reply_blocked_unauth_user(sptr, acptr);
+    return;
+  }
+
   if (sline_check_privmsg(sptr, acptr, text, MSG_PRIVATE)) {
     return;
   }
@@ -399,6 +404,10 @@ void relay_directed_notice(struct Client* sptr, char* name, char* server, const 
     send_reply(sptr, ERR_NOSUCHNICK, name);
     return;
   }
+
+  /* No error reply: RFC 2812 forbids automatic replies to NOTICE. */
+  if (should_block_unauth_user(sptr, acptr))
+    return;
 
   if (sline_check_privmsg(sptr, acptr, text, MSG_NOTICE)) {
     return;
@@ -479,10 +488,17 @@ void relay_private_message(struct Client* sptr, const char* name, const char* te
     send_reply(sptr, ERR_NOSUCHNICK, name);
     return;
   }
+
   /* Note: X does silence users who flood it. */
-  if ((!IsChannelService(acptr) &&
-       check_target_limit(sptr, acptr, NULL)) ||
-      is_silenced(sptr, acptr))
+  if (!IsChannelService(acptr) && check_target_limit(sptr, acptr, NULL))
+    return;
+
+  if (should_block_unauth_user(sptr, acptr)) {
+    send_reply_blocked_unauth_user(sptr, acptr);
+    return;
+  }
+
+  if (is_silenced(sptr, acptr))
     return;
 
   if (sline_check_privmsg(sptr, acptr, text, MSG_PRIVATE)) {
@@ -527,9 +543,15 @@ void relay_private_notice(struct Client* sptr, const char* name, const char* tex
 
   if (0 == (acptr = FindUser(name)))
     return;
-  if ((!IsChannelService(acptr) && 
-       check_target_limit(sptr, acptr, NULL)) ||
-      is_silenced(sptr, acptr))
+
+  if (!IsChannelService(acptr) && check_target_limit(sptr, acptr, NULL))
+    return;
+
+  /* No error reply: RFC 2812 forbids automatic replies to NOTICE. */
+  if (should_block_unauth_user(sptr, acptr))
+    return;
+
+  if (is_silenced(sptr, acptr))
     return;
 
   if (sline_check_privmsg(sptr, acptr, text, MSG_NOTICE)) {
@@ -573,6 +595,12 @@ void server_relay_private_message(struct Client* sptr, const char* name, const c
                text);
     return;
   }
+
+  if (should_block_unauth_user(sptr, acptr)) {
+    send_reply_blocked_unauth_user(sptr, acptr);
+    return;
+  }
+
   if (is_silenced(sptr, acptr))
     return;
 
@@ -605,6 +633,10 @@ void server_relay_private_notice(struct Client* sptr, const char* name, const ch
    * nickname addressed?
    */
   if (0 == (acptr = findNUser(name)) || !IsUser(acptr))
+    return;
+
+  /* No error reply: RFC 2812 forbids automatic replies to NOTICE. */
+  if (should_block_unauth_user(sptr, acptr))
     return;
 
   if (is_silenced(sptr, acptr))
