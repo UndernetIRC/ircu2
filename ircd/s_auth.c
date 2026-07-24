@@ -524,9 +524,14 @@ static int check_auth_finished(struct AuthRequest *auth, int bitclr)
     {
       ircd_strncpy(cli_username(sptr), user->username, USERLEN);
     }
-    else if (DoIdentLookups)
+    else if (DoIdentLookups || IsCloudflarePort(sptr))
     {
-      /* Prepend ~ to user->username. */
+      /*
+       * Untrusted username: prepend ~.
+       * Ident success / iauth U|o / WEBIRC trust are handled above.
+       * Cloudflare ports skip the ident query (peer is a CF edge) but
+       * must still be treated as untrusted unless those paths apply.
+       */
       char *s = user->username;
       int ii;
       for (ii = USERLEN-1; ii > 0; ii--)

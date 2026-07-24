@@ -177,14 +177,20 @@ async def _ws_register_collect_notices(
                 pass
 
 
-async def _whois_host(observer: IRCClient, nick: str) -> str:
+async def _whois_userhost(observer: IRCClient, nick: str) -> tuple[str, str]:
+    """Return (username, host) from RPL_WHOISUSER."""
     await observer.send(f"WHOIS {nick}")
     while True:
         msg = await observer.recv(timeout=10.0)
         if msg.command == "311":
-            return msg.params[3]
+            return msg.params[2], msg.params[3]
         if msg.command in ("318", "401"):
             raise AssertionError(f"WHOIS for {nick} failed: {msg}")
+
+
+async def _whois_host(observer: IRCClient, nick: str) -> str:
+    _, host = await _whois_userhost(observer, nick)
+    return host
 
 
 @pytest.mark.asyncio
@@ -246,6 +252,34 @@ async def test_cloudflare_port_rejects_invalid_cf_connecting_ip(ircd_hub):
 
 def _notice_blob(notices: list[str]) -> str:
     return "\n".join(notices)
+
+
+@pytest.mark.asyncio
+async def test_cloudflare_websocket_keeps_tilde_without_ident(ircd_hub, make_client):
+    """Skipping ident on cloudflare ports must not trust the USER username.
+
+    Clients still get a leading ~ unless iauth/WEBIRC (or a successful
+    ident, which cannot run here) explicitly trusts the name.
+    """
+    observer = await make_client("cftil")
+    nick = f"cftu{random.randint(0, 999_999)}"
+    headers = (b"CF-Connecting-IP: " + CF_CLIENT_IP.encode() + b"\r\n",)
+    _, _, ws_writer = await _ws_register_collect_notices(
+        CF_WS_PORT, nick, extra_headers=headers, keep_open=True
+    )
+    assert ws_writer is not None
+    try:
+        username, host = await _whois_userhost(observer, nick)
+        assert host == CF_CLIENT_IP, f"expected CF IP host, got {host!r}"
+        assert username.startswith("~"), (
+            f"cloudflare WS without trusted username must keep tilde, got {username!r}"
+        )
+        assert username == "~wsuser", f"unexpected username {username!r}"
+    finally:
+        ws_writer.write(_masked_text_frame("QUIT :done"))
+        await ws_writer.drain()
+        ws_writer.close()
+        await observer.send("QUIT :done")
 
 
 @pytest.mark.asyncio
