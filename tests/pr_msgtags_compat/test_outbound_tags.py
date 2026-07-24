@@ -177,8 +177,8 @@ async def test_network_features_off_suppresses_s2s_tags(ircd_network, services):
 
 
 async def test_s2s_protocol_commands_have_no_time_tag(ircd_network, services):
-    """Link/state tokens (PONG) must not get invented @time= on S2S."""
-    # Ping the hub (dest = hub name) so it replies with Z rather than forwarding.
+    """P10 link PING/PONG (G/Z) and lag probes (RI/RO) must not get @time=."""
+    # G/Z: server-link keepalive (not client PING).
     await services._send(f"{services._num} G !notime :hub.test.net")
     deadline = asyncio.get_event_loop().time() + 5.0
     saw_pong = False
@@ -193,11 +193,43 @@ async def test_s2s_protocol_commands_have_no_time_tag(ircd_network, services):
             assert not payload.startswith("@"), line
             assert "@time=" not in line, line
             break
-        # Keep the link healthy if the hub PINgs us first.
         if len(tokens) >= 2 and tokens[1] == "G":
             cookie = tokens[2].lstrip("!") if len(tokens) > 2 else tokens[-1]
             await services._send(f"{services._num} Z {services._num} :{cookie}")
     assert saw_pong, "expected an S2S PONG (Z) without @time="
+
+    # RI/RO: oper RPING lag probe between servers.
+    hub = ircd_network["hub"]
+    oper = IRCClient()
+    await oper.connect(hub["host"], hub["port"])
+    await oper.register("rpingop", "oper", "Oper")
+    await oper.send("OPER testoper operpass")
+    await oper.wait_for("381", timeout=10.0)
+    try:
+        await oper.send("RPING services.test.net")
+        deadline = asyncio.get_event_loop().time() + 8.0
+        saw_ri = False
+        while asyncio.get_event_loop().time() < deadline:
+            remaining = deadline - asyncio.get_event_loop().time()
+            line = await services._recv_raw(timeout=max(remaining, 0.1))
+            payload = line.lstrip()
+            body = payload.split(" ", 1)[-1] if payload.startswith("@") else payload
+            tokens = body.split()
+            if len(tokens) >= 2 and tokens[1] in ("RI", "RO"):
+                saw_ri = True
+                assert not payload.startswith("@"), line
+                assert "@time=" not in line, line
+                break
+            if len(tokens) >= 2 and tokens[1] == "G":
+                cookie = tokens[2].lstrip("!") if len(tokens) > 2 else tokens[-1]
+                await services._send(f"{services._num} Z {services._num} :{cookie}")
+        assert saw_ri, "expected S2S RPING/RPONG (RI/RO) without @time="
+    finally:
+        try:
+            await oper.send("QUIT :cleanup")
+        except Exception:
+            pass
+        await oper.disconnect()
 
 
 async def test_network_time_off_local_stamp_no_s2s_time(ircd_network, services):
