@@ -905,7 +905,7 @@ void send_user_info(struct Client* sptr, char* names, int rpl, InfoFormatter fmt
     if (5 == ++arg_count)
       break;
   }
-  send_buffer(sptr, NULL, mb, 0, NULL);
+  send_buffer(sptr, NULL, mb, 0, NULL, NULL);
   msgq_clean(mb);
 }
 

@@ -111,6 +111,14 @@
  * protocol message body (BUFSIZE).
  */
 #define READBUFSIZE     (TAGSLEN + BUFSIZE)
+/** Maximum length of a formatted OUTBOUND message-tags prefix (from the
+ * leading '@' through the separating space).  An outbound prefix can never
+ * exceed the largest tag data a client is allowed to send inbound
+ * (TAGDATA_CLIENT_MAX) plus server-added time/account tags and separators,
+ * so it is sized well below the inbound TAGSLEN limit.  The MsgBuf pool must
+ * be able to hold OUTBOUND_TAG_MAX + BUFSIZE (see MB_MAX_SHIFT in msgq.c).
+ */
+#define OUTBOUND_TAG_MAX (TAGDATA_CLIENT_MAX + 256)
 
 /** Maximum available targets for a user. */
 #define MAXTARGETS      20

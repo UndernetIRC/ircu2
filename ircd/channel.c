@@ -1194,7 +1194,7 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
       }
     }
 
-    send_buffer(cptr, NULL, mb, 0, NULL);  /* Send this message */
+    send_buffer(cptr, NULL, mb, 0, NULL, NULL);  /* Send this message */
     msgq_clean(mb);
   }                             /* Continue when there was something
                                  that didn't fit (full==1) */

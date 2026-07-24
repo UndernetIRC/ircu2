@@ -21,6 +21,7 @@ struct Channel;
 struct Client;
 struct DBuf;
 struct MsgBuf;
+struct MsgTagCtx;
 struct TagSendCache;
 
 /*
@@ -29,7 +30,8 @@ struct TagSendCache;
 extern struct SLink *opsarray[];
 
 extern void send_buffer(struct Client* to, struct Client* from, struct MsgBuf* buf,
-                        int prio, struct TagSendCache *cache);
+                        int prio, const struct MsgTagCtx *ctx,
+                        struct TagSendCache *cache);
 
 /** Queue raw octets on a sendq (no IRC CRLF, no WebSocket framing). */
 extern void send_raw_buffer(struct Client *to, struct MsgBuf *mb, int prio);

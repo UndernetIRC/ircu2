@@ -390,7 +390,12 @@ msg_tag_append(char *pos, char *end, int *wrote, const char *key,
     *wrote = 1;
   }
 
+  /* ircd_snprintf() returns the untruncated (would-be) length, so pos can
+   * land past end when the key does not fit.  Bail before the next write:
+   * (end - pos) would go negative and wrap to a huge size_t. */
   pos += ircd_snprintf(0, pos, end - pos, "%s", key);
+  if (pos >= end)
+    return NULL;
   if (value) {
     msg_tag_escape(value, esc, sizeof(esc));
     pos += ircd_snprintf(0, pos, end - pos, "=%s", esc);

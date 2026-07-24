@@ -42,7 +42,15 @@
 #include <sys/uio.h>	/* struct iovec */
 
 #define MB_BASE_SHIFT	5 /**< Log2 of smallest message body to allocate. */
-#define MB_MAX_SHIFT	11 /**< Log2 of largest message body to allocate. */
+#define MB_MAX_SHIFT	13 /**< Log2 of largest message body to allocate. */
+
+/* The largest wire line we ever build is one message body (BUFSIZE) with an
+ * outbound message-tags prefix (OUTBOUND_TAG_MAX) in front, plus a NUL.  The
+ * pool's largest bucket must cover it, or make_wire_msgbuf() would drive
+ * msgq_alloc() past msgBufs[] and corrupt memory.  This is a compile-time
+ * guard so the invariant can never silently regress. */
+typedef char msgq_pool_covers_tagged_wire[
+    (1 << MB_MAX_SHIFT) >= (OUTBOUND_TAG_MAX + BUFSIZE + 1) ? 1 : -1];
 
 /** Return allocated length of the buffer of \a buf. */
 #define bufsize(buf)	(1 << (buf)->power)
@@ -387,6 +395,8 @@ msgq_vmake(struct Client *dest, const char *format, va_list vl)
  *
  * @param[in] dest %Client that receives the data (unused; kept for API symmetry).
  * @param[in] minbytes Minimum usable size of \a mb->msg (no CRLF appended).
+ * @return Allocated buffer, or NULL if \a minbytes exceeds the largest pool
+ *         bucket (callers must handle NULL rather than assume success).
  */
 struct MsgBuf *
 msgq_raw_alloc(struct Client *dest, unsigned int minbytes)
@@ -394,6 +404,12 @@ msgq_raw_alloc(struct Client *dest, unsigned int minbytes)
   struct MsgBuf *mb;
 
   (void) dest;
+
+  /* Larger than the biggest pool bucket: fail cleanly instead of letting
+   * msgq_alloc() run off the end of msgBufs[].  Callers degrade gracefully
+   * (e.g. make_wire_msgbuf() sends the untagged body). */
+  if (minbytes > (1u << MB_MAX_SHIFT))
+    return NULL;
 
   if (!(mb = msgq_alloc(0, minbytes))) {
     if (feature_bool(FEAT_HAS_FERGUSON_FLUSHER)) {
