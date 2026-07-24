@@ -261,6 +261,7 @@ send_raw_buffer(struct Client *to, struct MsgBuf *mb, int prio)
 struct MsgTagCtx {
   struct MsgTag *tags;        /**< Tags parsed from the current input line. */
   time_t         local_time;  /**< Delivery time for server-time / @time=. */
+  const char    *tok;         /**< Command token for S2S policy (or NULL). */
   int            client_relay;   /**< Has relayable client-only (+) tags. */
   int            s2s_needs_time; /**< Invent/forward @time= on S2S for this command. */
 };
@@ -276,13 +277,14 @@ struct TagSendCache {
   char             prefix[OUTBOUND_TAG_MAX];
 };
 
-/** Populate a per-message tag context.  \a tok is the command token (for the
- * S2S @time= decision), or NULL when no command context applies. */
+/** Populate a per-message tag context.  \a tok is the command token (for
+ * S2S @time= / TAGMSG policy), or NULL when no command context applies. */
 static void
 msgtagctx_init(struct MsgTagCtx *ctx, const char *tok)
 {
   ctx->tags = parse_tags();
   ctx->local_time = CurrentTime;
+  ctx->tok = tok;
   ctx->client_relay = msg_tag_have_client_relay(ctx->tags);
   ctx->s2s_needs_time = tok ? msg_tag_s2s_needs_time(tok) : 0;
 }
@@ -367,9 +369,12 @@ void send_buffer(struct Client* to, struct Client* from, struct MsgBuf* buf, int
   }
 
   if (IsServer(to)) {
-    /* Older peers cannot parse @tags; gate on NETWORK_FEATURES.
+    /* Older peers cannot parse @tags or TAGMSG (TM); gate on NETWORK_FEATURES.
      * Invent @time= only for client-event commands (see s2s_needs_time). */
-    if (feature_bool(FEAT_NETWORK_FEATURES)) {
+    if (!feature_bool(FEAT_NETWORK_FEATURES)) {
+      if (tctx && tctx->tok && !ircd_strcmp(tctx->tok, TOK_TAGMSG))
+        return;
+    } else {
       int invent = tctx ? tctx->s2s_needs_time : 0;
       taglen = msg_tag_format_s2s(tagbuf, sizeof(tagbuf), tags, local_time,
                                   invent);

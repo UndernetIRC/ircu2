@@ -112,6 +112,7 @@ NF_A = {
 NF_B = {
     "host": "127.0.0.1",
     "port": 6672,
+    "tls_port": 7692,
     "server_port": 4421,
     "name": "b.test.net",
     "role": "compat_hub",

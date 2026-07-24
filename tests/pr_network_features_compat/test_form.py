@@ -10,6 +10,10 @@ Prod ircu rejects a second ACCOUNT for an already-authed user with
 protocol_violation (WALLOPS to +g opers).  Remote OPMODE +x and +z TLS
 fingerprint tokens on NICK/umode bursts are newer extensions.  With
 NETWORK_FEATURES=FALSE on the middle hop B, those must not reach A.
+
+TLS clients on B still get umode +z locally, but B omits the fingerprint
+parameter when introducing them toward peers.  C (NF=TRUE) must accept that
++z-without-fingerprint NICK without crashing or protocol-violating.
 """
 
 from __future__ import annotations
@@ -297,3 +301,176 @@ async def test_first_account_still_reaches_prod(ircd_nf_compat, services):
         except Exception:
             pass
         await user.disconnect()
+
+
+async def test_tls_plus_z_without_fingerprint_accepted_on_nf_true(
+    ircd_nf_compat, services
+):
+    """TLS client on B (NF=FALSE) reaches C (NF=TRUE) as +z with no fingerprint.
+
+    B omits the fingerprint parameter from S2S NICK while NETWORK_FEATURES is
+    off.  C must still SetTLS from bare +z (the ``*(p + 1)`` guard skips
+    consuming a missing param) — no crash, no protocol violation, and WHOIS
+    on C still reports a secure connection (671).
+    """
+    b = ircd_nf_compat["b"]
+    c = ircd_nf_compat["c"]
+    nick = "nftls1"
+
+    oper_c = await _make_oper(c, "nftlsop")
+
+    tls_user = IRCClient()
+    await tls_user.connect_tls(b["host"], b["tls_port"])
+    await tls_user.register(nick, "testuser", "TLS on NF=FALSE")
+
+    observer = IRCClient()
+    await observer.connect(c["host"], c["port"])
+    await observer.register("nftlsobs", "testuser", "Observer on C")
+
+    try:
+        # C (and services attached to it) must learn the nick from B.
+        numnick = await services.wait_for_user(nick, timeout=10.0)
+        assert numnick, f"{nick} never appeared on C/services"
+
+        await observer.send(f"WHOIS {nick}")
+        whois = await observer.collect_until("318", timeout=5.0)
+        secure = [m for m in whois if m.command == "671"]
+        assert secure, (
+            f"C should keep IsTLS for {nick} introduced without fingerprint; "
+            f"WHOIS replies: {[m.command for m in whois]}"
+        )
+
+        wallops = await _collect_wallops(oper_c, seconds=1.5)
+        violations = [w for w in wallops if "Protocol Violation" in w]
+        assert not violations, (
+            "C protocol-violated on +z without fingerprint: "
+            + "; ".join(violations)
+        )
+
+        # C must still be healthy after accepting the NICK.
+        await observer.send("PING :after-tls-z")
+        pong = await observer.wait_for("PONG", timeout=5.0)
+        assert "after-tls-z" in (pong.params[-1] if pong.params else "")
+    finally:
+        for client in (tls_user, observer, oper_c):
+            try:
+                await client.send("QUIT :cleanup")
+            except Exception:
+                pass
+            await client.disconnect()
+
+
+async def test_p10_plus_z_without_fingerprint_no_crash(
+    ircd_nf_compat, services
+):
+    """Direct P10 NICK with +z and no fingerprint param is accepted on C.
+
+    Mimics the wire format B emits under NETWORK_FEATURES=FALSE, injected
+    from services (also attached to C) so the receive path is exercised
+    without requiring a TLS client.
+    """
+    c = ircd_nf_compat["c"]
+    nick = "nftls2"
+
+    oper_c = await _make_oper(c, "nftlsop2")
+    observer = IRCClient()
+    await observer.connect(c["host"], c["port"])
+    await observer.register("nftlsobs2", "testuser", "Observer on C")
+
+    try:
+        # Bare +iz — no fingerprint after the mode string (unlike "+iz <fp>").
+        await services.introduce_user(nick, modes="+iz", realname="No FP User")
+        await asyncio.sleep(0.4)
+
+        await observer.send(f"WHOIS {nick}")
+        whois = await observer.collect_until("318", timeout=5.0)
+        assert any(m.command == "311" for m in whois), (
+            f"{nick} missing after +z-without-fp introduce: "
+            f"{[m.command for m in whois]}"
+        )
+        secure = [m for m in whois if m.command == "671"]
+        assert secure, (
+            f"IsTLS not set on C for +z without fingerprint: "
+            f"{[m.command for m in whois]}"
+        )
+
+        wallops = await _collect_wallops(oper_c, seconds=1.5)
+        violations = [w for w in wallops if "Protocol Violation" in w]
+        assert not violations, (
+            "Unexpected protocol violation on +z-without-fp NICK: "
+            + "; ".join(violations)
+        )
+
+        await observer.send("PING :after-p10-z")
+        await observer.wait_for("PONG", timeout=5.0)
+    finally:
+        for client in (observer, oper_c):
+            try:
+                await client.send("QUIT :cleanup")
+            except Exception:
+                pass
+            await client.disconnect()
+
+
+async def test_p10_plus_rz_account_without_fingerprint(
+    ircd_nf_compat, services
+):
+    """+r account param then bare +z (no fingerprint) is parsed correctly on C.
+
+    umode_str() emits modes in userModeList order (r before z) and appends
+    the account before any fingerprint.  With NETWORK_FEATURES=FALSE the
+    fingerprint is omitted, so the wire is ``+irz AcctName`` with one mode
+    param.  C must consume AcctName for +r and leave +z without a param —
+    not treat the account as a TLS fingerprint.
+    """
+    c = ircd_nf_compat["c"]
+    nick = "nfrztls"
+    account = "RzAcct"
+
+    oper_c = await _make_oper(c, "nfrzop")
+    observer = IRCClient()
+    await observer.connect(c["host"], c["port"])
+    await observer.register("nfrzobs", "testuser", "Observer on C")
+
+    try:
+        # Single mode-param after +irz is the account; no fingerprint follows.
+        await services.introduce_user(
+            nick, modes=f"+irz {account}", realname="Account+TLS No FP"
+        )
+        await asyncio.sleep(0.4)
+
+        await observer.send(f"WHOIS {nick}")
+        whois = await observer.collect_until("318", timeout=5.0)
+        assert any(m.command == "311" for m in whois), (
+            f"{nick} missing after +irz introduce: {[m.command for m in whois]}"
+        )
+
+        accounts = [m for m in whois if m.command == "330"]
+        assert accounts, (
+            f"Account param was lost/misparsed as fingerprint; "
+            f"WHOIS: {[m.command for m in whois]}"
+        )
+        assert account in accounts[0].params, accounts[0].params
+
+        secure = [m for m in whois if m.command == "671"]
+        assert secure, (
+            f"IsTLS not set when +z followed +r without fingerprint; "
+            f"WHOIS: {[m.command for m in whois]}"
+        )
+
+        wallops = await _collect_wallops(oper_c, seconds=1.5)
+        violations = [w for w in wallops if "Protocol Violation" in w]
+        assert not violations, (
+            "Unexpected protocol violation on +irz without fingerprint: "
+            + "; ".join(violations)
+        )
+
+        await observer.send("PING :after-rz")
+        await observer.wait_for("PONG", timeout=5.0)
+    finally:
+        for client in (observer, oper_c):
+            try:
+                await client.send("QUIT :cleanup")
+            except Exception:
+                pass
+            await client.disconnect()

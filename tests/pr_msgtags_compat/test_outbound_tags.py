@@ -176,6 +176,85 @@ async def test_network_features_off_suppresses_s2s_tags(ircd_network, services):
             await c.disconnect()
 
 
+async def test_network_features_off_suppresses_s2s_tagmsg(ircd_network, services):
+    """NETWORK_FEATURES=FALSE must not relay TAGMSG (TM) to servers."""
+    hub = ircd_network["hub"]
+    channel = "#s2snotagmsg"
+
+    oper = IRCClient()
+    await oper.connect(hub["host"], hub["port"])
+    await oper.register("notagmsgop", "oper", "Oper")
+    await oper.send("OPER testoper operpass")
+    await oper.wait_for("381", timeout=10.0)
+    await oper.send("SET NETWORK_FEATURES FALSE")
+    await oper.wait_for("284", timeout=8.0)
+
+    down_num = await services.send_downstream_server("down.notm.test", 92)
+    await services.send_downstream_nick(
+        down_num, "NoTmBot", server_numeric=92, client_num=1,
+    )
+    await services.send_downstream_join("NoTmBot", channel)
+    await asyncio.sleep(0.3)
+
+    local_obs = IRCClient()
+    await local_obs.connect(hub["host"], hub["port"])
+    await local_obs.negotiate_cap(["message-tags"])
+    await local_obs.register("notmlocobs", "testuser", "Local TAGMSG Obs")
+
+    user = IRCClient()
+    await user.connect(hub["host"], hub["port"])
+    await user.negotiate_cap(["message-tags"])
+    await user.register("notmloc", "testuser", "Local TAGMSG Sender")
+
+    try:
+        await user.send(f"JOIN {channel}")
+        await local_obs.send(f"JOIN {channel}")
+        await asyncio.sleep(0.3)
+
+        # Drain any join noise on the services link before the TAGMSG.
+        deadline = asyncio.get_event_loop().time() + 0.5
+        while asyncio.get_event_loop().time() < deadline:
+            remaining = deadline - asyncio.get_event_loop().time()
+            try:
+                await services._recv(timeout=max(remaining, 0.05))
+            except (asyncio.TimeoutError, TimeoutError):
+                break
+
+        await user.send(f"@+example.com/foo=nofeat TAGMSG {channel}")
+
+        # Local clients still receive TAGMSG when NETWORK_FEATURES is off.
+        local_msg = await local_obs.wait_for("TAGMSG", timeout=5.0)
+        assert local_msg.params[0] == channel, local_msg.raw
+
+        # Remote peers must not see TM (or a tagged TM) at all.
+        deadline = asyncio.get_event_loop().time() + 2.5
+        while asyncio.get_event_loop().time() < deadline:
+            remaining = deadline - asyncio.get_event_loop().time()
+            try:
+                line = await services._recv(timeout=max(remaining, 0.1))
+            except (asyncio.TimeoutError, TimeoutError):
+                break
+            body = line.lstrip()
+            if body.startswith("@"):
+                body = body.split(" ", 1)[-1]
+            tokens = body.split()
+            assert not (len(tokens) >= 2 and tokens[1] == "TM"), (
+                f"TAGMSG was relayed S2S while NETWORK_FEATURES=FALSE: {line}"
+            )
+    finally:
+        try:
+            await oper.send("SET NETWORK_FEATURES TRUE")
+            await oper.wait_for("284", timeout=8.0)
+        except Exception:
+            pass
+        for c in (user, local_obs, oper):
+            try:
+                await c.send("QUIT :cleanup")
+            except Exception:
+                pass
+            await c.disconnect()
+
+
 async def test_s2s_protocol_commands_have_no_time_tag(ircd_network, services):
     """P10 link PING/PONG (G/Z) and lag probes (RI/RO) must not get @time=."""
     # G/Z: server-link keepalive (not client PING).

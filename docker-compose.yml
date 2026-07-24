@@ -193,6 +193,7 @@ services:
     container_name: ircu-nf-b
     ports:
       - "6672:6672"
+      - "7692:7692"
       - "4421:4421"
     networks:
       ircu-test-net:
