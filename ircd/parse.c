@@ -896,6 +896,7 @@ parse_client(struct Client *cptr, char *buffer, char *bufend)
   char*           ch;
   char*           s;
   int             i;
+  int             tag_len = 0;
   int             paramcount;
   struct Message* mptr;
   MessageHandler  handler = 0;
@@ -908,16 +909,19 @@ parse_client(struct Client *cptr, char *buffer, char *bufend)
   para[0] = cli_name(from);
   for (ch = buffer; *ch == ' '; ch++);  /* Eat leading spaces */
 
-  if (*ch == '@' && !IsServer(cptr)) {
+  if (*ch == '@') {
     char *tag_data = ch + 1;
     char *tag_end = tag_data;
 
     while (tag_end < bufend && *tag_end != ' ')
       tag_end++;
-    if ((size_t)(tag_end - tag_data) > TAGDATA_CLIENT_MAX) {
+    if (!IsServer(cptr) && (size_t)(tag_end - tag_data) > TAGDATA_CLIENT_MAX) {
       send_reply(cptr, ERR_INPUTTOOLONG);
       return -1;
     }
+    tag_len = (int)(tag_end - ch);
+    if (tag_end < bufend && *tag_end == ' ')
+      tag_len++;
   }
 
   if ((ch = parse_msg_tags(ch, bufend)) == NULL)
@@ -977,8 +981,9 @@ parse_client(struct Client *cptr, char *buffer, char *bufend)
   paramcount = mptr->parameters;
   i = bufend - ((s) ? s : ch);
   mptr->bytes += i;
+  /* Coarser tag divisor: one max client-tag line must not stall follow-ups. */
   if ((mptr->flags & MFLG_SLOW) || !IsAnOper(cptr))
-    cli_since(cptr) += (2 + i / 120);
+    cli_since(cptr) += (2 + i / 120 + tag_len / 512);
   /*
    * Allow only 1 msg per 2 seconds
    * (on average) to prevent dumping.

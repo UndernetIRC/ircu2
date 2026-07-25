@@ -92,9 +92,23 @@ Currently, everything that a client sends to a server is read by the
 server and stored in a buffer (the clients receive queue).  The server
 will process messages from this queue one by one (running over all
 clients each time).  When a client sends new messages faster they get
-processed, and the size of its receive buffer reaches this value, the
-client is dropped with the error "Excess flood."  A reasonable value
-is 1024 bytes.  The maximum size is 8000 bytes.
+processed, and the flood-accounted size of its receive buffer reaches
+this value, the client is dropped with the error "Excess flood."  Flood
+accounting counts the RFC1459 message body only (through BUFSIZE);
+leading IRCv3 client-tag prefixes are excluded so tagged and untagged
+lines consume the same flood budget.  A reasonable value is 1024 bytes.
+Class maxflood overrides this per class; setting maxflood above
+CLIENT_FLOOD also exempts that class from input throttling.
+
+CLIENT_TAG_FLOOD
+ * Type: integer
+ * Default: 8192
+
+Separate recvQ ceiling for IRCv3 message-tag prefixes (`@…` through the
+separating space).  Independent of CLIENT_FLOOD so short bodies (e.g.
+TAGMSG) cannot hide tag stuffing.  Exceeding this limit disconnects the
+client with the same "Excess flood" error.  Feature-only — there is no
+per-class override.  A value of 0 disables the tag ceiling.
 
 SERVER_PORT
  * Type: integer

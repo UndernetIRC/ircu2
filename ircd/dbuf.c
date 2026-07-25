@@ -387,3 +387,55 @@ unsigned int dbuf_getmsg(struct DBuf *dyn, char *buf, unsigned int length)
   }
   return 0;
 }
+
+/** Body octets in \a dyn for Excess Flood (CLIENT_FLOOD / maxflood).
+ * Leading IRCv3 `@tags ` prefixes are skipped so tagged and untagged lines
+ * share the classic body budget.  Incomplete trailing tag sections count 0.
+ */
+unsigned int dbuf_flood_length(const struct DBuf *dyn)
+{
+  struct DBufBuffer *db;
+  unsigned int flood = 0;
+  int at_line_start = 1;
+  int in_tags = 0;
+
+  assert(0 != dyn);
+
+  for (db = dyn->head; db; db = db->next)
+  {
+    const char *p = db->start;
+
+    while (p < db->end)
+    {
+      char c = *p++;
+
+      if (at_line_start)
+      {
+        at_line_start = 0;
+        if (c == '@')
+        {
+          in_tags = 1;
+          continue;
+        }
+        in_tags = 0;
+      }
+
+      if (in_tags)
+      {
+        if (c == ' ')
+          in_tags = 0;
+        else if (IsEol(c))
+        {
+          in_tags = 0;
+          at_line_start = 1;
+        }
+        continue;
+      }
+
+      ++flood;
+      if (IsEol(c))
+        at_line_start = 1;
+    }
+  }
+  return flood;
+}

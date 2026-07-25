@@ -644,6 +644,20 @@ void update_write(struct Client* cptr)
 		 SOCK_ACTION_ADD : SOCK_ACTION_DEL) | SOCK_EVENT_WRITABLE);
 }
 
+/** Non-zero if recvQ exceeds body (maxflood) or tag (CLIENT_TAG_FLOOD) limits. */
+static int recvq_over_flood(struct Client *cptr, unsigned int body_limit)
+{
+  unsigned int body = dbuf_flood_length(&(cli_recvQ(cptr)));
+  unsigned int tags = DBufLength(&(cli_recvQ(cptr))) - body;
+  unsigned int tag_limit = (unsigned int)feature_int(FEAT_CLIENT_TAG_FLOOD);
+
+  if (body > body_limit)
+    return 1;
+  if (tag_limit && tags > tag_limit)
+    return 1;
+  return 0;
+}
+
 /** Read a 'packet' of data from a connection and process it.  Read in
  * 8k chunks to give a better performance rating (for server
  * connections).  Do some tricky stuff for client connections to make
@@ -680,7 +694,7 @@ static int read_packet(struct Client *cptr, int socket_ready)
 
   if (socket_ready &&
       !(IsUser(cptr) &&
-	DBufLength(&(cli_recvQ(cptr))) > flood_limit)) {
+	recvq_over_flood(cptr, flood_limit))) {
     IOResult io_result = IsTLS(cptr) && s_tls(&cli_socket(cptr))
       ? ircd_tls_recv(cptr, readbuf, sizeof(readbuf), &length)
       : os_recv_nonb(cli_fd(cptr), readbuf, sizeof(readbuf), &length);
@@ -801,7 +815,7 @@ static int read_packet(struct Client *cptr, int socket_ready)
 
             /* Bound recvQ growth even while fragments accumulate unfinished.
              * Completed lines are drained (and throttled) after the read. */
-            if (DBufLength(&(cli_recvQ(cptr))) > GetMaxFlood(cptr))
+            if (recvq_over_flood(cptr, GetMaxFlood(cptr)))
               return exit_client(cptr, cptr, &me, "Excess Flood");
 
             if (con->con_ws_skip > 0)
@@ -847,8 +861,7 @@ static int read_packet(struct Client *cptr, int socket_ready)
     else if (length > 0 && dbuf_put(&(cli_recvQ(cptr)), readbuf, length) == 0)
       return exit_client(cptr, cptr, &me, "dbuf_put fail");
 
-    Debug((DEBUG_DEBUG, "dbuf: %u maxfl: %u", DBufLength(&(cli_recvQ(cptr))), GetMaxFlood(cptr)));
-    if (DBufLength(&(cli_recvQ(cptr))) > GetMaxFlood(cptr))
+    if (recvq_over_flood(cptr, GetMaxFlood(cptr)))
       return exit_client(cptr, cptr, &me, "Excess Flood");
 
     while (DBufLength(&(cli_recvQ(cptr))) && !NoNewLine(cptr) &&

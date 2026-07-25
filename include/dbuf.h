@@ -56,6 +56,8 @@ extern int dbuf_put(struct DBuf *dyn, const char *buf, unsigned int length);
 extern const char *dbuf_map(const struct DBuf *dyn, unsigned int *length);
 extern unsigned int dbuf_get(struct DBuf *dyn, char *buf, unsigned int length);
 extern unsigned int dbuf_getmsg(struct DBuf *dyn, char *buf, unsigned int length);
+/** Body octets for Excess Flood; IRCv3 `@tags ` prefixes are excluded. */
+extern unsigned int dbuf_flood_length(const struct DBuf *dyn);
 extern void dbuf_count_memory(size_t *allocated, size_t *used);
 
 
