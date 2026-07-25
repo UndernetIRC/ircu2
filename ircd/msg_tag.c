@@ -368,6 +368,11 @@ msg_tag_s2s_needs_time(const char *tok)
       || !ircd_strcmp(tok, TOK_JUPE)
       || !ircd_strcmp(tok, TOK_GLINE)
       || !ircd_strcmp(tok, TOK_SLINE)
+      /* Server<->services RPC: consumed by services software that parses
+       * P10 fields positionally and does not strip tags.  A @time= prefix
+       * shifts every field and breaks SASL/spamfilter routing. */
+      || !ircd_strcmp(tok, TOK_XQUERY)
+      || !ircd_strcmp(tok, TOK_XREPLY)
       || !ircd_strcmp(tok, TOK_DESTRUCT))
     return 0;
   return 1;
