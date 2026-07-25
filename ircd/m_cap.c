@@ -295,6 +295,12 @@ cap_req(struct Client *sptr, const char *caplist)
     auth_cap_start(cli_auth(sptr));
 
   while (cl) { /* walk through the capabilities list... */
+    /* Skip separators; stop cleanly on trailing whitespace (do not NAK). */
+    while (*cl && IsSpace(*cl))
+      cl++;
+    if (!*cl)
+      break;
+
     if (!(cap = find_cap(&cl, &neg)) /* look up capability... */
         || (cap->config != 0 && !feature_bool(cap->config)) /* is it deactivated in config? */
         || (!neg && (cap->flags & CAPFL_PROHIBIT)) /* is it prohibited? */
@@ -343,17 +349,18 @@ cap_list(struct Client *sptr, const char *caplist)
   return send_caplist(sptr, cli_capab(sptr), 0, "LIST");
 }
 
+/* Must stay sorted by cmd for bsearch() in m_cap(). */
 static struct subcmd {
   char *cmd;
   int (*proc)(struct Client *sptr, const char *caplist);
 } cmdlist[] = {
   { "ACK",   0         },
+  { "DEL",   0         },
   { "END",   cap_end   },
   { "LIST",  cap_list  },
   { "LS",    cap_ls    },
   { "NAK",   0         },
   { "NEW",   0         },
-  { "DEL",   0         },
   { "REQ",   cap_req   }
 };
 
