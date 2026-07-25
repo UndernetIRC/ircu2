@@ -14,6 +14,8 @@ import string
 
 import pytest
 
+from websockets.exceptions import ConnectionClosed
+
 from irc_client import IRCClient
 from irc_ws_client import IRCWebSocketClient
 
@@ -177,28 +179,52 @@ async def test_ws_stress_tcp_and_ws_cross_talk(ircd_hub):
 
 @pytest.mark.asyncio
 async def test_ws_stress_join_part_hammer(ircd_hub):
-    ws = IRCWebSocketClient()
-    await ws.connect(WS_URL, subprotocols=["text.ircv3.net"])
-    await ws.register("wsjp", "t", "JP")
-    for _ in range(40):
-        await ws.send("JOIN #jphammer")
-        await ws.send("PART #jphammer :x")
-    await ws.send("QUIT :stress")
-    await ws.disconnect()
+    """Many clients each do a few JOIN/PART cycles under CLIENT_FLOOD per link.
+
+    A single socket doing dozens of pairs queues past the default 1024-byte
+    body flood ceiling (and trips Excess Flood).  Aggregate load stays high
+    via parallel clients with a small per-client budget.
+    """
+
+    async def one(idx: int) -> None:
+        ws = IRCWebSocketClient()
+        await ws.connect(WS_URL, subprotocols=["text.ircv3.net"])
+        try:
+            await ws.register(f"wsjp{idx}", "t", "JP")
+            # ~10 short lines ≪ 1024 even if they sit undrained under throttle.
+            for _ in range(5):
+                await ws.send("JOIN #jphammer")
+                await ws.send("PART #jphammer :x")
+            await ws.send("QUIT :stress")
+        finally:
+            await ws.disconnect()
+
+    await asyncio.wait_for(
+        asyncio.gather(*(one(i) for i in range(8))), timeout=60.0
+    )
 
 
 @pytest.mark.asyncio
 async def test_ws_stress_binary_burst(ircd_hub):
-    """Binary subprotocol: many frames with ASCII IRC lines as octets."""
-    ws = IRCWebSocketClient(binary=True)
-    await ws.connect(WS_URL, subprotocols=["binary.ircv3.net"])
-    await ws.register("wsbin", "t", "Bin")
-    await ws.send("JOIN #wsbin")
-    for i in range(100):
-        line = f"PRIVMSG #wsbin :binary burst {i}\r\n".encode("ascii")
-        await ws.send_bytes(line)
-    await ws.send("QUIT :stress")
-    await ws.disconnect()
+    """Binary subprotocol: several clients each send a modest ASCII burst."""
+
+    async def one(idx: int) -> None:
+        ws = IRCWebSocketClient(binary=True)
+        await ws.connect(WS_URL, subprotocols=["binary.ircv3.net"])
+        try:
+            await ws.register(f"wsbin{idx}", "t", "Bin")
+            await ws.send("JOIN #wsbin")
+            # ~12 × ~40-byte lines stays under CLIENT_FLOOD if queued.
+            for i in range(12):
+                line = f"PRIVMSG #wsbin :binary burst {idx}-{i}\r\n".encode("ascii")
+                await ws.send_bytes(line)
+            await ws.send("QUIT :stress")
+        finally:
+            await ws.disconnect()
+
+    await asyncio.wait_for(
+        asyncio.gather(*(one(i) for i in range(8))), timeout=60.0
+    )
 
 
 @pytest.mark.asyncio
@@ -236,21 +262,35 @@ async def test_ws_stress_almost_max_line(ircd_hub):
 
 
 @pytest.mark.asyncio
-async def test_ws_stress_oversize_line_survival(ircd_hub):
-    """Oversized line: connection should survive (server may ERR or drop)."""
+async def test_ws_stress_oversize_line_trips_excess_flood(ircd_hub):
+    """Post-handshake body ≫ CLIENT_FLOOD → Excess Flood (not WS-special)."""
     ws = IRCWebSocketClient()
     await ws.connect(WS_URL, subprotocols=["text.ircv3.net"])
     await ws.register("wsov", "t", "Ov")
     huge = "X" * 8000
-    await ws.send(f"PRIVMSG nobody :{huge}")
+    killed = False
     try:
-        for _ in range(15):
-            await ws.recv(timeout=0.5)
-    except asyncio.TimeoutError:
+        await ws.send(f"PRIVMSG nobody :{huge}")
+        for _ in range(20):
+            try:
+                msg = await ws.recv(timeout=0.4)
+                if "Excess Flood" in msg.raw:
+                    killed = True
+                    break
+            except asyncio.TimeoutError:
+                if ws._ws is not None and getattr(ws._ws, "close_code", None) is not None:
+                    killed = True
+                    break
+            except (ConnectionError, OSError, ConnectionClosed):
+                killed = True
+                break
+    except (ConnectionError, OSError, ConnectionClosed):
+        killed = True
+    assert killed, "Expected Excess Flood kill for 8KB IRC body on default class"
+    try:
+        await ws.disconnect()
+    except Exception:
         pass
-    assert ws.connected
-    await ws.send("QUIT :stress")
-    await ws.disconnect()
 
 
 @pytest.mark.asyncio

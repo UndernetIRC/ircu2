@@ -716,23 +716,29 @@ async def test_hold_queue_flood(ircd_network, services):
                     except ValueError:
                         pass
 
-        # Spawn many senders, each sends a few matching messages
-        total_sent = 0
-        for s in range(num_senders):
+        # Spawn many senders in parallel so Ident (AUTH_TIMEOUT≈9s) overlaps
+        # instead of stacking to ~3 minutes sequentially.
+        async def _spawn_sender(idx: int) -> IRCClient:
             sender = IRCClient()
             await sender.connect(hub["host"], hub["port"])
-            await sender.register(f"sl65f{s:02d}", "testuser", "Test User")
-            senders.append(sender)
+            await sender.register(f"sl65f{idx:02d}", "testuser", "Test User")
+            return sender
 
+        senders = list(
+            await asyncio.gather(*(_spawn_sender(s) for s in range(num_senders)))
+        )
+        for s in range(num_senders):
             await services.wait_for_user(f"sl65f{s:02d}")
 
+        total_sent = 0
+        for s, sender in enumerate(senders):
             for m in range(msgs_per_sender):
                 try:
                     await sender.send(f"PRIVMSG sl65flr :floodme msg {s}-{m}")
                     total_sent += 1
                 except ConnectionResetError:
                     break
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.05)
 
         # Drain XQUERY messages (we never reply — simulating dead spamfilter)
         await services.drain_messages(timeout=1.0)

@@ -5,6 +5,10 @@ buffer must not drop the connection. The server delivers the first line's worth
 of octets and drains the rest (even across TCP reads), staying synchronized so
 the following frame is still parsed.
 
+The deliverable prefix is ~READBUFSIZE (~8 KiB), which exceeds the default
+CLIENT_FLOOD (1024).  Run the sender on the flood-exempt WebSocket port so this
+test covers frame drain/resync rather than Excess Flood.
+
 Requires the Docker hub (``ircd_hub``). Marked ``websocket_stress``.
 """
 
@@ -17,6 +21,7 @@ import pytest
 from irc_client import IRCClient
 from ws_frame_helpers import (
     HOST,
+    WS_EXEMPT_PORT,
     masked_ws_frame,
     masked_text_frame,
     raw_ws_connect,
@@ -34,7 +39,8 @@ async def test_ws_oversize_frame_drained_and_parser_resyncs(ircd_hub):
     await recv.connect(HOST, NORMAL_PORT)
     await recv.register("ovrecv", "rx", "oversize receiver")
 
-    r, w = await raw_ws_connect()
+    # Exempt class: oversized-frame deliver prefix would Excess Flood on Local.
+    r, w = await raw_ws_connect(WS_EXEMPT_PORT)
     assert await register_over_raw_ws(r, w, "ovsend", timeout=15.0)
 
     # A single ~20 KiB frame of junk (no valid command); far bigger than the
