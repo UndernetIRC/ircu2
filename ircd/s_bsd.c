@@ -861,6 +861,7 @@ static int read_packet(struct Client *cptr, int socket_ready)
     else if (length > 0 && dbuf_put(&(cli_recvQ(cptr)), readbuf, length) == 0)
       return exit_client(cptr, cptr, &me, "dbuf_put fail");
 
+    Debug((DEBUG_DEBUG, "dbuf: %u maxfl: %u", DBufLength(&(cli_recvQ(cptr))), GetMaxFlood(cptr)));
     if (recvq_over_flood(cptr, GetMaxFlood(cptr)))
       return exit_client(cptr, cptr, &me, "Excess Flood");
 
