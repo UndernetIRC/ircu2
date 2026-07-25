@@ -46,7 +46,8 @@ uv run pytest tls/ -v
 uv run pytest pr_network_features_compat/ -v
 
 All docker topologies (hub-only, full network, TLS, limits, DNS, standalone
-TLS hub) share one compose project and are mutually exclusive. `conftest.py`
+TLS hub, NF compat) share one compose project and are mutually exclusive —
+each topology brings up only its own containers. `conftest.py`
 manages them explicitly: an autouse fixture starts the topology each test
 needs and tests are grouped by topology at collection time, so any selection
 (`-m`, `-k`, paths) is safe — mixing topologies in one run just costs extra
@@ -141,9 +142,9 @@ the current [UndernetIRC/ircu2 release](https://github.com/UndernetIRC/ircu2/rel
 
 | Service   | Server Name      | Binary   | NETWORK_FEATURES | Client | S2S  | IP         |
 |-----------|------------------|----------|------------------|--------|------|------------|
-| ircd-nf-a | a.prod.test.net  | release  | n/a (prod)       | 6671   | 4420 | 10.55.0.40 |
-| ircd-nf-b | b.test.net       | tree     | FALSE            | 6672   | 4421 | 10.55.0.41 |
-| ircd-nf-c | c.test.net       | tree     | TRUE (also HUB)  | 6673   | 4422 | 10.55.0.42 |
+| ircd-nf-a | a.prod.test.net  | release  | n/a (prod)       | 6674   | 4420 | 10.55.0.40 |
+| ircd-nf-b | b.test.net       | tree     | FALSE            | 6675   | 4421 | 10.55.0.41 |
+| ircd-nf-c | c.test.net       | tree     | TRUE (also HUB)  | 6676   | 4422 | 10.55.0.42 |
 
 Services (`P10Server`, numeric 4) attach to **C** (C sets `HUB` so it can
 accept that server link).  Assertions check that remote `OPMODE +x`,

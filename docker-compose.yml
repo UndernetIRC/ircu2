@@ -174,7 +174,7 @@ services:
         IRCD_RELEASE_TAG: ${IRCD_RELEASE_TAG:-u2.10.12.19}
     container_name: ircu-nf-a
     ports:
-      - "6671:6671"
+      - "6674:6674"
       - "4420:4420"
     networks:
       ircu-test-net:
@@ -192,7 +192,7 @@ services:
         SANITIZE: ${IRCD_SANITIZE:-}
     container_name: ircu-nf-b
     ports:
-      - "6672:6672"
+      - "6675:6675"
       - "7692:7692"
       - "4421:4421"
     networks:
@@ -209,7 +209,7 @@ services:
         SANITIZE: ${IRCD_SANITIZE:-}
     container_name: ircu-nf-c
     ports:
-      - "6673:6673"
+      - "6676:6676"
       - "4422:4422"
     networks:
       ircu-test-net:

@@ -18,20 +18,20 @@ ARG TLS_BACKEND=openssl
 ARG SANITIZE=
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    make \
-    bison \
-    flex \
-    autoconf \
-    automake \
-    autoconf-archive \
-    libc6-dev \
-    pkg-config \
-    $(if [ "$TLS_BACKEND" = "openssl" ]; then echo libssl-dev; \
-      elif [ "$TLS_BACKEND" = "gnutls" ]; then echo libgnutls28-dev; \
-      elif [ "$TLS_BACKEND" = "libtls" ]; then echo libtls-dev; fi) \
-    $(if [ -n "$SANITIZE" ]; then echo libasan8; fi) \
-    && rm -rf /var/lib/apt/lists/*
+  gcc \
+  make \
+  bison \
+  flex \
+  autoconf \
+  automake \
+  autoconf-archive \
+  libc6-dev \
+  pkg-config \
+  $(if [ "$TLS_BACKEND" = "openssl" ]; then echo libssl-dev; \
+  elif [ "$TLS_BACKEND" = "gnutls" ]; then echo libgnutls28-dev; \
+  elif [ "$TLS_BACKEND" = "libtls" ]; then echo libtls-dev; fi) \
+  $(if [ -n "$SANITIZE" ]; then echo libasan8; fi) \
+  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build/ircu2
 COPY . .
@@ -40,12 +40,12 @@ COPY . .
 RUN find . -name '*.o' -delete && rm -f ircd/ircd
 
 RUN ./autogen.sh \
-    && if [ -n "$SANITIZE" ]; then \
-         export CFLAGS="-fsanitize=$SANITIZE -fno-omit-frame-pointer -g -O1"; \
-         export LDFLAGS="-fsanitize=$SANITIZE"; \
-       fi; \
-    ./configure --prefix=/opt/ircu --with-maxcon=256 --enable-debug --with-tls=${TLS_BACKEND} \
-    && make
+  && if [ -n "$SANITIZE" ]; then \
+  export CFLAGS="-fsanitize=$SANITIZE -fno-omit-frame-pointer -g -O1"; \
+  export LDFLAGS="-fsanitize=$SANITIZE"; \
+  fi; \
+  ./configure --prefix=/opt/ircu --with-maxcon=256 --enable-debug --with-tls=${TLS_BACKEND} \
+  && make
 
 # ---------------------------------------------------------------------------
 # Stage: build the current Undernet production release from GitHub
@@ -56,26 +56,25 @@ FROM debian:trixie-slim AS builder-release
 ARG IRCD_RELEASE_TAG=u2.10.12.19
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    make \
-    bison \
-    flex \
-    libc6-dev \
-    ca-certificates \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+  gcc \
+  make \
+  bison \
+  flex \
+  libc6-dev \
+  ca-certificates \
+  curl \
+  autotools-dev \
+  && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /build
+WORKDIR /build/src
 RUN curl -fsSL \
-      "https://github.com/UndernetIRC/ircu2/archive/refs/tags/${IRCD_RELEASE_TAG}.tar.gz" \
-      -o /tmp/ircu-release.tar.gz \
-    && tar xzf /tmp/ircu-release.tar.gz \
-    && rm /tmp/ircu-release.tar.gz \
-    && SRC="$(echo ircu2-*)" \
-    && cd "$SRC" \
-    && ./configure --prefix=/opt/ircu --with-maxcon=256 --enable-debug \
-    && make \
-    && cp ircd/ircd /build/ircd
+  "https://github.com/UndernetIRC/ircu2/releases/download/${IRCD_RELEASE_TAG}/irc${IRCD_RELEASE_TAG}.tar.gz" \
+  | tar xz --strip-components=1 \
+  # The 2005-era config.guess/config.sub in the release tarball predate aarch64
+  && cp /usr/share/misc/config.guess /usr/share/misc/config.sub . \
+  && ./configure --prefix=/opt/ircu --with-maxcon=256 --enable-debug \
+  && make \
+  && cp ircd/ircd /build/ircd
 
 # ---------------------------------------------------------------------------
 # Shared runtime base (no ircd binary yet)
@@ -86,18 +85,18 @@ ARG TLS_BACKEND=openssl
 ARG SANITIZE=
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    perl \
-    gdb \
-    valgrind \
-    $(if [ "$TLS_BACKEND" = "openssl" ]; then echo libssl3t64; \
-      elif [ "$TLS_BACKEND" = "gnutls" ]; then echo libgnutls30t64; \
-      elif [ "$TLS_BACKEND" = "libtls" ]; then echo libtls28t64; fi) \
-    $(if [ -n "$SANITIZE" ]; then echo libasan8; fi) \
-    && rm -rf /var/lib/apt/lists/*
+  perl \
+  gdb \
+  valgrind \
+  $(if [ "$TLS_BACKEND" = "openssl" ]; then echo libssl3t64; \
+  elif [ "$TLS_BACKEND" = "gnutls" ]; then echo libgnutls30t64; \
+  elif [ "$TLS_BACKEND" = "libtls" ]; then echo libtls28t64; fi) \
+  $(if [ -n "$SANITIZE" ]; then echo libasan8; fi) \
+  && rm -rf /var/lib/apt/lists/*
 
 RUN useradd -r -m -d /opt/ircu ircu \
-    && mkdir -p /opt/ircu/lib /opt/ircu/bin \
-    && chown -R ircu:ircu /opt/ircu
+  && mkdir -p /opt/ircu/lib /opt/ircu/bin \
+  && chown -R ircu:ircu /opt/ircu
 
 ARG IRCD_CONF=tests/docker/ircd-hub.conf
 COPY ${IRCD_CONF} /opt/ircu/lib/ircd.conf

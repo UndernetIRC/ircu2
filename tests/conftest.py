@@ -104,14 +104,14 @@ LIMITS = {
 # A (prod release) — B (new, NETWORK_FEATURES=FALSE) — C (new, NETWORK_FEATURES=TRUE)
 NF_A = {
     "host": "127.0.0.1",
-    "port": 6671,
+    "port": 6674,
     "server_port": 4420,
     "name": "a.prod.test.net",
     "role": "prod",
 }
 NF_B = {
     "host": "127.0.0.1",
-    "port": 6672,
+    "port": 6675,
     "tls_port": 7692,
     "server_port": 4421,
     "name": "b.test.net",
@@ -119,7 +119,7 @@ NF_B = {
 }
 NF_C = {
     "host": "127.0.0.1",
-    "port": 6673,
+    "port": 6676,
     "server_port": 4422,
     "name": "c.test.net",
     "role": "services_leaf",
@@ -171,7 +171,7 @@ def _start_topology_hub():
 
 
 def _start_topology_network():
-    _start_services()
+    _start_services("ircd-hub", "ircd-leaf1", "ircd-leaf2")
     for server in (HUB, LEAF1, LEAF2):
         wait_for_port(server["host"], server["port"])
     # Wait for servers to link
@@ -211,6 +211,29 @@ def _start_topology_dns():
     reset_stats()
 
 
+def _start_topology_nf_compat():
+    _start_services("ircd-nf-a", "ircd-nf-b", "ircd-nf-c")
+    for server in (NF_A, NF_B, NF_C):
+        try:
+            wait_for_port(server["host"], server["port"], timeout=120.0)
+        except TimeoutError:
+            # Surface container logs — config/parse failures are otherwise silent.
+            for name in ("ircu-nf-a", "ircu-nf-b", "ircu-nf-c"):
+                result = subprocess.run(
+                    ["docker", "logs", "--tail", "80", name],
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                )
+                print(
+                    f"\n===== docker logs {name} =====\n"
+                    f"{result.stdout}{result.stderr}"
+                )
+            raise
+    # Autoconnect A→B and C→B, then settle.
+    time.sleep(5)
+
+
 _TOPOLOGIES = {
     "hub": _start_topology_hub,
     "network": _start_topology_network,
@@ -218,6 +241,7 @@ _TOPOLOGIES = {
     "tls_hub": _start_topology_tls_hub,
     "limits": _start_topology_limits,
     "dns": _start_topology_dns,
+    "nf_compat": _start_topology_nf_compat,
 }
 
 # A running topology satisfies a required one iff listed here. "network"
@@ -232,6 +256,7 @@ _SATISFIED_BY = {
     "tls_hub": {"tls_hub"},
     "limits": {"limits"},
     "dns": {"dns"},
+    "nf_compat": {"nf_compat"},
 }
 
 _FIXTURE_TOPOLOGY = {
@@ -241,12 +266,13 @@ _FIXTURE_TOPOLOGY = {
     "ircd_tls_hub": "tls_hub",
     "ircd_limits": "limits",
     "ircd_dns_hub": "dns",
+    "ircd_nf_compat": "nf_compat",
 }
 
 # Collection order: tests with no docker dependency first, then one
 # contiguous block per topology. "network" runs before "hub" so hub-only
 # tests reuse the already-running network (see _SATISFIED_BY).
-_TOPOLOGY_ORDER = ["network", "hub", "limits", "dns", "tls_network", "tls_hub"]
+_TOPOLOGY_ORDER = ["network", "hub", "limits", "dns", "nf_compat", "tls_network", "tls_hub"]
 
 _active_topology = None
 
@@ -384,36 +410,14 @@ def ircd_limits():
 
 @pytest.fixture(scope="session")
 def ircd_nf_compat():
-    """Start A(prod)—B(NF=FALSE)—C(NF=TRUE) for NETWORK_FEATURES compat tests.
+    """Connection info for the A(prod)—B(NF=FALSE)—C(NF=TRUE) compat chain.
 
-    A is built from the UndernetIRC/ircu2 release tarball (see
-    Dockerfile target runtime-release).  B and C are built from the
-    working tree.  Services attach to C.
+    A is built from the UndernetIRC/ircu2 release tarball (see Dockerfile
+    target runtime-release).  B and C are built from the working tree.
+    Services attach to C.  The container lifecycle is handled by
+    _ircd_topology, like every other topology.
     """
-    _start_services("ircd-nf-a", "ircd-nf-b", "ircd-nf-c")
-    try:
-        for server in (NF_A, NF_B, NF_C):
-            try:
-                wait_for_port(server["host"], server["port"], timeout=120.0)
-            except TimeoutError:
-                # Surface container logs — config/parse failures are otherwise silent.
-                for name in ("ircu-nf-a", "ircu-nf-b", "ircu-nf-c"):
-                    result = subprocess.run(
-                        ["docker", "logs", "--tail", "80", name],
-                        capture_output=True,
-                        text=True,
-                        timeout=30,
-                    )
-                    print(
-                        f"\n===== docker logs {name} =====\n"
-                        f"{result.stdout}{result.stderr}"
-                    )
-                raise
-        # Autoconnect A→B and C→B, then settle.
-        time.sleep(5)
-        yield {"a": NF_A, "b": NF_B, "c": NF_C}
-    finally:
-        docker_compose("down", check=False)
+    return {"a": NF_A, "b": NF_B, "c": NF_C}
 
 
 @pytest.fixture(scope="session")
