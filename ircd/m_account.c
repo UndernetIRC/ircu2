@@ -139,18 +139,26 @@ int ms_account(struct Client* cptr, struct Client* sptr, int parc,
 
   already_account = IsAccount(acptr);
 
-  /* If the client already has an account, we do not accept changes to the account or acc_id. */
+  /* If the client already has an account, we do not accept changes to the
+   * account name, and we do not replace a non-zero acc_id.  A first-seen
+   * acc_id (stored value still 0) is adopted so later flag updates can
+   * relay with a complete ACCOUNT line. */
   if (already_account) {
     if (strcmp(cli_user(acptr)->account, parv[2]))
       return protocol_violation(cptr, "ACCOUNT for already registered user %s "
               "(%s -> %s)", cli_name(acptr),
               cli_user(acptr)->account, parv[2]);
-    if (acc_id &&
-        cli_user(acptr)->acc_id != 0 &&
-        cli_user(acptr)->acc_id != acc_id)
-       return protocol_violation(cptr, "ACCOUNT ID for already registered user %s "
-              "(%qu -> %qu)", cli_name(acptr),
-              cli_user(acptr)->acc_id, acc_id);
+    if (acc_id) {
+      if (cli_user(acptr)->acc_id == 0) {
+        cli_user(acptr)->acc_id = acc_id;
+        Debug((DEBUG_DEBUG, "Received account id: account \"%s\", "
+              "id %qu", parv[2], cli_user(acptr)->acc_id));
+      } else if (cli_user(acptr)->acc_id != acc_id) {
+        return protocol_violation(cptr, "ACCOUNT ID for already registered user %s "
+                "(%qu -> %qu)", cli_name(acptr),
+                cli_user(acptr)->acc_id, acc_id);
+      }
+    }
   } else {
     /* Client did not already have an account. */
     if (strlen(parv[2]) > ACCOUNTLEN)
@@ -177,15 +185,20 @@ int ms_account(struct Client* cptr, struct Client* sptr, int parc,
            "flags %qu", parv[2], cli_user(acptr)->acc_flags));
   }
 
-  /* Flag-only ACCOUNT updates for already-authed users confuse older
-   * peers; do not relay them while NETWORK_FEATURES is off.  First-time
-   * ACCOUNT registration always propagates. */
+  /* Flag-only / same-name ACCOUNT updates for already-authed users
+   * confuse peers on u2.10.12.19 and earlier (they protocol_violate on
+   * any second ACCOUNT).  u2.10.13.0 tolerates same-name locally; do not
+   * relay while NETWORK_FEATURES is off.  First-time ACCOUNT always
+   * propagates. */
   if (already_account && !feature_bool(FEAT_NETWORK_FEATURES))
     return 0;
 
-  /* To propagate a 0 flag, we check the param number rather than whether acc_flags is true. */
+  /* Key the relay format on parc (not stored acc_id) so a flag update
+   * after a bare-name registration still propagates id/flags.  A zero
+   * flag value is intentional when parc > 4. */
   sendcmdto_serv_butone(sptr, CMD_ACCOUNT, cptr,
-                        cli_user(acptr)->acc_id ? (parc > 4 ? "%C %s %qu %qu" : "%C %s %qu") : "%C %s",
+                        parc > 4 ? "%C %s %qu %qu" :
+                        parc > 3 ? "%C %s %qu" : "%C %s",
                         acptr, cli_user(acptr)->account,
                         cli_user(acptr)->acc_id,
                         cli_user(acptr)->acc_flags);

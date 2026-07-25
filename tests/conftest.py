@@ -135,6 +135,55 @@ def _start_services(*services):
     docker_compose(*args)
 
 
+async def _nf_compat_links_ready(timeout: float = 60.0) -> None:
+    """Oper up on B and poll LINKS until both A and C appear."""
+    import asyncio
+
+    client = IRCClient()
+    await client.connect(NF_B["host"], NF_B["port"])
+    try:
+        await client.register("nflinkop", "oper", "NF Link Oper")
+        await client.send("OPER testoper operpass")
+        await client.wait_for("381", timeout=10.0)
+
+        needed = {NF_A["name"], NF_C["name"]}
+        deadline = asyncio.get_running_loop().time() + timeout
+        while asyncio.get_running_loop().time() < deadline:
+            await client.send("LINKS")
+            seen = set()
+            while True:
+                remaining = deadline - asyncio.get_running_loop().time()
+                if remaining <= 0:
+                    break
+                msg = await client.recv(timeout=min(5.0, max(0.1, remaining)))
+                if msg.command == "364":
+                    for name in needed:
+                        if any(name in p for p in msg.params):
+                            seen.add(name)
+                elif msg.command == "365":
+                    break
+            if needed <= seen:
+                return
+            await asyncio.sleep(0.5)
+        raise TimeoutError(
+            f"NF compat links not ready after {timeout}s "
+            f"(wanted {sorted(needed)})"
+        )
+    finally:
+        try:
+            await client.send("QUIT :done")
+        except Exception:
+            pass
+        await client.disconnect()
+
+
+def _wait_nf_compat_links(timeout: float = 60.0) -> None:
+    """Sync wrapper: poll B's LINKS until A and C are linked."""
+    import asyncio
+
+    asyncio.run(_nf_compat_links_ready(timeout=timeout))
+
+
 # ---------------------------------------------------------------------------
 # Docker topology management
 #
@@ -230,8 +279,8 @@ def _start_topology_nf_compat():
                     f"{result.stdout}{result.stderr}"
                 )
             raise
-    # Autoconnect A→B and C→B, then settle.
-    time.sleep(5)
+    # Autoconnect A→B and C→B; wait until LINKS on B shows both peers.
+    _wait_nf_compat_links(timeout=60.0)
 
 
 _TOPOLOGIES = {

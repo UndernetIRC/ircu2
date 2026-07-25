@@ -372,7 +372,7 @@ void send_buffer(struct Client* to, struct Client* from, struct MsgBuf* buf, int
     /* Older peers cannot parse @tags or TAGMSG (TM); gate on NETWORK_FEATURES.
      * Invent @time= only for client-event commands (see s2s_needs_time). */
     if (!feature_bool(FEAT_NETWORK_FEATURES)) {
-      if (tctx && tctx->tok && !ircd_strcmp(tctx->tok, TOK_TAGMSG))
+      if (tctx && tctx->tok && !strcmp(tctx->tok, TOK_TAGMSG))
         return;
     } else {
       int invent = tctx ? tctx->s2s_needs_time : 0;

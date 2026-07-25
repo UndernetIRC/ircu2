@@ -204,7 +204,9 @@ ms_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   ClrFlag(sptr, FLAG_TS8);
 
   if (IsServer(sptr)) {
-    if (find_conf_byhost(cli_confs(cptr), cli_name(sptr), CONF_UWORLD))
+    /* Prefer UWorld on the originator (multi-hop); fall back to uplink. */
+    if (find_conf_byhost(cli_confs(sptr), cli_name(sptr), CONF_UWORLD) ||
+        find_conf_byhost(cli_confs(cptr), cli_name(sptr), CONF_UWORLD))
       modebuf_init(&mbuf, sptr, cptr, chptr,
 		   (MODEBUF_DEST_CHANNEL | /* Send mode to clients */
 		    MODEBUF_DEST_SERVER  | /* Send mode to servers */

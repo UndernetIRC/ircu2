@@ -294,3 +294,71 @@ async def test_remote_opmode_o_still_works(ircd_network, services):
         except Exception:
             pass
         await user.disconnect()
+
+
+async def test_multihop_opmode_after_rehash(ircd_network, services):
+    """Multi-hop U:lined OPMODE must still apply after REHASH on the home server.
+
+    Services attach to the hub; the target user is local on leaf1, so the
+    home server sees cptr=hub and sptr=services.  UWorld must be resolved
+    via sptr (originator) then cptr (uplink) — the same dual-lookup ACCOUNT
+    uses — or post-rehash the OPMODE is rejected as non-U:lined.
+    """
+    hub = ircd_network["hub"]
+    leaf = ircd_network["leaf1"]
+
+    user = IRCClient()
+    await user.connect(leaf["host"], leaf["port"])
+    await user.register("usr62mh", "testuser", "Multi-hop User")
+
+    oper = IRCClient()
+    await oper.connect(leaf["host"], leaf["port"])
+    await oper.register("oper62mh", "oper", "Leaf Oper")
+    await oper.send("OPER testoper operpass")
+    await oper.wait_for("381", timeout=5.0)
+    await oper.send("MODE oper62mh +g")
+    await asyncio.sleep(0.2)
+
+    try:
+        numnick = await services.wait_for_user("usr62mh", timeout=10.0)
+
+        await oper.send("REHASH")
+        await asyncio.sleep(1.5)
+
+        await services.send_opmode(numnick, "+o")
+        mode_msg = await user.wait_for("MODE", timeout=5.0)
+        assert "o" in mode_msg.params[-1], (
+            f"Multi-hop OPMODE +o after rehash should apply: {mode_msg.params}"
+        )
+
+        await user.send("MODE usr62mh")
+        umode = await user.wait_for("221", timeout=3.0)
+        assert "o" in umode.params[-1], (
+            f"User should be oper after multi-hop OPMODE: {umode.params}"
+        )
+
+        # No protocol_violation WALLOPS about non U:lined.
+        wallops = []
+        deadline = asyncio.get_running_loop().time() + 1.0
+        while asyncio.get_running_loop().time() < deadline:
+            try:
+                msg = await oper.recv(timeout=0.3)
+            except (asyncio.TimeoutError, TimeoutError):
+                break
+            if msg.command.upper() == "WALLOPS" and msg.params:
+                wallops.append(msg.params[-1])
+        violations = [
+            w for w in wallops
+            if "Protocol Violation" in w and "U:lined" in w
+        ]
+        assert not violations, (
+            "Home server rejected multi-hop U:lined OPMODE: "
+            + "; ".join(violations)
+        )
+    finally:
+        for client in (user, oper):
+            try:
+                await client.send("QUIT :cleanup")
+            except Exception:
+                pass
+            await client.disconnect()

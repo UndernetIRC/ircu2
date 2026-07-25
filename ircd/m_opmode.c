@@ -193,7 +193,11 @@ int ms_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       return 0;
     }
 
-    conf = find_conf_byhost(cli_confs(cptr), cli_name(sptr), CONF_UWORLD);
+    /* Prefer UWorld attached to the originator (works across multi-hop
+     * relays); fall back to the immediate uplink for direct links. */
+    conf = find_conf_byhost(cli_confs(sptr), cli_name(sptr), CONF_UWORLD);
+    if (!conf)
+      conf = find_conf_byhost(cli_confs(cptr), cli_name(sptr), CONF_UWORLD);
     if (!conf) {
       protocol_violation(cptr, "OPMODE from non U:lined server %s", cli_name(sptr));
       return 0;

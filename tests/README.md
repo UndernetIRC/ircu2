@@ -149,9 +149,20 @@ the current [UndernetIRC/ircu2 release](https://github.com/UndernetIRC/ircu2/rel
 Services (`P10Server`, numeric 4) attach to **C** (C sets `HUB` so it can
 accept that server link).  Assertions check that remote `OPMODE +x`,
 already-authed `ACCOUNT` flag updates, and `+z` TLS fingerprint tokens on
-NICK/umode bursts never reach **A** (prod would `protocol_violation` on a
-second ACCOUNT).  A P10 spy on **B** (`spy.test.net`) observes B's
-re-burst wire.  Override the release with `IRCD_RELEASE_TAG=...`.
+NICK/umode bursts never reach **A**.  On **u2.10.12.19 and earlier**, a
+second ACCOUNT for an already-authed nick is a hard `protocol_violation`;
+**u2.10.13.0** tolerates same-name updates locally.  The ACCOUNT gate is
+asserted on the wire via a P10 spy on **B** (`spy.test.net`): with
+`NETWORK_FEATURES=FALSE`, B must not relay a second `AC` for that numnick.
+A spy on **C** (`spyc.test.net`) checks that a flag update after bare-name
+registration still leaves C with id+flags (NF=TRUE hop).  TOPIC-with-who
+from the tree is also checked for prod parse tolerance (topic text still
+last param).  Override the release with `IRCD_RELEASE_TAG=...`.
+
+Positive-path checks (TAGMSG / OPMODE +x / ACCOUNT flag update still leave
+the hub when `NETWORK_FEATURES` is TRUE) live in
+`test_nf_true_positive.py` on the standard hub topology, using
+`notulined.test.net` as a wire spy beside services.
 
 ## IRC Client API
 
