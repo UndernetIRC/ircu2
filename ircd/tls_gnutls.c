@@ -271,8 +271,9 @@ static void *tls_create(int flag, int fd, const char *name, const char *tls_ciph
 
   if (flag & GNUTLS_SERVER)
   {
+    /* Accept-side: always request a client cert; require when configured. */
     gnutls_certificate_server_set_request(tls,
-      require_peer ? GNUTLS_CERT_REQUIRE : GNUTLS_CERT_IGNORE);
+      require_peer ? GNUTLS_CERT_REQUIRE : GNUTLS_CERT_REQUEST);
   }
   else if (verify_ca && name)
     gnutls_session_set_verify_cert(tls, name, 0);
@@ -307,8 +308,8 @@ void *ircd_tls_connect(struct ConfItem *aconf, int fd)
     cred = (gnutls_certificate_credentials_t)aconf->tls_ctx;
   return tls_create(GNUTLS_CLIENT, fd, aconf ? aconf->name : NULL,
                     aconf ? aconf->tls_ciphers : NULL, cred,
-                    aconf && ircd_tls_connect_peer_cert_required(aconf),
-                    aconf && ircd_tls_connect_verify_ca(aconf));
+                    1,
+                    ircd_tls_connect_verify_ca(aconf));
 }
 
 void ircd_tls_conf_free(struct ConfItem *aconf)

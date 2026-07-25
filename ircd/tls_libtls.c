@@ -78,7 +78,7 @@ int ircd_tls_init(void)
     }
   }
 
-  new_cfg = make_tls_config(NULL, NULL, NULL, 0, 0,
+  new_cfg = make_tls_config(NULL, NULL, NULL, 1, 0,
                             LISTENER_TLS_SYSTEMCA_DEFAULT, 0);
   if (!new_cfg)
     return 2;
@@ -108,6 +108,14 @@ static void tls_config_set_verify_policy(struct tls_config *cfg, int require_pee
       tls_config_verify_client(cfg);
     else
       tls_config_verify(cfg);
+    tls_config_insecure_noverifycert(cfg);
+    return;
+  }
+
+  if (is_server)
+  {
+    /* Client ports: request a cert, allow missing/self-signed. */
+    tls_config_verify_client_optional(cfg);
     tls_config_insecure_noverifycert(cfg);
     return;
   }
@@ -301,7 +309,7 @@ static void ensure_conf_tls(struct ConfItem *aconf)
 
   aconf->tls_ctx = make_tls_config(aconf->tls_ciphers, aconf->tls_cacertdir,
                                     aconf->tls_cacertfile,
-                                    ircd_tls_connect_peer_cert_required(aconf),
+                                    1,
                                     ircd_tls_connect_verify_ca(aconf),
                                     aconf->tls_systemca, 0);
 }
@@ -387,7 +395,7 @@ int ircd_tls_conf_reload(struct ConfItem *aconf)
 
   new_cfg = make_tls_config(aconf->tls_ciphers, aconf->tls_cacertdir,
                             aconf->tls_cacertfile,
-                            ircd_tls_connect_peer_cert_required(aconf),
+                            1,
                             ircd_tls_connect_verify_ca(aconf),
                             aconf->tls_systemca, 0);
   if (!new_cfg)

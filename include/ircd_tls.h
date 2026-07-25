@@ -135,9 +135,6 @@ int ircd_tls_listener_peer_cert_required(const struct Listener *listener);
 /** Return non-zero if inbound listener connections require PKIX validation. */
 int ircd_tls_listener_verify_ca(const struct Listener *listener);
 
-/** Return non-zero if outbound Connect block requires a peer certificate. */
-int ircd_tls_connect_peer_cert_required(const struct ConfItem *aconf);
-
 /** Return non-zero if outbound Connect block requires PKIX validation. */
 int ircd_tls_connect_verify_ca(const struct ConfItem *aconf);
 

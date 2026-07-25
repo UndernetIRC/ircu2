@@ -161,13 +161,6 @@ int ircd_tls_connect_verify_ca(const struct ConfItem *aconf)
   return aconf && aconf->tls_verifypeer == 1;
 }
 
-/** Return non-zero if outbound Connect block requires a peer certificate. */
-int ircd_tls_connect_peer_cert_required(const struct ConfItem *aconf)
-{
-  return aconf && (aconf->tls_verifypeer == 1
-                   || !EmptyString(aconf->tls_fingerprint));
-}
-
 /** Return non-zero if Connect block requires peer hostname verification. */
 int ircd_tls_connect_verify_hostname(const struct ConfItem *aconf)
 {
@@ -239,7 +232,6 @@ int ircd_tls_verifypeer_enabled(const struct Client *cptr)
 /** Return non-zero if the peer must present a certificate during TLS. */
 int ircd_tls_peer_cert_required(const struct Client *cptr)
 {
-  struct ConfItem *aconf;
   struct Listener *listener;
 
   if (!cptr)
@@ -247,9 +239,8 @@ int ircd_tls_peer_cert_required(const struct Client *cptr)
 
   if (IsConnecting(cptr))
   {
-    if ((aconf = find_conf_byname(cli_confs(cptr), cli_name(cptr), CONF_SERVER)))
-      return ircd_tls_connect_peer_cert_required(aconf);
-    return 0;
+    /* Outbound TLS server links always require a peer certificate. */
+    return 1;
   }
 
   if ((listener = cli_listener(cptr)))
