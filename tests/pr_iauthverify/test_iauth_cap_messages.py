@@ -30,9 +30,32 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 IRCD_BIN = REPO_ROOT / "ircd" / "ircd"
 STUB = Path(__file__).resolve().parent / "iauth_stub.py"
 
-pytestmark = pytest.mark.skipif(
-    not IRCD_BIN.exists(), reason="local ircd binary not built"
-)
+def _ircd_bin_is_stale() -> bool:
+    """True if ircd/ircd is older than any ircd source file.
+
+    These tests exercise the locally built binary; a stale one silently
+    tests the wrong code (and has produced confusing failures).  Skip
+    loudly instead.
+    """
+    if not IRCD_BIN.exists():
+        return False
+    built = IRCD_BIN.stat().st_mtime
+    for pattern in ("ircd/*.c", "ircd/*.y", "include/*.h"):
+        for src in REPO_ROOT.glob(pattern):
+            if src.stat().st_mtime > built:
+                return True
+    return False
+
+
+pytestmark = [
+    pytest.mark.skipif(
+        not IRCD_BIN.exists(), reason="local ircd binary not built"
+    ),
+    pytest.mark.skipif(
+        _ircd_bin_is_stale(),
+        reason="local ircd binary is older than the sources; rebuild with make",
+    ),
+]
 
 
 def _free_port():
@@ -119,6 +142,22 @@ def local_ircd(tmp_path, ensure_spath):
                 time.sleep(0.1)
         else:
             raise RuntimeError("ircd did not start listening")
+
+        # The stub's "O RU" policy makes iauth required: no client can
+        # register until ircd's spawned stub is connected.  Complete one
+        # throwaway registration so tests never race the stub's startup
+        # (a cold python spawn can take seconds on a loaded host).  The
+        # probe negotiates no CAP, so it adds no "c"/"e" log lines.
+        last_exc = None
+        for _ in range(3):
+            try:
+                asyncio.run(_run_client(port, [], "iavprobe"))
+                break
+            except (ConnectionError, OSError, asyncio.TimeoutError) as exc:
+                last_exc = exc
+        else:
+            raise RuntimeError(f"iauth stub never became ready: {last_exc!r}")
+
         yield {"port": port, "log": log}
     finally:
         proc.terminate()
