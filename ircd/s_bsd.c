@@ -813,11 +813,9 @@ static int read_packet(struct Client *cptr, int socket_ready)
               offset = con->con_ws_handshake_len;
             }
 
-            /* Bound recvQ growth even while fragments accumulate unfinished.
-             * Completed lines are drained (and throttled) after the read. */
-            if (recvq_over_flood(cptr, GetMaxFlood(cptr)))
-              return exit_client(cptr, cptr, &me, "Excess Flood");
-
+            /* No per-frame flood check: one read decodes at most ~one
+             * readbuf of payload into recvQ, so the shared check after
+             * this block bounds growth without rescanning per frame. */
             if (con->con_ws_skip > 0)
               break; /* remainder of oversized frame drains on later reads */
 
