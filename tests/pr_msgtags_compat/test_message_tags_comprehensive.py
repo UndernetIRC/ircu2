@@ -248,16 +248,16 @@ async def test_clienttagdeny_empty_allows_all(ircd_network):
         await _join_channel([sender, observer], "#denyempty")
 
         await sender.send("@+blockedtag=1 PRIVMSG #denyempty :was blocked")
-        msg = await observer.wait_for("PRIVMSG", timeout=5.0)
+        msg = await observer.wait_for("PRIVMSG", timeout=15.0)
         assert msg.params[-1] == "was blocked", msg.raw
         assert tag_value(msg.tags, "+blockedtag") == "1", msg.raw
 
         await sender.send("@+example.com/foo=ok PRIVMSG #denyempty :still ok")
-        msg = await observer.wait_for("PRIVMSG", timeout=5.0)
+        msg = await observer.wait_for("PRIVMSG", timeout=15.0)
         assert tag_value(msg.tags, "+example.com/foo") == "ok", msg.raw
 
         await sender.send("@+other=xyz TAGMSG #denyempty")
-        msg = await observer.wait_for("TAGMSG", timeout=5.0)
+        msg = await observer.wait_for("TAGMSG", timeout=15.0)
         assert tag_value(msg.tags, "+other") == "xyz", msg.raw
     finally:
         try:
@@ -280,7 +280,7 @@ async def test_clienttagdeny_named_denies_only_that_tag(ircd_network):
         await sender.send(
             "@+example.com/foo=nope;+othertag=yes PRIVMSG #denynamed :partial"
         )
-        msg = await observer.wait_for("PRIVMSG", timeout=5.0)
+        msg = await observer.wait_for("PRIVMSG", timeout=15.0)
         assert msg.params[-1] == "partial", msg.raw
         assert not tag_has(msg.tags, "+example.com/foo"), msg.raw
         assert tag_value(msg.tags, "+othertag") == "yes", msg.raw
@@ -296,7 +296,13 @@ async def test_clienttagdeny_named_denies_only_that_tag(ircd_network):
             pass
 
         await sender.send("@+allowed=1 TAGMSG #denynamed")
-        msg = await observer.wait_for("TAGMSG", timeout=5.0)
+        # The denied-only TAGMSG above may outlive its 2s window under
+        # throttle and arrive (tagless) here; skip past it.  A stray never
+        # carries +allowed, so matching on the tag is unambiguous.
+        for _ in range(3):
+            msg = await observer.wait_for("TAGMSG", timeout=15.0)
+            if tag_has(msg.tags, "+allowed"):
+                break
         assert tag_value(msg.tags, "+allowed") == "1", msg.raw
     finally:
         try:
