@@ -18,7 +18,7 @@ import pytest
 from irc_client import IRCClient
 from irc_ws_client import IRCWebSocketClient
 
-from .helpers import parse_tag_list
+from .helpers import join_synced, parse_tag_list
 
 pytestmark = pytest.mark.single_server
 
@@ -58,14 +58,11 @@ async def test_ws_client_receives_large_tagged_line_intact(ircd_hub):
     await observer.register("wsbigobs", "testuser", "WS Big Obs")
 
     try:
-        await sender.send(f"JOIN {CHANNEL}")
-        await observer.send(f"JOIN {CHANNEL}")
-        await observer.wait_for("JOIN", timeout=5.0)
-        await asyncio.sleep(0.3)
+        await join_synced(f"{CHANNEL}", sender, observer)
 
         await sender.send(f"@{TAGS} PRIVMSG {CHANNEL} :big tagged line {SENTINEL}")
 
-        msg = await observer.wait_for("PRIVMSG", timeout=5.0)
+        msg = await observer.wait_for("PRIVMSG", timeout=15.0)
         # Body intact through the end (truncation eats the tail first).
         assert msg.params[-1] == f"big tagged line {SENTINEL}", msg.raw[-200:]
         # The relayed client-only tag survived with a full-length value.
@@ -75,7 +72,7 @@ async def test_ws_client_receives_large_tagged_line_intact(ircd_hub):
 
         # Framing must not desync: a follow-up plain message arrives intact.
         await sender.send(f"PRIVMSG {CHANNEL} :follow-up plain")
-        nxt = await observer.wait_for("PRIVMSG", timeout=5.0)
+        nxt = await observer.wait_for("PRIVMSG", timeout=15.0)
         assert nxt.params[-1] == "follow-up plain", nxt.raw
     finally:
         await _cleanup(sender, observer)
@@ -96,16 +93,13 @@ async def test_ws_binary_client_receives_large_tagged_line_intact(ircd_hub):
     await observer.register("wsbinobs", "testuser", "WS Bin Obs")
 
     try:
-        await sender.send(f"JOIN {CHANNEL}bin")
-        await observer.send(f"JOIN {CHANNEL}bin")
-        await observer.wait_for("JOIN", timeout=5.0)
-        await asyncio.sleep(0.3)
+        await join_synced(f"{CHANNEL}bin", sender, observer)
 
         await sender.send(
             f"@{TAGS} PRIVMSG {CHANNEL}bin :binary big line {SENTINEL}"
         )
 
-        msg = await observer.wait_for("PRIVMSG", timeout=5.0)
+        msg = await observer.wait_for("PRIVMSG", timeout=15.0)
         assert msg.params[-1] == f"binary big line {SENTINEL}", msg.raw[-200:]
         tags = parse_tag_list(msg.tags)
         assert tags.get(ALLOWED_TAG) == VALUE, msg.tags[:200]

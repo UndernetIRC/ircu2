@@ -18,6 +18,8 @@ import pytest
 
 from irc_client import IRCClient
 
+from .helpers import join_synced
+
 pytestmark = pytest.mark.single_server
 
 # The single client-only tag the docker configs allow to be relayed.
@@ -39,7 +41,7 @@ async def _assert_alive(client: IRCClient) -> None:
     """A crashed server drops the socket; a live one answers PING."""
     token = "liveness-probe"
     await client.send(f"PING :{token}")
-    pong = await client.wait_for("PONG", timeout=5.0)
+    pong = await client.wait_for("PONG", timeout=15.0)
     assert token in pong.raw, pong.raw
 
 
@@ -67,13 +69,11 @@ async def test_large_client_tag_relay_does_not_crash(ircd_hub):
     await observer.register("bigtagobs", "testuser", "Big Tag Obs")
 
     try:
-        await sender.send(f"JOIN {channel}")
-        await observer.send(f"JOIN {channel}")
-        await asyncio.sleep(0.3)
+        await join_synced(channel, sender, observer)
 
         await sender.send(f"@{tags} PRIVMSG {channel} :payload body")
 
-        msg = await observer.wait_for("PRIVMSG", timeout=5.0)
+        msg = await observer.wait_for("PRIVMSG", timeout=15.0)
         assert msg.params[-1] == "payload body", msg.raw
         # The allowed client-only tag survived relay (server stayed up).
         assert f"+{ALLOWED_TAG}=" in msg.tags, msg.tags
@@ -110,13 +110,11 @@ async def test_large_client_tag_relay_private_message(ircd_hub):
 
     try:
         # Shared channel so commonchans_drop() does not block the PM.
-        await sender.send("JOIN #bigtagpm")
-        await target.send("JOIN #bigtagpm")
-        await asyncio.sleep(0.3)
+        await join_synced("#bigtagpm", sender, target)
 
         await sender.send(f"@{tags} PRIVMSG bigtagptgt :direct payload")
 
-        msg = await target.wait_for("PRIVMSG", timeout=5.0)
+        msg = await target.wait_for("PRIVMSG", timeout=15.0)
         assert msg.params[-1] == "direct payload", msg.raw
         assert f"+{ALLOWED_TAG}=" in msg.tags, msg.tags
 

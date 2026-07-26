@@ -9,13 +9,11 @@ The docker configs allow exactly one client-only tag through CLIENTTAGDENY:
 `+example.com/foo`.
 """
 
-import asyncio
-
 import pytest
 
 from irc_client import IRCClient
 
-from .helpers import escape_tag_value, tag_value
+from .helpers import escape_tag_value, join_synced, tag_value
 
 pytestmark = pytest.mark.single_server
 
@@ -34,9 +32,7 @@ async def _pair(hub, nick_prefix: str):
     await observer.negotiate_cap(["message-tags"])
     await observer.register(f"{nick_prefix}obs", "testuser", "Value Obs")
 
-    await sender.send(f"JOIN {CHANNEL}")
-    await observer.send(f"JOIN {CHANNEL}")
-    await asyncio.sleep(0.3)
+    await join_synced(CHANNEL, sender, observer)
     return sender, observer
 
 
@@ -55,7 +51,7 @@ async def test_long_plain_tag_value_relayed_intact(ircd_hub):
     sender, observer = await _pair(ircd_hub, "tvplain")
     try:
         await sender.send(f"@{ALLOWED_TAG}={value} PRIVMSG {CHANNEL} :long value")
-        msg = await observer.wait_for("PRIVMSG", timeout=5.0)
+        msg = await observer.wait_for("PRIVMSG", timeout=15.0)
         got = tag_value(msg.tags, ALLOWED_TAG, unescape=True)
         assert got == value, f"len={len(got) if got else None} raw-tags={msg.tags[:400]}"
         assert msg.params[-1] == "long value"
@@ -73,7 +69,7 @@ async def test_long_escaped_tag_value_relayed_intact(ircd_hub):
     sender, observer = await _pair(ircd_hub, "tvesc")
     try:
         await sender.send(f"@{ALLOWED_TAG}={wire} PRIVMSG {CHANNEL} :escaped value")
-        msg = await observer.wait_for("PRIVMSG", timeout=5.0)
+        msg = await observer.wait_for("PRIVMSG", timeout=15.0)
         got = tag_value(msg.tags, ALLOWED_TAG, unescape=True)
         assert got == value, f"len={len(got) if got else None} raw-tags={msg.tags[:400]}"
     finally:
@@ -91,7 +87,7 @@ async def test_max_size_tag_value_relayed_intact(ircd_hub):
     sender, observer = await _pair(ircd_hub, "tvmax")
     try:
         await sender.send(f"@{ALLOWED_TAG}={value} PRIVMSG {CHANNEL} :max value")
-        msg = await observer.wait_for("PRIVMSG", timeout=5.0)
+        msg = await observer.wait_for("PRIVMSG", timeout=15.0)
         got = tag_value(msg.tags, ALLOWED_TAG, unescape=True)
         assert got == value, f"len={len(got) if got else None}"
         assert msg.params[-1] == "max value"

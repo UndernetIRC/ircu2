@@ -5,6 +5,8 @@ import re
 import pytest
 
 from irc_client import IRCClient
+
+from .helpers import join_synced
 from p10_server import P10Server
 
 
@@ -65,12 +67,10 @@ async def test_local_privmsg_gets_server_time(ircd_network):
     await observer.register("mtaglocobs", "testuser", "Tag Local Obs")
 
     try:
-        await sender.send("JOIN #mtagtest")
-        await observer.send("JOIN #mtagtest")
-        await asyncio.sleep(0.3)
+        await join_synced("#mtagtest", sender, observer)
 
         await sender.send("PRIVMSG #mtagtest :local hello")
-        msg = await observer.wait_for("PRIVMSG", timeout=5.0)
+        msg = await observer.wait_for("PRIVMSG", timeout=15.0)
         assert msg.tags.startswith("time="), msg.raw
         assert re.match(r"time=\d{4}-\d{2}-\d{2}T", msg.tags), msg.tags
         assert msg.params[-1] == "local hello"

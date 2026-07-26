@@ -6,6 +6,8 @@ import pytest
 from irc_client import IRCClient
 from p10_server import P10Server
 
+from .helpers import join_synced
+
 
 pytestmark = pytest.mark.multi_server
 
@@ -40,12 +42,10 @@ async def test_message_tags_alone_gets_time_and_account(ircd_network, services):
     await observer.register("mtagobs", "testuser", "Tag Only Obs")
 
     try:
-        await sender.send("JOIN #mtagonly")
-        await observer.send("JOIN #mtagonly")
-        await asyncio.sleep(0.3)
+        await join_synced("#mtagonly", sender, observer)
 
         await sender.send("PRIVMSG #mtagonly :catchall caps")
-        msg = await observer.wait_for("PRIVMSG", timeout=5.0)
+        msg = await observer.wait_for("PRIVMSG", timeout=15.0)
         assert "time=" in msg.tags, msg.raw
         assert "account=OnlyAcct" in msg.tags, msg.raw
     finally:
@@ -72,15 +72,13 @@ async def test_client_tag_relay_when_allowed(ircd_network):
     await observer.register("mtagclobs", "testuser", "Tag Client Obs")
 
     try:
-        await sender.send("JOIN #mtagcli")
-        await observer.send("JOIN #mtagcli")
-        await asyncio.sleep(0.3)
+        await join_synced("#mtagcli", sender, observer)
 
         await sender.send("PRIVMSG #mtagcli :plain")
-        await observer.wait_for("PRIVMSG", timeout=5.0)
+        await observer.wait_for("PRIVMSG", timeout=15.0)
 
         await sender.send("@+example.com/foo=bar PRIVMSG #mtagcli :tagged")
-        msg = await observer.wait_for("PRIVMSG", timeout=5.0)
+        msg = await observer.wait_for("PRIVMSG", timeout=15.0)
         assert msg.params[-1] == "tagged", msg.raw
         assert "+example.com/foo=bar" in msg.tags, msg.raw
     finally:
@@ -107,12 +105,10 @@ async def test_client_tag_denied_by_default(ircd_network):
     await observer.register("mtagdenyobs", "testuser", "Tag Deny Obs")
 
     try:
-        await sender.send("JOIN #mtagdeny")
-        await observer.send("JOIN #mtagdeny")
-        await asyncio.sleep(0.3)
+        await join_synced("#mtagdeny", sender, observer)
 
         await sender.send("@+secret=1 PRIVMSG #mtagdeny :denied tag")
-        msg = await observer.wait_for("PRIVMSG", timeout=5.0)
+        msg = await observer.wait_for("PRIVMSG", timeout=15.0)
         assert msg.params[-1] == "denied tag", msg.raw
         assert "secret" not in msg.tags, msg.raw
         assert msg.tags.startswith("time="), msg.raw
@@ -140,12 +136,10 @@ async def test_unprefixed_client_tag_stripped(ircd_network):
     await observer.register("mtagstripobs", "testuser", "Tag Strip Obs")
 
     try:
-        await sender.send("JOIN #mtagstrip")
-        await observer.send("JOIN #mtagstrip")
-        await asyncio.sleep(0.3)
+        await join_synced("#mtagstrip", sender, observer)
 
         await sender.send("@msgid=abc PRIVMSG #mtagstrip :no relay")
-        msg = await observer.wait_for("PRIVMSG", timeout=5.0)
+        msg = await observer.wait_for("PRIVMSG", timeout=15.0)
         assert msg.params[-1] == "no relay", msg.raw
         assert "msgid" not in msg.tags, msg.raw
     finally:
@@ -169,7 +163,7 @@ async def test_tagmsg_requires_message_tags(ircd_network):
         await user.send("JOIN #mtagmsgtest")
         await asyncio.sleep(0.2)
         await user.send("TAGMSG #mtagmsgtest")
-        err = await user.wait_for("421", timeout=5.0)
+        err = await user.wait_for("421", timeout=15.0)
         assert any(p == "TAGMSG" for p in err.params), err.raw
     finally:
         try:
@@ -194,12 +188,10 @@ async def test_tagmsg_delivered_with_tags(ircd_network):
     await observer.register("mtagmsgobs", "testuser", "Tagmsg Obs")
 
     try:
-        await sender.send("JOIN #mtagmsgchan")
-        await observer.send("JOIN #mtagmsgchan")
-        await asyncio.sleep(0.3)
+        await join_synced("#mtagmsgchan", sender, observer)
 
         await sender.send("@+example.com/foo=tagonly TAGMSG #mtagmsgchan")
-        msg = await observer.wait_for("TAGMSG", timeout=5.0)
+        msg = await observer.wait_for("TAGMSG", timeout=15.0)
         assert msg.params[0] == "#mtagmsgchan", msg.raw
         assert "+example.com/foo=tagonly" in msg.tags, msg.raw
     finally:

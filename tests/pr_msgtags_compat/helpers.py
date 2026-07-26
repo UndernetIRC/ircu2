@@ -3,6 +3,19 @@
 from __future__ import annotations
 
 
+async def join_synced(channel: str, *clients, timeout: float = 15.0) -> None:
+    """JOIN each client to `channel` and wait for its own JOIN echo.
+
+    Input throttling (2s+/command penalties, larger for tagged lines) can
+    hold a JOIN in the server's recvQ for several seconds after a CAP/
+    registration burst.  A sender must not fire until every member's JOIN
+    has echoed back, or the message is silently lost to non-members.
+    """
+    for c in clients:
+        await c.send(f"JOIN {channel}")
+        await c.wait_for("JOIN", timeout=timeout)
+
+
 def escape_tag_value(value: str) -> str:
     """Escape a tag value per IRCv3 message-tags rules."""
     out: list[str] = []

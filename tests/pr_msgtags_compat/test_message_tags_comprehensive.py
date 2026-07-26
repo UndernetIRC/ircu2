@@ -365,7 +365,7 @@ async def test_client_oversize_tags_rejected_with_417(ircd_network):
         # tag data = 4095 'a' chars → over limit (excludes @ and space)
         payload = "a" * 4095
         await user.send(f"@+big={payload} PRIVMSG #bigtagtest :overflow")
-        err = await user.wait_for("417", timeout=5.0)
+        err = await user.wait_for("417", timeout=15.0)
         assert "too long" in err.params[-1].lower() or err.params[-1]
     finally:
         await _cleanup(user)
@@ -388,21 +388,21 @@ async def test_client_oversize_body_rejected_with_417(ircd_network):
         ok_text = "o" * 200
         assert len(prefix) + len(ok_text) < 510
         await user.send(f"@+example.com/foo=x {prefix}{ok_text}")
-        msg = await observer.wait_for("PRIVMSG", timeout=5.0)
+        msg = await observer.wait_for("PRIVMSG", timeout=15.0)
         assert msg.params[-1] == ok_text, msg.raw
 
         # Exactly 510 body octets: accepted (no 417); may truncate on send.
         edge = "e" * (510 - len(prefix))
         assert len(prefix) + len(edge) == 510
         await user.send(f"@+example.com/foo=x {prefix}{edge}")
-        edge_msg = await observer.wait_for("PRIVMSG", timeout=5.0)
+        edge_msg = await observer.wait_for("PRIVMSG", timeout=15.0)
         assert edge_msg.params[-1].startswith("e"), edge_msg.raw
 
         # 511 body octets → ERR_INPUTTOOLONG; must not reach the channel.
         bad_text = "x" * (511 - len(prefix))
         assert len(prefix) + len(bad_text) == 511
         await user.send(f"@+example.com/foo=x {prefix}{bad_text}")
-        err = await user.wait_for("417", timeout=5.0)
+        err = await user.wait_for("417", timeout=15.0)
         assert err.command == "417", err.raw
         try:
             leaked = await observer.wait_for("PRIVMSG", timeout=1.0)
