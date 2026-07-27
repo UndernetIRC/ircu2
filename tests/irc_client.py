@@ -200,6 +200,12 @@ class IRCClient:
         while True:
             msg = await self.recv(timeout=10.0)
             msgs.append(msg)
+            # Fail fast on registration errors (e.g. nick in use) instead of
+            # waiting forever for MOTD that will never arrive.
+            if msg.command in ("432", "433", "436", "437", "464", "465"):
+                raise ConnectionError(
+                    f"registration failed with {msg.command}: {msg}"
+                )
             if msg.command in ("376", "422"):  # End of MOTD or no MOTD
                 return msgs
 

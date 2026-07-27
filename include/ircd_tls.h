@@ -46,6 +46,53 @@ struct Listener;
 struct MsgQ;
 struct Socket;
 
+/**
+ * TLS peer-certificate trust policy for a listener or Connect session.
+ *
+ * These are the only supported combinations. Backends must map this enum
+ * rather than inventing policy from independent booleans.
+ *
+ * TLS_TRUST_REQUEST_SOFT — Ask for a peer certificate but do not require
+ *   one. PKIX is advisory (accept any presented cert). Used for client/
+ *   user TLS ports without tls verifypeer.
+ *
+ * TLS_TRUST_REQUIRE_SOFT — Require a peer certificate; PKIX is advisory.
+ *   Used for server listener ports and outbound Connect blocks without
+ *   tls verifypeer. Trust is fingerprint pin or nothing.
+ *
+ * TLS_TRUST_REQUIRE_CA — Require a peer certificate and enforce PKIX
+ *   (and hostname verification where applicable). Used when
+ *   tls verifypeer is yes.
+ */
+typedef enum ircd_tls_trust_policy {
+  TLS_TRUST_REQUEST_SOFT = 0,
+  TLS_TRUST_REQUIRE_SOFT,
+  TLS_TRUST_REQUIRE_CA
+} ircd_tls_trust_policy;
+
+/** Return the trust policy for inbound connections on \a listener.
+ * A NULL listener (e.g. STARTTLS on a plaintext port) uses REQUEST_SOFT.
+ */
+ircd_tls_trust_policy ircd_tls_listener_trust_policy(const struct Listener *listener);
+
+/** Return the trust policy for an outbound Connect block.
+ * Outbound TLS always requires a peer certificate; CA enforcement
+ * depends on tls verifypeer.
+ */
+ircd_tls_trust_policy ircd_tls_connect_trust_policy(const struct ConfItem *aconf);
+
+/** Non-zero if \a policy requires the peer to present a certificate. */
+static inline int ircd_tls_trust_requires_peer(ircd_tls_trust_policy policy)
+{
+  return policy != TLS_TRUST_REQUEST_SOFT;
+}
+
+/** Non-zero if \a policy enforces PKIX CA validation. */
+static inline int ircd_tls_trust_verifies_ca(ircd_tls_trust_policy policy)
+{
+  return policy == TLS_TRUST_REQUIRE_CA;
+}
+
 /** Timeout for TLS handshake in seconds */
 #define TLS_HANDSHAKE_TIMEOUT 5
 

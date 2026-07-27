@@ -220,7 +220,7 @@ int ircd_tls_init(void)
 
 static void *tls_create(int flag, int fd, const char *name, const char *tls_ciphers,
                         gnutls_certificate_credentials_t cred,
-                        int require_peer, int verify_ca)
+                        ircd_tls_trust_policy policy)
 {
   gnutls_session_t tls;
   gnutls_certificate_credentials_t use_cred = cred ? cred : tls_cert;
@@ -271,11 +271,11 @@ static void *tls_create(int flag, int fd, const char *name, const char *tls_ciph
 
   if (flag & GNUTLS_SERVER)
   {
-    /* Accept-side: always request a client cert; require when configured. */
     gnutls_certificate_server_set_request(tls,
-      require_peer ? GNUTLS_CERT_REQUIRE : GNUTLS_CERT_REQUEST);
+      ircd_tls_trust_requires_peer(policy)
+        ? GNUTLS_CERT_REQUIRE : GNUTLS_CERT_REQUEST);
   }
-  else if (verify_ca && name)
+  else if (ircd_tls_trust_verifies_ca(policy) && name)
     gnutls_session_set_verify_cert(tls, name, 0);
 
   gnutls_handshake_set_timeout(tls, GNUTLS_DEFAULT_HANDSHAKE_TIMEOUT);
@@ -295,8 +295,7 @@ void *ircd_tls_accept(struct Listener *listener, int fd)
     return NULL;
   return tls_create(GNUTLS_SERVER, fd, NULL,
                     listener ? listener->tls_ciphers : NULL, cred,
-                    listener && ircd_tls_listener_peer_cert_required(listener),
-                    listener && ircd_tls_listener_verify_ca(listener));
+                    ircd_tls_listener_trust_policy(listener));
 }
 
 void *ircd_tls_connect(struct ConfItem *aconf, int fd)
@@ -308,8 +307,7 @@ void *ircd_tls_connect(struct ConfItem *aconf, int fd)
     cred = (gnutls_certificate_credentials_t)aconf->tls_ctx;
   return tls_create(GNUTLS_CLIENT, fd, aconf ? aconf->name : NULL,
                     aconf ? aconf->tls_ciphers : NULL, cred,
-                    1,
-                    ircd_tls_connect_verify_ca(aconf));
+                    ircd_tls_connect_trust_policy(aconf));
 }
 
 void ircd_tls_conf_free(struct ConfItem *aconf)

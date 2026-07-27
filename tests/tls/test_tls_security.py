@@ -28,7 +28,7 @@ pytestmark = [pytest.mark.tls, pytest.mark.asyncio]
 # Pinned in the "fpoper" Operator block of ircd-tls-hub.conf. Matches no
 # certificate presented in these tests; an attacker would try to forge it.
 PINNED_OPER_FINGERPRINT = (
-    "a02e8424c0ab92aa344c869672b46fd60b68b2450161f5349f9058d0d25b9ee8"
+    "ac7a996c7e4360bebea8dbd6dad74ac42e30b2618c92341cb16dc48d3ab54f53"
 )
 
 

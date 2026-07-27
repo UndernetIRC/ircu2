@@ -1,19 +1,18 @@
-"""TLS trust-policy tests: cert required, self-signed, expired, user ports.
+"""TLS trust-policy connection matrices for client and server ports.
 
-Matrix covered here:
+Client TLS port without verifypeer (REQUEST_SOFT):
+  any/no client cert is accepted; fingerprint recorded when presented.
 
-User TLS port (request optional, no CA verify):
-  - no client cert          -> register OK
-  - self-signed             -> register OK, fingerprint recorded (OPER)
-  - CA-signed (tlspeer-ca)  -> register OK, fingerprint recorded (OPER)
-  - expired                 -> register OK (dates not enforced without verifypeer)
-  - rogue CA-signed         -> register OK (issuer not enforced without verifypeer)
-  - no cert + fp-pinned OPER -> 532
+Client TLS port with verifypeer (REQUIRE_CA):
+  peer cert required and must chain to the configured CA.
 
-Server TLS port (always require peer cert, no CA unless verifypeer):
-  - no client cert          -> handshake fail
-  - matching fingerprint    -> link OK (test_tls.py + selfsigned/expired pins here)
-  - CA port + missing/expired/mismatch -> fail
+Server TLS port without verifypeer (REQUIRE_SOFT):
+  peer cert required; any cert accepted at TLS layer; Connect fingerprint
+  pin decides link acceptance after SERVER.
+
+Server TLS port with verifypeer (REQUIRE_CA):
+  peer cert required and must chain to the configured CA at handshake;
+  Connect verifypeer also checks hostname after SERVER.
 """
 
 from __future__ import annotations
@@ -37,6 +36,39 @@ _TLS_CONNECT_ERRORS = (
     OSError,
     asyncio.TimeoutError,
     TimeoutError,
+)
+
+# Certs used as client identities on soft user ports (all must register).
+_USER_SOFT_CERTS = (
+    None,  # no client certificate
+    "selfsigned",
+    "tlspeer-ca",  # CA-signed, not self-signed
+    "tlspeer",  # another CA-signed identity
+    "expired",
+    "notyet",
+    "rogue",
+    "nocliauth",  # serverAuth EKU only
+)
+
+# Soft server port: TLS handshake must succeed with these peer certs.
+_SERVER_SOFT_HANDSHAKE_CERTS = (
+    "selfsigned",
+    "tlspeer",
+    "tlspeer-ca",
+    "expired",
+    "notyet",
+    "rogue",
+    "nocliauth",
+)
+
+# CA server / user-CA ports: only our test CA leaf should pass handshake.
+_CA_VALID_CERT = "tlspeer-ca"
+_CA_INVALID_CERTS = (
+    "selfsigned",
+    "expired",
+    "notyet",
+    "rogue",
+    "nocliauth",
 )
 
 
@@ -68,6 +100,21 @@ async def _expect_tls_handshake_fails(host: str, port: int, ctx: ssl.SSLContext)
     pytest.fail("expected TLS connection to be rejected")
 
 
+async def _expect_tls_handshake_ok(host: str, port: int, ctx: ssl.SSLContext):
+    """Complete a TLS handshake successfully (no IRC protocol)."""
+    reader, writer = await asyncio.wait_for(
+        asyncio.open_connection(host, port, ssl=ctx),
+        timeout=8.0,
+    )
+    try:
+        assert writer.get_extra_info("ssl_object") is not None
+    finally:
+        writer.close()
+        transport = writer.transport
+        if transport is not None:
+            transport.abort()
+
+
 async def _oper_result(client: IRCClient, name: str, password: str) -> list[str]:
     await client.send(f"OPER {name} {password}")
     got = []
@@ -80,113 +127,144 @@ async def _oper_result(client: IRCClient, name: str, password: str) -> list[str]
     return got
 
 
+def _user_soft_nick(cert: str | None) -> str:
+    """Build a unique IRC nick from a cert id (avoid truncating collisions)."""
+    # tlspeer + tlspeer-ca both became "utlspee" when truncated to 6 chars.
+    raw = "".join(c if c.isalnum() else "x" for c in (cert or "none"))
+    return f"u{raw[:14]}"
+
+
 async def _register_on_user_tls(
-    hub: dict, nick: str, *, cert: str | None = None
-) -> None:
+    hub: dict, nick: str, *, cert: str | None = None, port_key: str = "tls_port"
+) -> IRCClient:
+    port = hub[port_key]
     ctx = client_ssl_context(cert=cert) if cert else None
     client = IRCClient()
     if ctx is None:
-        await client.connect_tls(hub["host"], hub["tls_port"])
+        await client.connect_tls(hub["host"], port)
     else:
-        await client.connect_tls(hub["host"], hub["tls_port"], ssl_context=ctx)
+        await client.connect_tls(hub["host"], port, ssl_context=ctx)
+    msgs = await client.register(nick, "testuser", f"cert={cert or 'none'}")
+    assert any(m.command == "001" for m in msgs), f"register failed for cert={cert}"
+    return client
+
+
+async def _quit(client: IRCClient) -> None:
+    """QUIT then close so the nick is freed even if TLS close_notify is slow."""
     try:
-        msgs = await client.register(nick, "testuser", f"cert={cert or 'none'}")
-        assert any(m.command == "001" for m in msgs), f"register failed for cert={cert}"
-    finally:
-        await client.disconnect()
+        await client.send("QUIT :test done")
+        await asyncio.sleep(0.05)
+    except Exception:
+        pass
+    await client.disconnect()
 
 
 # ---------------------------------------------------------------------------
-# User TLS ports — optional client cert, allow self-signed
+# Client / user TLS port — REQUEST_SOFT (no verifypeer)
 # ---------------------------------------------------------------------------
 
 
-async def test_user_tls_port_allows_no_client_cert(ircd_tls_network):
-    """User TLS ports request but do not require a client certificate."""
-    await _register_on_user_tls(ircd_tls_network["hub"], "nocusr")
-
-
-async def test_user_tls_port_accepts_selfsigned_and_records_fingerprint(
-    ircd_tls_network,
-):
-    """User ports accept self-signed client certs and record the fingerprint."""
+@pytest.mark.parametrize("cert", _USER_SOFT_CERTS, ids=lambda c: c or "none")
+async def test_user_soft_port_accepts_client_cert(ircd_tls_network, cert):
+    """Soft user ports accept every realistic client-cert presentation."""
     hub = ircd_tls_network["hub"]
-    assert fingerprint("selfsigned").startswith("c52767a9")
-    ctx = client_ssl_context(cert="selfsigned")
-    client = IRCClient()
-    await client.connect_tls(hub["host"], hub["tls_port"], ssl_context=ctx)
+    client = await _register_on_user_tls(hub, _user_soft_nick(cert), cert=cert)
+    await _quit(client)
+
+
+async def test_user_soft_port_records_selfsigned_fingerprint(ircd_tls_network):
+    hub = ircd_tls_network["hub"]
+    assert len(fingerprint("selfsigned")) == 64
+    client = await _register_on_user_tls(hub, "fpself", cert="selfsigned")
     try:
-        msgs = await client.register("certusr", "testuser", "Self-signed cert")
-        assert any(m.command == "001" for m in msgs)
         got = await _oper_result(client, "certoper", "certpass")
-        assert "381" in got, f"expected oper success with presented certfp, got {got}"
+        assert "381" in got, f"expected OPER success with selfsigned certfp, got {got}"
     finally:
         await client.disconnect()
 
 
-async def test_user_tls_port_accepts_ca_signed_and_records_fingerprint(
-    ircd_tls_network,
-):
-    """User ports accept CA-signed client certs and record the fingerprint."""
+async def test_user_soft_port_records_ca_signed_fingerprint(ircd_tls_network):
     hub = ircd_tls_network["hub"]
-    assert fingerprint("tlspeer-ca").startswith("dd5517ac")
-    ctx = client_ssl_context(cert="tlspeer-ca")
-    client = IRCClient()
-    await client.connect_tls(hub["host"], hub["tls_port"], ssl_context=ctx)
+    assert len(fingerprint("tlspeer-ca")) == 64
+    client = await _register_on_user_tls(hub, "fpca", cert="tlspeer-ca")
     try:
-        msgs = await client.register("causr", "testuser", "CA-signed cert")
-        assert any(m.command == "001" for m in msgs)
         got = await _oper_result(client, "caoper", "capass")
-        assert "381" in got, f"expected oper success with CA certfp, got {got}"
+        assert "381" in got, f"expected OPER success with CA certfp, got {got}"
     finally:
         await client.disconnect()
 
 
-async def test_user_tls_port_accepts_expired_client_cert(ircd_tls_network):
-    """Without verifypeer, expired client certs are still accepted on user ports."""
-    await _register_on_user_tls(ircd_tls_network["hub"], "expusr", cert="expired")
-
-
-async def test_user_tls_port_accepts_rogue_ca_client_cert(ircd_tls_network):
-    """Without verifypeer, untrusted-CA client certs are accepted on user ports."""
-    await _register_on_user_tls(ircd_tls_network["hub"], "rogusr", cert="rogue")
-
-
-async def test_user_tls_port_fingerprint_absent_without_client_cert(ircd_tls_network):
-    """Without a client cert, fingerprint-pinned oper auth must fail."""
+async def test_user_soft_port_fingerprint_absent_without_client_cert(ircd_tls_network):
     hub = ircd_tls_network["hub"]
-    client = IRCClient()
-    await client.connect_tls(hub["host"], hub["tls_port"])
+    client = await _register_on_user_tls(hub, "nofp")
     try:
-        await client.register("nocertfp", "testuser", "No cert for oper")
         got = await _oper_result(client, "certoper", "certpass")
-        assert "381" not in got, "must not oper without a client certificate"
+        assert "381" not in got
+        assert "532" in got, f"expected ERR_TLSCLIFINGERPRINT, got {got}"
+    finally:
+        await client.disconnect()
+
+
+async def test_user_soft_port_wrong_cert_fails_fingerprint_oper(ircd_tls_network):
+    """Presenting a different cert must not satisfy certoper's pin."""
+    hub = ircd_tls_network["hub"]
+    client = await _register_on_user_tls(hub, "wrongfp", cert="rogue")
+    try:
+        got = await _oper_result(client, "certoper", "certpass")
+        assert "381" not in got
         assert "532" in got, f"expected ERR_TLSCLIFINGERPRINT, got {got}"
     finally:
         await client.disconnect()
 
 
 # ---------------------------------------------------------------------------
-# Server TLS ports — always require peer cert
+# Client / user TLS port — REQUIRE_CA (tls verifypeer = yes)
 # ---------------------------------------------------------------------------
 
 
-async def test_s2s_server_port_rejects_missing_client_cert(ircd_tls_network):
-    """Server TLS ports always require a peer certificate."""
+async def test_user_ca_port_rejects_missing_client_cert(ircd_tls_network):
     hub = ircd_tls_network["hub"]
     ctx = client_ssl_context()
-    await _expect_tls_handshake_fails(hub["host"], hub["server_port"], ctx)
+    await _expect_tls_handshake_fails(hub["host"], hub["tls_port_ca"], ctx)
 
 
-async def test_s2s_ca_port_rejects_missing_client_cert(ircd_tls_network):
-    """CA-verified server ports reject connections with no client certificate."""
+async def test_user_ca_port_accepts_ca_signed_client_cert(ircd_tls_network):
     hub = ircd_tls_network["hub"]
-    ctx = client_ssl_context()
-    await _expect_tls_handshake_fails(hub["host"], hub["server_tls_ca_port"], ctx)
+    client = await _register_on_user_tls(
+        hub, "ucavalid", cert=_CA_VALID_CERT, port_key="tls_port_ca"
+    )
+    await client.disconnect()
 
 
-async def test_s2s_fingerprint_accepts_selfsigned_with_matching_pin(ircd_tls_network):
-    """Fingerprint pinning allows self-signed certs when the pin matches."""
+@pytest.mark.parametrize("cert", _CA_INVALID_CERTS)
+async def test_user_ca_port_rejects_invalid_client_cert(ircd_tls_network, cert):
+    hub = ircd_tls_network["hub"]
+    ctx = client_ssl_context(cert=cert)
+    await _expect_tls_handshake_fails(hub["host"], hub["tls_port_ca"], ctx)
+
+
+# ---------------------------------------------------------------------------
+# Server TLS port — REQUIRE_SOFT (no verifypeer): cert required, any OK
+# ---------------------------------------------------------------------------
+
+
+async def test_server_soft_port_rejects_missing_peer_cert(ircd_tls_network):
+    hub = ircd_tls_network["hub"]
+    await _expect_tls_handshake_fails(hub["host"], hub["server_port"], client_ssl_context())
+
+
+@pytest.mark.parametrize("cert", _SERVER_SOFT_HANDSHAKE_CERTS)
+async def test_server_soft_port_handshake_accepts_peer_cert(ircd_tls_network, cert):
+    """Without verifypeer, server ports accept any presented peer cert at TLS."""
+    hub = ircd_tls_network["hub"]
+    await _expect_tls_handshake_ok(
+        hub["host"], hub["server_port"], client_ssl_context(cert=cert)
+    )
+
+
+async def test_server_soft_port_fingerprint_accepts_matching_selfsigned(
+    ircd_tls_network,
+):
     hub = ircd_tls_network["hub"]
     srv = P10Server(name="tlspeer-selfsigned.test.net", numeric=46, password="testpass")
     ctx = client_ssl_context(cert="selfsigned")
@@ -198,8 +276,7 @@ async def test_s2s_fingerprint_accepts_selfsigned_with_matching_pin(ircd_tls_net
         await srv.disconnect()
 
 
-async def test_s2s_fingerprint_accepts_expired_with_matching_pin(ircd_tls_network):
-    """Fingerprint pinning does not require PKIX certificate validity dates."""
+async def test_server_soft_port_fingerprint_accepts_matching_expired(ircd_tls_network):
     hub = ircd_tls_network["hub"]
     srv = P10Server(name="tlspeer-expired.test.net", numeric=47, password="testpass")
     ctx = client_ssl_context(cert="expired")
@@ -211,29 +288,90 @@ async def test_s2s_fingerprint_accepts_expired_with_matching_pin(ircd_tls_networ
         await srv.disconnect()
 
 
-async def test_s2s_ca_port_rejects_expired_cert(ircd_tls_network):
-    """Expired peer certificates are rejected under tls verifypeer = yes."""
+async def test_server_soft_port_fingerprint_accepts_matching_ca_signed(
+    ircd_tls_network,
+):
     hub = ircd_tls_network["hub"]
-    ctx = client_ssl_context(cert="expired")
-    await _expect_tls_handshake_fails(hub["host"], hub["server_tls_ca_port"], ctx)
+    srv = P10Server(name="tlspeer.test.net", numeric=40, password="testpass")
+    ctx = client_ssl_context(cert="tlspeer")
+    await srv.connect_tls(hub["host"], hub["server_port"], ctx)
+    try:
+        await srv.handshake(timeout=15.0)
+        assert srv.burst_complete
+    finally:
+        await srv.disconnect()
 
 
-async def test_s2s_ca_inbound_rejects_hostname_mismatch(ircd_tls_network):
-    """Connect tls verifypeer rejects inbound SERVER when cert CN/SAN mismatches."""
+async def test_server_soft_port_fingerprint_rejects_mismatch(ircd_tls_network):
+    hub = ircd_tls_network["hub"]
+    srv = P10Server(name="tlspeer-bad.test.net", numeric=41, password="testpass")
+    ctx = client_ssl_context(cert="tlspeer")
+    await srv.connect_tls(hub["host"], hub["server_port"], ctx)
+    try:
+        with pytest.raises(_TLS_CONNECT_ERRORS):
+            await srv.handshake(timeout=8.0)
+    finally:
+        await srv.disconnect()
+
+
+async def test_server_soft_port_fingerprint_rejects_wrong_cert_for_pin(
+    ircd_tls_network,
+):
+    """Pinned Connect for tlspeer rejects a different presented cert."""
+    hub = ircd_tls_network["hub"]
+    srv = P10Server(name="tlspeer.test.net", numeric=42, password="testpass")
+    ctx = client_ssl_context(cert="selfsigned")
+    await srv.connect_tls(hub["host"], hub["server_port"], ctx)
+    try:
+        with pytest.raises(_TLS_CONNECT_ERRORS):
+            await srv.handshake(timeout=8.0)
+    finally:
+        await srv.disconnect()
+
+
+# ---------------------------------------------------------------------------
+# Server TLS port — REQUIRE_CA (tls verifypeer = yes)
+# ---------------------------------------------------------------------------
+
+
+async def test_server_ca_port_rejects_missing_peer_cert(ircd_tls_network):
+    hub = ircd_tls_network["hub"]
+    await _expect_tls_handshake_fails(
+        hub["host"], hub["server_tls_ca_port"], client_ssl_context()
+    )
+
+
+async def test_server_ca_port_accepts_ca_signed_peer_cert(ircd_tls_network):
+    hub = ircd_tls_network["hub"]
+    srv = P10Server(name="tlspeer-ca.test.net", numeric=43, password="testpass")
+    ctx = client_ssl_context(cert=_CA_VALID_CERT)
+    await srv.connect_tls(hub["host"], hub["server_tls_ca_port"], ctx)
+    try:
+        await srv.handshake(timeout=15.0)
+        assert srv.burst_complete
+    finally:
+        await srv.disconnect()
+
+
+@pytest.mark.parametrize("cert", _CA_INVALID_CERTS)
+async def test_server_ca_port_rejects_invalid_peer_cert(ircd_tls_network, cert):
+    hub = ircd_tls_network["hub"]
+    await _expect_tls_handshake_fails(
+        hub["host"], hub["server_tls_ca_port"], client_ssl_context(cert=cert)
+    )
+
+
+async def test_server_ca_port_rejects_hostname_mismatch_after_server(
+    ircd_tls_network,
+):
+    """CA-valid cert whose CN/SAN does not match Connect name fails after SERVER."""
     hub = ircd_tls_network["hub"]
     srv = P10Server(name="tlspeer-ca.test.net", numeric=48, password="testpass")
+    # tlspeer is CA-signed but CN is tlspeer.test.net, not tlspeer-ca.test.net
     ctx = client_ssl_context(cert="tlspeer")
     await srv.connect_tls(hub["host"], hub["server_tls_ca_port"], ctx)
     try:
-        with pytest.raises(
-            (
-                ConnectionError,
-                TimeoutError,
-                asyncio.TimeoutError,
-                ConnectionResetError,
-                ssl.SSLError,
-            )
-        ):
+        with pytest.raises(_TLS_CONNECT_ERRORS):
             await srv.handshake(timeout=8.0)
     finally:
         await srv.disconnect()

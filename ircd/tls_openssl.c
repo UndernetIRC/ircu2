@@ -160,71 +160,53 @@ static int openssl_load_ca(SSL_CTX *ctx, const char *cacertfile,
 static int openssl_fingerprint_verify_callback(int preverify_ok,
                                                X509_STORE_CTX *x509_ctx)
 {
-  int err;
-
-  if (preverify_ok)
-    return 1;
-
-  err = X509_STORE_CTX_get_error(x509_ctx);
-  switch (err)
-  {
-  case X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT:
-  case X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN:
-  case X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT:
-  case X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY:
-  case X509_V_ERR_UNABLE_TO_VERIFY_LEAF_SIGNATURE:
-    /* Defer CA trust and validity to verifypeer or fingerprint checks. */
-    return 1;
-  case X509_V_ERR_CERT_HAS_EXPIRED:
-  case X509_V_ERR_CERT_NOT_YET_VALID:
-    return 1;
-  default:
-    return 0;
-  }
+  /* Used only when verify_ca is unset: trust is decided by fingerprint pin
+   * (or nothing).  Accept every presented cert so PKIX errors such as
+   * missing clientAuth EKU or weak CA digests do not abort the handshake.
+   */
+  (void)preverify_ok;
+  (void)x509_ctx;
+  return 1;
 }
 
 /**
- * Set OpenSSL verify mode.
- * @param require_peer Fail if the peer presents no certificate.
- * @param verify_ca Enforce PKIX trust (no fingerprint soft-fail callback).
- * @param request_optional For accept-side contexts: request a client cert
- *        without requiring one, and allow self-signed via the fingerprint
- *        callback when verify_ca is unset. Ignored when require_peer is set.
+ * Apply OpenSSL verify mode for \a policy.
+ * Soft policies use the accept-all fingerprint callback so PKIX is advisory.
  */
-static void openssl_set_verify_policy(SSL_CTX *ctx, int require_peer,
-                                      int verify_ca, int request_optional)
+static void openssl_set_verify_policy(SSL_CTX *ctx, ircd_tls_trust_policy policy)
 {
   int mode = SSL_VERIFY_NONE;
+  int verify_ca = ircd_tls_trust_verifies_ca(policy);
 
-  if (require_peer)
-    mode = SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
-  else if (verify_ca || request_optional)
-    mode = SSL_VERIFY_PEER;
-
-  if (mode == SSL_VERIFY_NONE)
+  switch (policy)
   {
-    SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
-    return;
+  case TLS_TRUST_REQUIRE_CA:
+  case TLS_TRUST_REQUIRE_SOFT:
+    mode = SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
+    break;
+  case TLS_TRUST_REQUEST_SOFT:
+    mode = SSL_VERIFY_PEER;
+    break;
   }
 
   mode |= SSL_VERIFY_CLIENT_ONCE;
   SSL_CTX_set_verify(ctx, mode, verify_ca ? NULL : openssl_fingerprint_verify_callback);
 }
 
-static void openssl_apply_verify_policy(SSL *tls, int require_peer,
-                                        int verify_ca, int request_optional)
+static void openssl_apply_verify_policy(SSL *tls, ircd_tls_trust_policy policy)
 {
   int mode = SSL_VERIFY_NONE;
+  int verify_ca = ircd_tls_trust_verifies_ca(policy);
 
-  if (require_peer)
-    mode = SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
-  else if (verify_ca || request_optional)
-    mode = SSL_VERIFY_PEER;
-
-  if (mode == SSL_VERIFY_NONE)
+  switch (policy)
   {
-    SSL_set_verify(tls, SSL_VERIFY_NONE, NULL);
-    return;
+  case TLS_TRUST_REQUIRE_CA:
+  case TLS_TRUST_REQUIRE_SOFT:
+    mode = SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
+    break;
+  case TLS_TRUST_REQUEST_SOFT:
+    mode = SSL_VERIFY_PEER;
+    break;
   }
 
   mode |= SSL_VERIFY_CLIENT_ONCE;
@@ -234,7 +216,7 @@ static void openssl_apply_verify_policy(SSL *tls, int require_peer,
 static int openssl_configure_server_ctx(SSL_CTX *ctx, const char *ciphers,
                                         const char *cacertfile,
                                         const char *cacertdir,
-                                        int require_peer, int verify_ca,
+                                        ircd_tls_trust_policy policy,
                                         int systemca)
 {
   const char *str;
@@ -261,8 +243,7 @@ static int openssl_configure_server_ctx(SSL_CTX *ctx, const char *ciphers,
     return 0;
 
   SSL_CTX_set_min_proto_version(ctx, TLS1_2_VERSION);
-  /* Accept-side: always request a client cert; require/CA controlled above. */
-  openssl_set_verify_policy(ctx, require_peer, verify_ca, !require_peer);
+  openssl_set_verify_policy(ctx, policy);
   SSL_CTX_set_mode(ctx, SSL_MODE_ENABLE_PARTIAL_WRITE
                    | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
 
@@ -277,7 +258,7 @@ static int openssl_configure_server_ctx(SSL_CTX *ctx, const char *ciphers,
 static int openssl_configure_client_ctx(SSL_CTX *ctx, const char *ciphers,
                                       const char *cacertfile,
                                       const char *cacertdir,
-                                      int require_peer, int verify_ca,
+                                      ircd_tls_trust_policy policy,
                                       int systemca)
 {
   const char *str;
@@ -304,8 +285,7 @@ static int openssl_configure_client_ctx(SSL_CTX *ctx, const char *ciphers,
     return 0;
 
   SSL_CTX_set_min_proto_version(ctx, TLS1_2_VERSION);
-  /* Outbound Connect: require a peer cert; CA only when verify_ca. */
-  openssl_set_verify_policy(ctx, require_peer, verify_ca, 0);
+  openssl_set_verify_policy(ctx, policy);
   SSL_CTX_set_mode(ctx, SSL_MODE_ENABLE_PARTIAL_WRITE
                    | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
 
@@ -331,7 +311,7 @@ static int listener_needs_custom_ctx(const struct Listener *listener)
 static SSL_CTX *openssl_create_server_ctx(const char *ciphers,
                                           const char *cacertfile,
                                           const char *cacertdir,
-                                          int require_peer, int verify_ca,
+                                          ircd_tls_trust_policy policy,
                                           int systemca)
 {
   SSL_CTX *ctx;
@@ -344,7 +324,7 @@ static SSL_CTX *openssl_create_server_ctx(const char *ciphers,
   }
 
   if (!openssl_configure_server_ctx(ctx, ciphers, cacertfile, cacertdir,
-                                    require_peer, verify_ca, systemca))
+                                    policy, systemca))
   {
     SSL_CTX_free(ctx);
     return NULL;
@@ -356,7 +336,7 @@ static SSL_CTX *openssl_create_server_ctx(const char *ciphers,
 static SSL_CTX *openssl_create_client_ctx(const char *ciphers,
                                          const char *cacertfile,
                                          const char *cacertdir,
-                                         int require_peer, int verify_ca,
+                                         ircd_tls_trust_policy policy,
                                          int systemca)
 {
   SSL_CTX *ctx;
@@ -369,7 +349,7 @@ static SSL_CTX *openssl_create_client_ctx(const char *ciphers,
   }
 
   if (!openssl_configure_client_ctx(ctx, ciphers, cacertfile, cacertdir,
-                                  require_peer, verify_ca, systemca))
+                                  policy, systemca))
   {
     SSL_CTX_free(ctx);
     return NULL;
@@ -386,8 +366,7 @@ static void ensure_conf_tls(struct ConfItem *aconf)
   aconf->tls_ctx = openssl_create_client_ctx(aconf->tls_ciphers,
                                              aconf->tls_cacertfile,
                                              aconf->tls_cacertdir,
-                                             1,
-                                             ircd_tls_connect_verify_ca(aconf),
+                                             ircd_tls_connect_trust_policy(aconf),
                                              aconf->tls_systemca);
 }
 
@@ -466,10 +445,10 @@ int ircd_tls_init(void)
   SSL_CTX_set_min_proto_version(new_server_ctx, TLS1_2_VERSION);
   SSL_CTX_set_min_proto_version(new_client_ctx, TLS1_2_VERSION);
 
-  /* User TLS ports: request a client cert, do not require or CA-verify it. */
-  openssl_set_verify_policy(new_server_ctx, 0, 0, 1);
-  /* Outbound Connect default: require a peer cert, allow self-signed. */
-  openssl_set_verify_policy(new_client_ctx, 1, 0, 0);
+  /* Default accept context: user TLS ports (REQUEST_SOFT). */
+  openssl_set_verify_policy(new_server_ctx, TLS_TRUST_REQUEST_SOFT);
+  /* Default connect context: outbound S2S without verifypeer (REQUIRE_SOFT). */
+  openssl_set_verify_policy(new_client_ctx, TLS_TRUST_REQUIRE_SOFT);
 
   SSL_CTX_set_mode(new_server_ctx, SSL_MODE_ENABLE_PARTIAL_WRITE | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
   SSL_CTX_set_mode(new_client_ctx, SSL_MODE_ENABLE_PARTIAL_WRITE | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
@@ -552,13 +531,7 @@ void *ircd_tls_accept(struct Listener *listener, int fd)
   SSL_set_accept_state(tls);
 
   if (listener)
-  {
-    int require_peer = ircd_tls_listener_peer_cert_required(listener);
-    int verify_ca = ircd_tls_listener_verify_ca(listener);
-
-    /* Always request a client cert on accept; require/CA as configured. */
-    openssl_apply_verify_policy(tls, require_peer, verify_ca, !require_peer);
-  }
+    openssl_apply_verify_policy(tls, ircd_tls_listener_trust_policy(listener));
 
   return tls;
 }
@@ -587,7 +560,7 @@ void *ircd_tls_connect(struct ConfItem *aconf, int fd)
 
   if (aconf)
   {
-    openssl_apply_verify_policy(tls, 1, ircd_tls_connect_verify_ca(aconf), 0);
+    openssl_apply_verify_policy(tls, ircd_tls_connect_trust_policy(aconf));
 
 #if OPENSSL_VERSION_NUMBER >= 0x10002000L
     if (ircd_tls_connect_verify_hostname(aconf) && !EmptyString(aconf->name))
@@ -651,8 +624,7 @@ int ircd_tls_conf_reload(struct ConfItem *aconf)
   new_ctx = openssl_create_client_ctx(aconf->tls_ciphers,
                                       aconf->tls_cacertfile,
                                       aconf->tls_cacertdir,
-                                      1,
-                                      ircd_tls_connect_verify_ca(aconf),
+                                      ircd_tls_connect_trust_policy(aconf),
                                       aconf->tls_systemca);
   if (!new_ctx)
     return 1;
@@ -675,8 +647,7 @@ int ircd_tls_listen(struct Listener *listener)
   new_ctx = openssl_create_server_ctx(listener->tls_ciphers,
                                     listener->tls_cacertfile,
                                     listener->tls_cacertdir,
-                                    ircd_tls_listener_peer_cert_required(listener),
-                                    ircd_tls_listener_verify_ca(listener),
+                                    ircd_tls_listener_trust_policy(listener),
                                     listener->tls_systemca);
   if (!new_ctx)
     return 1;

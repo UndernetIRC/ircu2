@@ -158,7 +158,7 @@ int conf_tls_needs_custom_ctx(const struct ConfItem *aconf)
 /** Return non-zero if outbound Connect block requires PKIX validation. */
 int ircd_tls_connect_verify_ca(const struct ConfItem *aconf)
 {
-  return aconf && aconf->tls_verifypeer == 1;
+  return ircd_tls_trust_verifies_ca(ircd_tls_connect_trust_policy(aconf));
 }
 
 /** Return non-zero if Connect block requires peer hostname verification. */
@@ -167,16 +167,37 @@ int ircd_tls_connect_verify_hostname(const struct ConfItem *aconf)
   return ircd_tls_connect_verify_ca(aconf);
 }
 
+/** Return the trust policy for inbound connections on \a listener. */
+ircd_tls_trust_policy ircd_tls_listener_trust_policy(const struct Listener *listener)
+{
+  if (!listener)
+    return TLS_TRUST_REQUEST_SOFT;
+  if (listener->tls_verifypeer == 1)
+    return TLS_TRUST_REQUIRE_CA;
+  if (listener_server(listener))
+    return TLS_TRUST_REQUIRE_SOFT;
+  return TLS_TRUST_REQUEST_SOFT;
+}
+
+/** Return the trust policy for an outbound Connect block. */
+ircd_tls_trust_policy ircd_tls_connect_trust_policy(const struct ConfItem *aconf)
+{
+  if (aconf && aconf->tls_verifypeer == 1)
+    return TLS_TRUST_REQUIRE_CA;
+  return TLS_TRUST_REQUIRE_SOFT;
+}
+
 /** Return non-zero if inbound listener connections require PKIX validation. */
 int ircd_tls_listener_verify_ca(const struct Listener *listener)
 {
-  return listener && listener->tls_verifypeer == 1;
+  return ircd_tls_trust_verifies_ca(ircd_tls_listener_trust_policy(listener));
 }
 
 /** Return non-zero if inbound listener connections must present a cert. */
 int ircd_tls_listener_peer_cert_required(const struct Listener *listener)
 {
-  return listener && (listener_server(listener) || listener->tls_verifypeer == 1);
+  return listener &&
+    ircd_tls_trust_requires_peer(ircd_tls_listener_trust_policy(listener));
 }
 
 /** Reload global TLS state and all listener and Connect block contexts. */

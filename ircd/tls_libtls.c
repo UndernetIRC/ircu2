@@ -50,7 +50,7 @@ static struct tls_config *client_cfg;
 static struct tls_config *make_tls_config(const char *ciphers,
                                           const char *cacertdir,
                                           const char *cacertfile,
-                                          int require_peer, int verify_ca,
+                                          ircd_tls_trust_policy policy,
                                           int systemca, int is_server);
 
 int ircd_tls_init(void)
@@ -78,7 +78,7 @@ int ircd_tls_init(void)
     }
   }
 
-  new_cfg = make_tls_config(NULL, NULL, NULL, 1, 0,
+  new_cfg = make_tls_config(NULL, NULL, NULL, TLS_TRUST_REQUIRE_SOFT,
                             LISTENER_TLS_SYSTEMCA_DEFAULT, 0);
   if (!new_cfg)
     return 2;
@@ -90,37 +90,47 @@ int ircd_tls_init(void)
   return 0;
 }
 
-static void tls_config_set_verify_policy(struct tls_config *cfg, int require_peer,
-                                         int verify_ca, int is_server)
+static void tls_config_set_verify_policy(struct tls_config *cfg,
+                                         ircd_tls_trust_policy policy,
+                                         int is_server)
 {
-  if (verify_ca)
+  switch (policy)
   {
+  case TLS_TRUST_REQUIRE_CA:
     if (is_server)
       tls_config_verify_client(cfg);
     else
       tls_config_verify(cfg);
     return;
-  }
 
-  if (require_peer)
-  {
+  case TLS_TRUST_REQUIRE_SOFT:
     if (is_server)
+    {
       tls_config_verify_client(cfg);
+      tls_config_insecure_noverifycert(cfg);
+    }
     else
+    {
+      /* Require a peer cert but do not enforce CA or hostname; trust is
+       * fingerprint pin or nothing.  tls_config_verify() enables name
+       * checks that insecure_noverifycert() does not clear.
+       */
       tls_config_verify(cfg);
-    tls_config_insecure_noverifycert(cfg);
+      tls_config_insecure_noverifycert(cfg);
+      tls_config_insecure_noverifyname(cfg);
+    }
+    return;
+
+  case TLS_TRUST_REQUEST_SOFT:
+    if (is_server)
+    {
+      tls_config_verify_client_optional(cfg);
+      tls_config_insecure_noverifycert(cfg);
+    }
+    else
+      tls_config_insecure_noverifycert(cfg);
     return;
   }
-
-  if (is_server)
-  {
-    /* Client ports: request a cert, allow missing/self-signed. */
-    tls_config_verify_client_optional(cfg);
-    tls_config_insecure_noverifycert(cfg);
-    return;
-  }
-
-  tls_config_insecure_noverifycert(cfg);
 }
 
 static int listener_needs_custom_ctx(const struct Listener *listener)
@@ -243,7 +253,7 @@ static int libtls_load_ca(struct tls_config *cfg, const char *cacertfile,
 static struct tls_config *make_tls_config(const char *ciphers,
                                           const char *cacertdir,
                                           const char *cacertfile,
-                                          int require_peer, int verify_ca,
+                                          ircd_tls_trust_policy policy,
                                           int systemca, int is_server)
 {
   struct tls_config *new_cfg;
@@ -267,7 +277,7 @@ static struct tls_config *make_tls_config(const char *ciphers,
   if (!libtls_load_ca(new_cfg, cacertfile, cacertdir, systemca))
     goto fail;
 
-  tls_config_set_verify_policy(new_cfg, require_peer, verify_ca, is_server);
+  tls_config_set_verify_policy(new_cfg, policy, is_server);
 
   protos = 0;
   /* Set minimum TLS version to 1.2 (like OpenSSL) and support 1.3 */
@@ -309,8 +319,7 @@ static void ensure_conf_tls(struct ConfItem *aconf)
 
   aconf->tls_ctx = make_tls_config(aconf->tls_ciphers, aconf->tls_cacertdir,
                                     aconf->tls_cacertfile,
-                                    1,
-                                    ircd_tls_connect_verify_ca(aconf),
+                                    ircd_tls_connect_trust_policy(aconf),
                                     aconf->tls_systemca, 0);
 }
 
@@ -395,8 +404,7 @@ int ircd_tls_conf_reload(struct ConfItem *aconf)
 
   new_cfg = make_tls_config(aconf->tls_ciphers, aconf->tls_cacertdir,
                             aconf->tls_cacertfile,
-                            1,
-                            ircd_tls_connect_verify_ca(aconf),
+                            ircd_tls_connect_trust_policy(aconf),
                             aconf->tls_systemca, 0);
   if (!new_cfg)
     return 1;
@@ -452,8 +460,7 @@ int ircd_tls_listen(struct Listener *listener)
 
   cfg = make_tls_config(listener->tls_ciphers, listener->tls_cacertdir,
                         listener->tls_cacertfile,
-                        ircd_tls_listener_peer_cert_required(listener),
-                        ircd_tls_listener_verify_ca(listener),
+                        ircd_tls_listener_trust_policy(listener),
                         listener->tls_systemca, 1);
   if (!cfg)
     return 1;

@@ -8,7 +8,7 @@ from tls_certs import CERT_DIR, FINGERPRINTS, cert_path, fingerprint, key_path
 def test_cert_files_exist():
     for name in (
         "ca", "hub", "leaf", "tlspeer", "tlspeer-ca",
-        "selfsigned", "expired", "rogue",
+        "selfsigned", "expired", "rogue", "nocliauth", "notyet",
     ):
         assert cert_path(name).is_file(), f"missing {name}.pem"
         assert key_path(name).is_file(), f"missing {name}.key"
