@@ -209,9 +209,8 @@ int ms_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       de_oper(dptr);
     else if (!strcmp(parv[2], "+x") && IsAccount(dptr) && !HasHiddenHost(dptr)) {
       struct Flags old_mode = cli_flags(dptr);
-      SetHiddenHost(dptr);
-      send_umode_out(dptr, dptr, &old_mode, HasPriv(dptr, PRIV_PROPAGATE));
       hide_hostmask(dptr, FLAG_HIDDENHOST);
+      send_umode_out(dptr, dptr, &old_mode, HasPriv(dptr, PRIV_PROPAGATE));
     }
 
     return 0;

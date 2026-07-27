@@ -137,6 +137,8 @@ int m_whowas(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       if (0 == ircd_strcmp(nick, temp->name))
       {
 	send_reply(sptr, RPL_WHOWASUSER, temp->name,
+		   /* Strip ~ using the feature as currently set; realhost
+		    * means the user was fully hidden when the entry was made. */
 		   feature_bool(FEAT_TRUST_USERNAME) && temp->realhost
 		   && temp->username[0] == '~' ?
 		   temp->username + 1 : temp->username,

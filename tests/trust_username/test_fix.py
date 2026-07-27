@@ -13,15 +13,21 @@ from irc_client import IRCClient
 from p10_server import P10Server
 
 from trust_username.helpers import (
+    apply_hide,
     hidden_host,
     hide_via_services,
-    oper_up,
     user_from_prefix,
     whois_userline,
 )
 
 
 pytestmark = pytest.mark.multi_server
+
+# Local hub client: account via AC; +x via services OPMODE or client MODE.
+_HIDE_PATHS = [
+    pytest.param("ac", "opmode", id="ac-opmode"),
+    pytest.param("ac", "mode", id="ac-mode"),
+]
 
 
 @pytest.fixture
@@ -70,39 +76,108 @@ async def test_services_account_then_opmode_shows_untilded_whois(
             await client.disconnect()
 
 
-async def test_join_without_chghost_shows_untilded_prefix(ircd_network, services):
-    """Clients without chghost should see QUIT/JOIN with untilded user@hidden.host."""
-    hub = ircd_network["hub"]
-    account = "JoinAcct71"
-    channel = "#tu71_join"
+async def _wait_join_from(observer: IRCClient, nick: str, timeout: float = 5.0):
+    """Wait for JOIN from ``nick`` (skip observer's own buffered JOIN)."""
+    deadline = asyncio.get_event_loop().time() + timeout
+    while asyncio.get_event_loop().time() < deadline:
+        msg = await observer.wait_for("JOIN", timeout=timeout)
+        if msg.prefix and msg.prefix.startswith(f"{nick}!"):
+            return msg
+    raise AssertionError(f"Did not see JOIN from {nick!r}")
+
+
+async def _setup_hide_subject(
+    hub,
+    services,
+    *,
+    nick: str,
+    channel: str,
+    observer: IRCClient,
+):
+    """Register local nick on channel with observer; return (user, numnick, real_host)."""
+    await observer.send(f"JOIN {channel}")
+    await observer.wait_for("366")
 
     user = IRCClient()
     await user.connect(hub["host"], hub["port"])
-    await user.register("tu71j", "testuser", "Test User")
+    await user.register(nick, "testuser", "Test User")
+    await user.send(f"JOIN {channel}")
+    await user.wait_for("366")
+    await _wait_join_from(observer, nick)
+    numnick = await services.wait_for_user(nick)
+    old_user, real_host = await whois_userline(observer, nick)
+    assert old_user == "~testuser", f"Expected tilded WHOIS user, got {old_user!r}"
+    return user, numnick, real_host
+
+
+@pytest.mark.parametrize("account_via,x_via", _HIDE_PATHS)
+async def test_hide_quit_keeps_tilded_prefix_then_untilded_join(
+    ircd_network, services, account_via, x_via
+):
+    """No-chghost clients: QUIT prefix stays ~user@realhost; JOIN is user@hidden.
+
+    Covers +x via services OPMODE or local client MODE after ACCOUNT.
+    """
+    hub = ircd_network["hub"]
+    account = f"Join{account_via}{x_via}"[:12]
+    channel = f"#tu_j_{account_via}_{x_via}"
+    # Distinct nicks: observer must not be a prefix-extension of the subject.
+    nick = f"tj{account_via[0]}{x_via[0]}"
+    onick = f"oj{account_via[0]}{x_via[0]}"
 
     observer = IRCClient()
     await observer.connect(hub["host"], hub["port"])
-    await observer.register("tu71w", "testuser", "Test User")
+    await observer.register(onick, "testuser", "Test User")
 
+    user = None
     try:
-        await user.send(f"JOIN {channel}")
-        await user.wait_for("366")
-        await observer.send(f"JOIN {channel}")
-        await observer.wait_for("366")
-        await user.wait_for("JOIN")
+        user, numnick, real_host = await _setup_hide_subject(
+            hub,
+            services,
+            nick=nick,
+            channel=channel,
+            observer=observer,
+        )
+        assert real_host != hidden_host(account)
 
-        await hide_via_services(services, "tu71j", account)
+        await apply_hide(
+            services,
+            nick,
+            account,
+            account_via=account_via,
+            x_via=x_via,
+            user=user,
+            numnick=numnick,
+        )
 
+        quit_msg = None
         join_msg = None
+        seen = []
         deadline = asyncio.get_event_loop().time() + 5.0
         while asyncio.get_event_loop().time() < deadline:
-            msg = await observer.wait_for("JOIN", timeout=2.0)
-            if msg.prefix and msg.prefix.startswith("tu71j!"):
+            msg = await observer.recv(timeout=2.0)
+            seen.append(msg)
+            if not (msg.prefix and msg.prefix.startswith(f"{nick}!")):
+                continue
+            if msg.command == "QUIT":
+                quit_msg = msg
+            elif msg.command == "JOIN":
                 join_msg = msg
                 break
-        assert join_msg is not None, "Did not see hidden user's re-JOIN"
-        prefix_user = user_from_prefix(join_msg.prefix)
-        assert prefix_user == "testuser", (
+
+        assert quit_msg is not None, f"Did not see transitional QUIT; got: {seen}"
+        assert user_from_prefix(quit_msg.prefix) == "~testuser", (
+            f"QUIT prefix should keep old tilded username, got {quit_msg.prefix!r}"
+        )
+        assert quit_msg.prefix.endswith(f"@{real_host}"), (
+            f"QUIT prefix should keep old real host {real_host!r}, got {quit_msg.prefix!r}"
+        )
+        assert not quit_msg.prefix.endswith(f"@{hidden_host(account)}"), (
+            f"QUIT prefix must not use hidden host yet, got {quit_msg.prefix!r}"
+        )
+
+        assert join_msg is not None, f"Did not see hidden user's re-JOIN; got: {seen}"
+        assert user_from_prefix(join_msg.prefix) == "testuser", (
             f"JOIN prefix should use untilded username, got {join_msg.prefix!r}"
         )
         assert join_msg.prefix.endswith(f"@{hidden_host(account)}"), (
@@ -110,6 +185,8 @@ async def test_join_without_chghost_shows_untilded_prefix(ircd_network, services
         )
     finally:
         for client in (user, observer):
+            if client is None:
+                continue
             try:
                 await client.send("QUIT :cleanup")
             except Exception:
@@ -117,15 +194,19 @@ async def test_join_without_chghost_shows_untilded_prefix(ircd_network, services
             await client.disconnect()
 
 
-async def test_chghost_shows_untilded_username(ircd_network, services):
-    """Clients with CAP chghost should see CHGHOST with untilded username."""
-    hub = ircd_network["hub"]
-    account = "ChgAcct71"
-    channel = "#tu71_chghost"
+@pytest.mark.parametrize("account_via,x_via", _HIDE_PATHS)
+async def test_hide_chghost_keeps_tilded_prefix_params_untilded(
+    ircd_network, services, account_via, x_via
+):
+    """chghost clients: CHGHOST prefix stays ~user@realhost; params are new identity.
 
-    user = IRCClient()
-    await user.connect(hub["host"], hub["port"])
-    await user.register("tu71c", "testuser", "Test User")
+    Covers +x via services OPMODE or local client MODE after ACCOUNT.
+    """
+    hub = ircd_network["hub"]
+    account = f"Chg{account_via}{x_via}"[:12]
+    channel = f"#tu_c_{account_via}_{x_via}"
+    nick = f"tc{account_via[0]}{x_via[0]}"
+    onick = f"oc{account_via[0]}{x_via[0]}"
 
     observer = IRCClient()
     await observer.connect(hub["host"], hub["port"])
@@ -133,16 +214,27 @@ async def test_chghost_shows_untilded_username(ircd_network, services):
     if "chghost" not in acked:
         await observer.disconnect()
         pytest.skip("chghost not supported on this build")
-    await observer.register("tu71cg", "testuser", "Test User")
-
+    await observer.register(onick, "testuser", "Test User")
+    user = None
     try:
-        await user.send(f"JOIN {channel}")
-        await user.wait_for("366")
-        await observer.send(f"JOIN {channel}")
-        await observer.wait_for("366")
-        await user.wait_for("JOIN")
+        user, numnick, real_host = await _setup_hide_subject(
+            hub,
+            services,
+            nick=nick,
+            channel=channel,
+            observer=observer,
+        )
+        assert real_host != hidden_host(account)
 
-        await hide_via_services(services, "tu71c", account)
+        await apply_hide(
+            services,
+            nick,
+            account,
+            account_via=account_via,
+            x_via=x_via,
+            user=user,
+            numnick=numnick,
+        )
 
         chg_msg = None
         seen = []
@@ -150,14 +242,14 @@ async def test_chghost_shows_untilded_username(ircd_network, services):
         while asyncio.get_event_loop().time() < deadline:
             msg = await observer.recv(timeout=2.0)
             seen.append(msg)
-            if msg.command == "CHGHOST" and msg.prefix and msg.prefix.startswith("tu71c!"):
+            if msg.command == "CHGHOST" and msg.prefix and msg.prefix.startswith(f"{nick}!"):
                 chg_msg = msg
                 break
-            if msg.command == "JOIN" and msg.prefix and msg.prefix.startswith("tu71c!"):
+            if msg.command == "JOIN" and msg.prefix and msg.prefix.startswith(f"{nick}!"):
                 pytest.fail(
                     f"chghost client saw QUIT/JOIN hide cycle instead of CHGHOST: {msg}"
                 )
-        assert chg_msg is not None, f"Did not see CHGHOST for tu71c; got: {seen}"
+        assert chg_msg is not None, f"Did not see CHGHOST for {nick}; got: {seen}"
         assert len(chg_msg.params) >= 2, f"CHGHOST params incomplete: {chg_msg}"
         assert chg_msg.params[0] == "testuser", (
             f"CHGHOST user should be untilded, got {chg_msg.params[0]!r}"
@@ -167,11 +259,19 @@ async def test_chghost_shows_untilded_username(ircd_network, services):
             f"CHGHOST host should be hidden host, got {chg_msg.params[1]!r}"
         )
         prefix_user = user_from_prefix(chg_msg.prefix)
-        assert prefix_user == "testuser", (
-            f"CHGHOST prefix should use untilded username, got {chg_msg.prefix!r}"
+        assert prefix_user == "~testuser", (
+            f"CHGHOST prefix should keep old tilded username, got {chg_msg.prefix!r}"
+        )
+        assert chg_msg.prefix.endswith(f"@{real_host}"), (
+            f"CHGHOST prefix should keep old real host {real_host!r}, got {chg_msg.prefix!r}"
+        )
+        assert not chg_msg.prefix.endswith(f"@{hidden_host(account)}"), (
+            f"CHGHOST prefix must not use hidden host, got {chg_msg.prefix!r}"
         )
     finally:
         for client in (user, observer):
+            if client is None:
+                continue
             try:
                 await client.send("QUIT :cleanup")
             except Exception:

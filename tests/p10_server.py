@@ -439,6 +439,8 @@ class P10Server:
 
         Format: <our_num> N <nick> <hops> <ts> <user> <host> <+modes> <b64ip> <numnick> :<realname>
 
+        ``modes`` may include a following account token for +r, e.g. ``+ir AcctName``.
+
         Returns the new user's numnick.
         """
         client_num = self._next_client_num
@@ -450,7 +452,20 @@ class P10Server:
             f"{self._num} N {nick} 1 {ts} {username} {host} {modes} "
             f"{ip64} {numnick} :{realname}"
         )
+        self.users[nick.lower()] = {
+            "nick": nick,
+            "numnick": numnick,
+            "username": username,
+            "host": host,
+            "modes": modes,
+            "realname": realname,
+        }
         return numnick
+
+    async def send_join(self, numnick: str, channel: str, creation: int | None = None):
+        """JOIN a channel from a P10 client numnick."""
+        ts = creation if creation is not None else int(time.time())
+        await self._send(f"{numnick} J {channel} {ts}")
 
     async def send_privmsg(self, from_numnick: str, target: str, text: str):
         """Send a PRIVMSG (P) from one of our users to a target numnick."""

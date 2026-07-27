@@ -268,7 +268,8 @@ async def test_gline_matches_tilded_username(ircd_network):
     gline_mask = None
     try:
         await victim.connect(hub["host"], hub["port"])
-        await victim.register("tu71gv", "testuser", "Test User")
+        # Distinct USER so a leftover G-line cannot poison later tests.
+        await victim.register("tu71gv", "glineok", "Test User")
 
         username, host = await whois_userline(oper, "tu71gv")
         assert username.startswith("~"), f"Expected tilded WHOIS user, got {username!r}"
@@ -305,13 +306,13 @@ async def test_gline_does_not_match_untilded_username(ircd_network):
     gline_mask = None
     try:
         await victim.connect(hub["host"], hub["port"])
-        await victim.register("tu72gv", "testuser", "Test User")
+        await victim.register("tu72gv", "glineno", "Test User")
 
         username, host = await whois_userline(oper, "tu72gv")
         assert username.startswith("~"), f"Expected tilded user, got {username!r}"
 
         # Mask without tilde must not match the internal ~user record.
-        gline_mask = f"testuser@{host}"
+        gline_mask = f"glineno@{host}"
         await add_gline(oper, gline_mask)
 
         await victim.send("PING :alive")
@@ -498,6 +499,93 @@ async def test_opmode_before_account_requires_second_opmode(ircd_network, servic
         assert host == hidden_host(account)
     finally:
         for client in (user, observer):
+            try:
+                await client.send("QUIT :cleanup")
+            except Exception:
+                pass
+            await client.disconnect()
+
+
+async def test_who_matches_visible_untilded_username(ircd_network, services):
+    """WHO/WHOX username masks must match the displayed untilded username.
+
+    Non-opers match visible_username only; opers may also match the real
+    tilded username (same privilege pattern as realhost matching).
+    """
+    hub = ircd_network["hub"]
+    account = "WhoAcct71"
+    channel = "#tu71_who"
+
+    user = IRCClient()
+    await user.connect(hub["host"], hub["port"])
+    await user.register("tu71wu", "testuser", "Test User")
+
+    observer = IRCClient()
+    await observer.connect(hub["host"], hub["port"])
+    await observer.register("tu71ww", "obsuser", "Test User")
+
+    oper = IRCClient()
+    await oper.connect(hub["host"], hub["port"])
+    await oper.register("tu71wo", "operuser", "Test User")
+    await oper_up(oper)
+
+    try:
+        await user.send(f"JOIN {channel}")
+        await user.wait_for("366")
+        await observer.send(f"JOIN {channel}")
+        await observer.wait_for("366")
+        await oper.send(f"JOIN {channel}")
+        await oper.wait_for("366")
+
+        await hide_via_services(services, "tu71wu", account)
+
+        # Plain WHO should find the user by the username shown in output.
+        await observer.send("WHO testuser")
+        msgs = await observer.collect_until("315", timeout=5.0)
+        who352 = [
+            m for m in msgs
+            if m.command == "352" and len(m.params) >= 6 and m.params[5] == "tu71wu"
+        ]
+        assert who352, f"WHO testuser should find tu71wu, got: {msgs}"
+        assert who352[0].params[2] == "testuser", (
+            f"WHO output should show untilded username, got {who352[0].params[2]!r}"
+        )
+
+        # Non-opers must not match the real tilded username they cannot see.
+        await observer.send("WHO ~testuser u%nu")
+        msgs = await observer.collect_until("315", timeout=5.0)
+        whox_tilde = [
+            m for m in msgs
+            if m.command == "354" and "tu71wu" in m.params
+        ]
+        assert not whox_tilde, (
+            f"Non-oper WHOX ~testuser should not find hidden tu71wu, got: {msgs}"
+        )
+
+        # WHOX username-field search should match the displayed form.
+        await observer.send("WHO testuser u%nu")
+        msgs = await observer.collect_until("315", timeout=5.0)
+        whox = [
+            m for m in msgs
+            if m.command == "354" and "tu71wu" in m.params
+        ]
+        assert whox, f"WHOX u%nu for testuser should find tu71wu, got: {msgs}"
+        assert any("testuser" in m.params for m in whox), (
+            f"WHOX output should include untilded username, got: {whox}"
+        )
+
+        # Opers may still match the real tilded username.
+        await oper.send("WHO ~testuser u%nu")
+        msgs = await oper.collect_until("315", timeout=5.0)
+        whox_oper = [
+            m for m in msgs
+            if m.command == "354" and "tu71wu" in m.params
+        ]
+        assert whox_oper, (
+            f"Oper WHOX ~testuser should find hidden tu71wu, got: {msgs}"
+        )
+    finally:
+        for client in (user, observer, oper):
             try:
                 await client.send("QUIT :cleanup")
             except Exception:

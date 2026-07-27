@@ -34,7 +34,10 @@ async def hide_via_services(
     *,
     set_x_first: bool = False,
 ) -> str:
-    """Set account and +x on a user via the U:lined services server."""
+    """Set account and +x on a user via the U:lined services server.
+
+    Default path: ACCOUNT (AC) then OPMODE +x.
+    """
     numnick = await services.wait_for_user(nick)
     if set_x_first:
         await services.send_opmode(numnick, "+x")
@@ -46,6 +49,44 @@ async def hide_via_services(
         await services.send_opmode(numnick, "+x")
     await asyncio.sleep(0.5)
     return account
+
+
+async def apply_hide(
+    services: P10Server,
+    nick: str,
+    account: str,
+    *,
+    account_via: str,
+    x_via: str,
+    user: IRCClient | None = None,
+    numnick: str | None = None,
+) -> None:
+    """Fully hide an already-connected local nick using the requested paths.
+
+    account_via:
+      ``ac`` — ACCOUNT (AC) from services.
+    x_via:
+      ``opmode`` — OPMODE +x from services (target must be MyConnect on hub).
+      ``mode`` — local client ``MODE nick +x`` (requires ``user``).
+    """
+    if numnick is None:
+        numnick = await services.wait_for_user(nick)
+
+    if account_via == "ac":
+        await services.send_account(numnick, account)
+        await asyncio.sleep(0.3)
+    else:
+        raise ValueError(f"unknown account_via {account_via!r}")
+
+    if x_via == "opmode":
+        await services.send_opmode(numnick, "+x")
+    elif x_via == "mode":
+        if user is None:
+            raise ValueError("x_via='mode' requires a local IRCClient user")
+        await user.send(f"MODE {nick} +x")
+    else:
+        raise ValueError(f"unknown x_via {x_via!r}")
+    await asyncio.sleep(0.5)
 
 
 async def whois_userline(observer: IRCClient, nick: str) -> tuple[str, str]:
@@ -71,10 +112,13 @@ async def add_gline(oper: IRCClient, mask: str, reason: str = "trust username te
 
 
 async def remove_gline(oper: IRCClient, mask: str):
-    """Remove a global G-line (deactivate with ``GLINE -mask *``).
+    """Deactivate a global G-line and verify it is no longer active.
 
-    This ircu build needs a three-command sequence before deactivation
-    succeeds; a single ``GLINE -mask *`` is ignored after add.
+    Global ``GLINE -mask *`` uses ``TStime()`` as lastmod.  A deactivate in
+    the same second as the add is ignored (``gline_modify`` no-ops on equal
+    lastmod), which left ``~user@ip`` active and poisoned later tests.
+    Wait one second, then deactivate; also apply a local override immediately
+    so hub clients are safe even if the global update is delayed.
     """
     try:
         while True:
@@ -82,31 +126,50 @@ async def remove_gline(oper: IRCClient, mask: str):
     except asyncio.TimeoutError:
         pass
 
-    await oper.send(f"GLINE -{mask} * 100000 :cleanup")
+    # Immediate local override on this server (skips lastmod equality check).
+    await oper.send(f"GLINE <{mask}")
     try:
         while True:
-            await oper.recv(timeout=0.5)
+            await oper.recv(timeout=0.3)
     except asyncio.TimeoutError:
         pass
-    await oper.send(f"GLINE -{mask} * :cleanup")
-    try:
-        while True:
-            msg = await oper.recv(timeout=1.0)
-            if msg.command == "515":
-                break
-    except asyncio.TimeoutError:
-        pass
+
+    await asyncio.sleep(1.1)
+
     await oper.send(f"GLINE -{mask} *")
-    for _ in range(8):
+    for _ in range(12):
         try:
             msg = await oper.recv(timeout=3.0)
         except asyncio.TimeoutError:
             break
-        if msg.command == "NOTICE" and any("GLINE" in p for p in msg.params):
-            return
-        if msg.command in ("465", "ERROR"):
-            continue
+        joined = " ".join(msg.params)
+        if msg.command == "NOTICE" and "GLINE" in joined:
+            break
         if msg.command == "512":
-            return  # already removed
+            return
         if msg.command.startswith("4") or msg.command.startswith("5"):
             raise AssertionError(f"GLINE remove rejected: {msg}")
+
+    try:
+        while True:
+            await oper.recv(timeout=0.2)
+    except asyncio.TimeoutError:
+        pass
+    await oper.send(f"GLINE {mask}")
+    status = None
+    for _ in range(12):
+        try:
+            msg = await oper.recv(timeout=3.0)
+        except asyncio.TimeoutError:
+            break
+        if msg.command == "280" and len(msg.params) >= 7 and msg.params[1] == mask:
+            status = msg.params[6]
+            break
+        if msg.command in ("281", "512"):
+            return
+    if status is None:
+        raise AssertionError(f"GLINE remove for {mask!r}: no list entry after deactivate")
+    if status.strip() == "+":
+        raise AssertionError(
+            f"GLINE {mask!r} still active after deactivate (status {status!r})"
+        )

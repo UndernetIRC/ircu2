@@ -93,6 +93,7 @@
 #include "match.h"
 #include "numeric.h"
 #include "numnicks.h"
+#include "s_user.h"
 #include "send.h"
 #include "whocmds.h"
 
@@ -404,6 +405,10 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
               ((!(matchsel & WHO_FIELD_NIC))
               || matchexec(cli_name(acptr), mymask, minlen))
               && ((!(matchsel & WHO_FIELD_UID))
+              || matchexec(visible_username(acptr), mymask, minlen))
+              && ((!(matchsel & WHO_FIELD_UID))
+              || !HasHiddenHost(acptr)
+              || !IsAnOper(sptr)
               || matchexec(cli_user(acptr)->username, mymask, minlen))
               && ((!(matchsel & WHO_FIELD_SER))
               || (!(HasFlag(cli_user(acptr)->server, FLAG_MAP))))
@@ -442,6 +447,10 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
             ((!(matchsel & WHO_FIELD_NIC))
             || matchexec(cli_name(acptr), mymask, minlen))
             && ((!(matchsel & WHO_FIELD_UID))
+            || matchexec(visible_username(acptr), mymask, minlen))
+            && ((!(matchsel & WHO_FIELD_UID))
+            || !HasHiddenHost(acptr)
+            || !IsAnOper(sptr)
             || matchexec(cli_user(acptr)->username, mymask, minlen))
             && ((!(matchsel & WHO_FIELD_SER))
                 || (!(HasFlag(cli_user(acptr)->server, FLAG_MAP))))

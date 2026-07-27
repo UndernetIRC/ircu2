@@ -13,7 +13,9 @@ import asyncio
 import os
 import random
 import struct
+import tempfile
 import time
+from pathlib import Path
 
 import pytest
 
@@ -31,6 +33,17 @@ CF_CLIENT_IP = "203.0.113.50"
 SPOOF_IP = "203.0.113.99"
 
 _WS_KEY = "dGhlIHNhbXBsZSBub25jZQ=="
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+HUB_CONF_HOST = REPO_ROOT / "tests" / "docker" / "ircd-hub.conf"
+HUB_CONTAINER = "ircu-hub"
+HUB_CONF_CONTAINER = "/opt/ircu/lib/ircd.conf"
+
+# Exact lines from tests/docker/ircd-hub.conf (DoIdentLookups + tilde harness).
+_IDENT_CLIENT_LINE = (
+    'Client { ip = "*"; class = "Local"; username = "ident"; maxlinks = 50; };\n'
+)
+_IAUTH_TILDED_LINE = 'IAuth { program = "/opt/ircu/bin/iauth-tilded.pl"; };\n'
 
 
 def _raw_ws_handshake(*extra_header_lines: bytes) -> bytes:
@@ -258,8 +271,9 @@ def _notice_blob(notices: list[str]) -> str:
 async def test_cloudflare_websocket_keeps_tilde_without_ident(ircd_hub, make_client):
     """Skipping ident on cloudflare ports must not trust the USER username.
 
-    Clients still get a leading ~ unless iauth/WEBIRC (or a successful
-    ident, which cannot run here) explicitly trusts the name.
+    Hub config enables DoIdentLookups via ``Client { username = "ident"; }``.
+    Clients still get a leading ~ unless iauth/WEBIRC explicitly trusts the
+    name. Successful ident cannot run here; the query is skipped on CF ports.
     """
     observer = await make_client("cftil")
     nick = f"cftu{random.randint(0, 999_999)}"
@@ -340,3 +354,150 @@ async def test_cloudflare_defers_ipcheck_until_handshake(ircd_hub):
             extra_headers=(b"CF-Connecting-IP: " + f"203.0.113.{10 + i}".encode() + b"\r\n",),
         )
         assert upgraded, f"connect {i}: expected 101, got {http[:120]!r}"
+
+
+def _write_hub_config(text: str) -> None:
+    """Push config into the running hub with docker cp (see class_limits helpers)."""
+    import subprocess
+
+    tmp = tempfile.NamedTemporaryFile("w", suffix=".conf", delete=False)
+    try:
+        tmp.write(text)
+        tmp.close()
+        os.chmod(tmp.name, 0o644)
+        subprocess.run(
+            ["docker", "cp", tmp.name, f"{HUB_CONTAINER}:{HUB_CONF_CONTAINER}"],
+            check=True,
+            capture_output=True,
+        )
+    finally:
+        os.unlink(tmp.name)
+
+
+def _sighup_hub_ircd() -> None:
+    """Reload hub config without needing a live OPER connection."""
+    import subprocess
+
+    subprocess.run(
+        [
+            "docker",
+            "exec",
+            HUB_CONTAINER,
+            "sh",
+            "-c",
+            # Prefer the real ircd binary; fall back to pgrep -f.
+            "pid=$(pidof /opt/ircu/bin/ircd 2>/dev/null || pidof ircd 2>/dev/null || "
+            "pgrep -n -f /opt/ircu/bin/ircd || true); "
+            '[ -n "$pid" ] && kill -HUP "$pid"',
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    time.sleep(0.5)
+
+
+def _restore_hub_baseline(baseline: str) -> None:
+    """Always rewrite the baked hub conf and SIGHUP so later tests see tildes again.
+
+    The patched config removes ``username = "ident"`` and iauth-tilded; if a
+    run is interrupted before REHASH restore, subsequent trust_username tests
+    register without ``~`` and fail in cascade.  File write + SIGHUP works even
+    when the test's oper client is already dead.
+    """
+    _write_hub_config(baseline)
+    _sighup_hub_ircd()
+
+
+def _hub_conf_text() -> str:
+    import subprocess
+
+    result = subprocess.run(
+        ["docker", "exec", HUB_CONTAINER, "cat", HUB_CONF_CONTAINER],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return result.stdout
+
+
+async def _oper_up(oper: IRCClient) -> None:
+    await oper.send("OPER testoper operpass")
+    await oper.wait_for("381", timeout=10.0)
+
+
+async def _rehash_hub(oper: IRCClient) -> None:
+    await oper.send("REHASH")
+    msg = await oper.wait_for("382", timeout=10.0)
+    assert "Rehashing" in msg.params[-1], f"Unexpected REHASH reply: {msg}"
+    await asyncio.sleep(0.5)
+
+
+@pytest.mark.asyncio
+async def test_cloudflare_no_tilde_when_ident_lookups_disabled(
+    ircd_hub, make_client, request
+):
+    """CF ports must not force ~ when DoIdentLookups is off.
+
+    DoIdentLookups is enabled by any Client block with a non-empty username
+    mask (``username = "ident"`` in the hub test config).  Removing that line
+    turns lookups off.  The hub's iauth-tilded.pl harness also forces ~ for
+    trust-username tests, so IAuth is disabled for this check; iauth U/o is a
+    separate trust path unrelated to the Client/DoIdentLookups policy.
+    """
+    baseline = HUB_CONF_HOST.read_text()
+    assert _IDENT_CLIENT_LINE in baseline, "hub conf missing username=ident Client line"
+    assert _IAUTH_TILDED_LINE in baseline, "hub conf missing iauth-tilded IAuth line"
+
+    # Register before patching so KeyboardInterrupt / teardown still restores.
+    request.addfinalizer(lambda: _restore_hub_baseline(baseline))
+
+    patched = baseline.replace(_IDENT_CLIENT_LINE, "", 1)
+    patched = patched.replace(_IAUTH_TILDED_LINE, "", 1)
+    assert _IDENT_CLIENT_LINE not in patched
+    assert _IAUTH_TILDED_LINE not in patched
+    assert "IAuth {" not in patched
+
+    oper = await make_client("cfnoidop")
+    await _oper_up(oper)
+    try:
+        _write_hub_config(patched)
+        await _rehash_hub(oper)
+
+        observer = await make_client("cfnoidob")
+        nick = f"cfnt{random.randint(0, 999_999)}"
+        headers = (b"CF-Connecting-IP: " + CF_CLIENT_IP.encode() + b"\r\n",)
+        notices, _, ws_writer = await _ws_register_collect_notices(
+            CF_WS_PORT, nick, extra_headers=headers, keep_open=True
+        )
+        assert ws_writer is not None
+        try:
+            blob = _notice_blob(notices)
+            assert "Checking Ident" not in blob, (
+                f"cloudflare WS must still skip ident with DoIdentLookups off, "
+                f"got notices: {blob!r}"
+            )
+            username, host = await _whois_userhost(observer, nick)
+            assert host == CF_CLIENT_IP, f"expected CF IP host, got {host!r}"
+            assert username == "wsuser", (
+                f"with DoIdentLookups off, CF port must not force tilde, "
+                f"got {username!r}"
+            )
+        finally:
+            ws_writer.write(_masked_text_frame("QUIT :done"))
+            await ws_writer.drain()
+            ws_writer.close()
+            await observer.send("QUIT :done")
+            await observer.disconnect()
+    finally:
+        # Explicit restore + verify before other tests in this session continue.
+        _restore_hub_baseline(baseline)
+        conf = _hub_conf_text()
+        assert _IDENT_CLIENT_LINE in conf, "hub conf restore missing username=ident"
+        assert _IAUTH_TILDED_LINE in conf, "hub conf restore missing IAuth"
+        try:
+            await _rehash_hub(oper)
+        except Exception:
+            # SIGHUP already applied in _restore_hub_baseline.
+            pass
+        await oper.disconnect()

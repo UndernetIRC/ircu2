@@ -932,6 +932,8 @@ int
 hide_hostmask(struct Client *cptr, unsigned int flag)
 {
   struct Membership *chan;
+  char new_host[HOSTLEN + 1];
+  const char *new_user;
 
   switch (flag) {
   case FLAG_HIDDENHOST:
@@ -949,44 +951,60 @@ hide_hostmask(struct Client *cptr, unsigned int flag)
     return 0;
   }
 
-  SetFlag(cptr, flag);
-  if (!HasFlag(cptr, FLAG_HIDDENHOST) || !HasFlag(cptr, FLAG_ACCOUNT))
-    return 0;
-
-  sendcmdto_capflag_common_channels_butone(cptr, CMD_QUIT, cptr, 0, CAP_CHGHOST, ":Registered");
-  sendcmdto_capflag_common_channels_butone(cptr, CMD_CHGHOST, NULL, CAP_CHGHOST, 0, "%s %s.%s",
-    visible_username(cptr), cli_user(cptr)->account, feature_str(FEAT_HIDDEN_HOST));
-  ircd_snprintf(0, cli_user(cptr)->host, HOSTLEN, "%s.%s",
-                cli_user(cptr)->account, feature_str(FEAT_HIDDEN_HOST));
-
-  /* ok, the client is now fully hidden, so let them know -- hikari */
-  if (MyConnect(cptr) && !CapHas(cli_active(cptr), CAP_CHGHOST))
-   send_reply(cptr, RPL_HOSTHIDDEN, cli_user(cptr)->host);
-
   /*
-   * Go through all channels the client was on, rejoin him
-   * and set the modes, if any
+   * Fully hidden only once both +x and account are present.  Send
+   * QUIT/CHGHOST before applying the new flag so their prefixes still
+   * carry the old real user@host; clients with chghost then get the new
+   * identity in CHGHOST parameters, and others get a later JOIN under it.
    */
-  for (chan = cli_user(cptr)->channel; chan; chan = chan->next_channel)
-  {
-    if (IsZombie(chan))
-      continue;
-    /* Send a JOIN unless the user's join has been delayed. */
-    if (!IsDelayedJoin(chan))
+  if ((flag == FLAG_HIDDENHOST && HasFlag(cptr, FLAG_ACCOUNT)) ||
+      (flag == FLAG_ACCOUNT && HasFlag(cptr, FLAG_HIDDENHOST))) {
+    new_user = cli_user(cptr)->username;
+    ircd_snprintf(0, new_host, sizeof(new_host), "%s.%s",
+                  cli_user(cptr)->account, feature_str(FEAT_HIDDEN_HOST));
+    if (feature_bool(FEAT_TRUST_USERNAME) && new_user[0] == '~')
+      new_user++;
+
+    sendcmdto_capflag_common_channels_butone(cptr, CMD_QUIT, cptr, 0, CAP_CHGHOST,
+                                             ":Registered");
+    sendcmdto_capflag_common_channels_butone(cptr, CMD_CHGHOST, NULL, CAP_CHGHOST, 0,
+                                             "%s %s", new_user, new_host);
+
+    SetFlag(cptr, flag);
+    ircd_strncpy(cli_user(cptr)->host, new_host, HOSTLEN);
+
+    /* ok, the client is now fully hidden, so let them know -- hikari */
+    if (MyConnect(cptr) && !CapHas(cli_active(cptr), CAP_CHGHOST))
+      send_reply(cptr, RPL_HOSTHIDDEN, cli_user(cptr)->host);
+
+    /*
+     * Go through all channels the client was on, rejoin him
+     * and set the modes, if any
+     */
+    for (chan = cli_user(cptr)->channel; chan; chan = chan->next_channel)
     {
-      sendjointo_channel_butserv(cptr, chan->channel, 0, CAP_CHGHOST);
-      if (cli_user(cptr)->away)
-        sendcmdto_capflag_channel_butserv_butone(cptr, CMD_AWAY, chan->channel,
-          NULL, 0, CAP_AWAYNOTIFY, CAP_CHGHOST, ":%s", cli_user(cptr)->away);
+      if (IsZombie(chan))
+        continue;
+      /* Send a JOIN unless the user's join has been delayed. */
+      if (!IsDelayedJoin(chan))
+      {
+        sendjointo_channel_butserv(cptr, chan->channel, 0, CAP_CHGHOST);
+        if (cli_user(cptr)->away)
+          sendcmdto_capflag_channel_butserv_butone(cptr, CMD_AWAY, chan->channel,
+            NULL, 0, CAP_AWAYNOTIFY, CAP_CHGHOST, ":%s", cli_user(cptr)->away);
+      }
+      if (IsChanOp(chan) && HasVoice(chan))
+        sendcmdto_capflag_channel_butserv_butone(&his, CMD_MODE, chan->channel, cptr, 0,
+                                         0, CAP_CHGHOST, "%H +ov %C %C", chan->channel, cptr,
+                                         cptr);
+      else if (IsChanOp(chan) || HasVoice(chan))
+        sendcmdto_capflag_channel_butserv_butone(&his, CMD_MODE, chan->channel, cptr, 0,
+          0, CAP_CHGHOST, "%H +%c %C", chan->channel, IsChanOp(chan) ? 'o' : 'v', cptr);
     }
-    if (IsChanOp(chan) && HasVoice(chan))
-      sendcmdto_capflag_channel_butserv_butone(&his, CMD_MODE, chan->channel, cptr, 0,
-                                       0, CAP_CHGHOST, "%H +ov %C %C", chan->channel, cptr,
-                                       cptr);
-    else if (IsChanOp(chan) || HasVoice(chan))
-      sendcmdto_capflag_channel_butserv_butone(&his, CMD_MODE, chan->channel, cptr, 0,
-        0, CAP_CHGHOST, "%H +%c %C", chan->channel, IsChanOp(chan) ? 'o' : 'v', cptr);
+    return 0;
   }
+
+  SetFlag(cptr, flag);
   return 0;
 }
 

@@ -485,15 +485,20 @@ struct Ban *find_ban(struct Client *cptr, struct Ban *banlist)
     banlist->banstr[banlist->nu_len] = '\0';
     res = match(banlist->banstr, nu);
     banlist->banstr[banlist->nu_len] = '@';
-    /* Compare host portion of ban (or full visible nick!user@host). */
+    /* When res != 0, nick!user (real username) did not match; only the
+     * full visible nick!user@host form can still match.  When res == 0,
+     * match the host part against display host, IP, and alternate host. */
     hostmask = banlist->banstr + banlist->nu_len + 1;
-    if (res ? !nuh_vis[0] || match(banlist->banstr, nuh_vis)
-        : (!((banlist->flags & BAN_IPMASK)
-         && ipmask_check(&cli_ip(cptr), &banlist->address, banlist->addrbits))
-        && match(hostmask, cli_user(cptr)->host)
-        && match(hostmask, iphost)
-        && !(sr && !match(hostmask, sr))))
+    if (res) {
+      if (!nuh_vis[0] || match(banlist->banstr, nuh_vis))
         continue;
+    } else if (!((banlist->flags & BAN_IPMASK)
+                 && ipmask_check(&cli_ip(cptr), &banlist->address, banlist->addrbits))
+               && match(hostmask, cli_user(cptr)->host)
+               && match(hostmask, iphost)
+               && !(sr && !match(hostmask, sr))) {
+      continue;
+    }
     /* If an exception matches, no ban can match. */
     if (banlist->flags & BAN_EXCEPTION)
       return NULL;
