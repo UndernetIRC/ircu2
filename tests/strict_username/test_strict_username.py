@@ -23,7 +23,7 @@ async def _try_register(host, port, nick, username) -> tuple[bool, str]:
     try:
         await client.send(f"NICK {nick}")
         await client.send(f"USER {username} 0 * :User {nick}")
-        deadline = asyncio.get_running_loop().time() + 8.0
+        deadline = asyncio.get_running_loop().time() + 20.0
         while True:
             remaining = deadline - asyncio.get_running_loop().time()
             if remaining <= 0:
@@ -31,7 +31,7 @@ async def _try_register(host, port, nick, username) -> tuple[bool, str]:
             try:
                 msg = await client.recv(timeout=remaining)
             except (asyncio.TimeoutError, ConnectionError) as exc:
-                return False, f"disconnect:{exc}"
+                return False, f"disconnect:{exc!s}"
             if msg.command in ("376", "422"):
                 return True, "registered"
             if (

@@ -199,13 +199,17 @@ async def test_ambiguous_mask_blocks_reconnect(ircd_hub, oper):
     try:
         await victim.send("NICK vict5c")
         await victim.send("USER victim 0 * :Test Victim")
-        deadline = asyncio.get_running_loop().time() + 5.0
+        # Ident lookup must time out before find_kill runs; allow headroom.
+        deadline = asyncio.get_running_loop().time() + 20.0
         while True:
             remaining = deadline - asyncio.get_running_loop().time()
             if remaining <= 0:
                 break
-            msg = await victim.recv(timeout=remaining)
-            if msg.command == "ERROR":
+            try:
+                msg = await victim.recv(timeout=remaining)
+            except (asyncio.TimeoutError, TimeoutError):
+                break
+            if msg.command in ("ERROR", "465"):
                 refused = True
                 break
             if msg.command == "001":
