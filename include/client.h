@@ -59,6 +59,7 @@ struct Whowas;
 struct hostent;
 struct Privs;
 struct AuthRequest;
+struct ResumeSession;
 
 /*
  * Structures
@@ -182,6 +183,7 @@ enum Flag
     FLAG_SPAMHOLD,                  /**< user is the sender or recipient of a message on hold */
     FLAG_HIDEIDLE,                  /**< Hide idle time from non-opers */
     FLAG_COMMONCHANS,               /**< only accepts messages from users in common channels */
+    FLAG_DETACH,                    /**< session detached (transport lost, awaiting resume/expiry) */
     FLAG_LAST_FLAG,                 /**< number of flags */
     FLAG_LOCAL_UMODES = FLAG_LOCOP, /**< First local mode flag */
     FLAG_GLOBAL_UMODES = FLAG_OPER, /**< First global mode flag */
@@ -265,6 +267,7 @@ struct Connection
   const struct wline* con_wline;     /**< WebIRC authorization for client */
   uint64_t            con_sasl;      /**< SASL session cookie */
   struct Timer        con_sasl_timer; /**< SASL timeout timer */
+  struct ResumeSession* con_resume_claim; /**< session this registering client is resuming */
   char*               con_rexmit;    /**< TLS retransmission data */
   size_t              con_rexmit_len; /**, TLS retransmission length */
 };
@@ -282,6 +285,7 @@ struct Client {
   struct User*   cli_user;        /**< Defined if this client is a user */
   struct Server* cli_serv;        /**< Defined if this client is a server */
   struct Whowas* cli_whowas;      /**< Pointer to ww struct to be freed on quit */
+  struct ResumeSession* cli_resume; /**< Session-resume metadata, if any */
   char           cli_yxx[4];      /**< Numeric Nick: YY if this is a
                                      server, XXX if this is a user */
   time_t         cli_firsttime;   /**< time client was created */
@@ -320,6 +324,8 @@ struct Client {
 #define cli_serv(cli)		((cli)->cli_serv)
 /** Get Whowas link for client. */
 #define cli_whowas(cli)		((cli)->cli_whowas)
+/** Get session-resume metadata for client, if any. */
+#define cli_resume(cli)		((cli)->cli_resume)
 /** Get client numnick. */
 #define cli_yxx(cli)		((cli)->cli_yxx)
 /** Get time we last read data from the client socket. */
@@ -423,6 +429,8 @@ struct Client {
 #define cli_sentalong(cli)      con_sentalong(cli_connect(cli))
 /** Get SASL session cookie for client. */
 #define cli_sasl(cli)           con_sasl(cli_connect(cli))
+/** Get the resume session this registering client is adopting, if any. */
+#define cli_resume_claim(cli)   con_resume_claim(cli_connect(cli))
 /** Get SASL timeout timer for client. */
 #define cli_sasl_timer(cli)     (&con_sasl_timer(cli_connect(cli)))
 /** Get the WebSocket mode for the client. */
@@ -512,6 +520,8 @@ struct Client {
 #define con_wline(con)          ((con)->con_wline)
 /** Get the SASL session cookie for the connection. */
 #define con_sasl(con)           ((con)->con_sasl)
+/** Get the resume session a registering connection is adopting, if any. */
+#define con_resume_claim(con)   ((con)->con_resume_claim)
 /** Get the SASL timeout timer for the connection. */
 #define con_sasl_timer(con)     ((con)->con_sasl_timer)
 /** Get the WebSocket mode for the connection. */
@@ -657,6 +667,8 @@ struct Client {
 #define IsPingSent(x)           HasFlag(x, FLAG_PINGSENT)
 /** Return non-zero if the client is using TLS. */
 #define IsTLS(x)                HasFlag(x, FLAG_TLS)
+/** Return non-zero if the client's session is detached (no live transport). */
+#define IsDetached(x)           HasFlag(x, FLAG_DETACH)
 /** Return non-zero if the client is (re-)negotiating TLS. */
 #define IsNegotiatingTLS(x)     HasFlag(x, FLAG_NEGOTIATING_TLS)
 /** Return non-zero if the client is the sender or recipient of a message on hold (spamfilter) */
@@ -719,6 +731,10 @@ struct Client {
 #define SetPingSent(x)          SetFlag(x, FLAG_PINGSENT)
 /** Mark a client as using TLS. */
 #define SetTLS(x)               SetFlag(x, FLAG_TLS)
+/** Mark a client's session as detached. */
+#define SetDetach(x)            SetFlag(x, FLAG_DETACH)
+/** Clear a client's detached mark. */
+#define ClearDetach(x)          ClrFlag(x, FLAG_DETACH)
 /** Mark a client as (re-)negotiating TLS. */
 #define SetNegotiatingTLS(x)    SetFlag(x, FLAG_NEGOTIATING_TLS)
 /** Mark a client as being the sender or recipient of a message on hold (spamfilter). */

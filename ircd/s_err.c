@@ -1094,7 +1094,7 @@ static Numeric replyTable[] = {
 /* 530 */
   { 0 },
 /* 531 */
-  { 0 },
+  { ERR_CANNOTSENDTOUSER, "%s :Cannot send message: %s", "531" },
 /* 532 */
   { ERR_TLSCLIFINGERPRINT, ":TLS certificate fingerprint did not match", "532" },
 /* 533 */

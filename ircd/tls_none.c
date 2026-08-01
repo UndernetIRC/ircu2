@@ -25,6 +25,7 @@
 #include "ircd_sha1.h"
 #include "client.h"
 #include <stddef.h>
+#include <stdio.h>
 #include <string.h>
 
 const char *ircd_tls_version = NULL;
@@ -105,4 +106,18 @@ IOResult ircd_tls_sendv(struct Client *cptr, struct MsgQ *buf,
 int ircd_tls_sha1_base64(const void *data, size_t len, char *out, size_t outlen)
 {
   return ircd_sha1_base64(data, len, out, outlen);
+}
+
+int ircd_tls_random_bytes(void *buf, size_t len)
+{
+  FILE *f;
+  size_t got;
+
+  if (!buf || len == 0)
+    return -1;
+  if (!(f = fopen("/dev/urandom", "rb")))
+    return -1;
+  got = fread(buf, 1, len, f);
+  fclose(f);
+  return (got == len) ? 0 : -1;
 }

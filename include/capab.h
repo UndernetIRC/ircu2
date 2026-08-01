@@ -37,6 +37,7 @@
 #define CAPFL_PROTO    		0x0008	/**< Cap must be acknowledged by client */
 #define CAPFL_STICKY		0x0010	/**< Cap may not be cleared once set */
 #define CAPFL_STICKY_302   	0x0020  /**< Cap may not be cleared once set by users supporting LS 302 */
+#define CAPFL_SECURE_WS		0x0040	/**< Only advertise on a secure (TLS) link */
 #define CAPFL_UNAVAILABLE 	(CAPFL_HIDDEN | CAPFL_PROHIBIT)
 
 #define CAPLIST	\
@@ -51,7 +52,8 @@
 	_CAP(SERVER_TIME, FEAT_CAP_SERVER_TIME, 0, "server-time"), \
 	_CAP(ACCOUNT_TAG, FEAT_CAP_ACCOUNT_TAG, 0, "account-tag"), \
 	_CAP(CAPNOTIFY, 0, CAPFL_HIDDEN_302 | CAPFL_STICKY_302, "cap-notify"), \
-	_CAP(SASL, FEAT_CAP_SASL, CAPFL_UNAVAILABLE, "sasl")
+	_CAP(SASL, FEAT_CAP_SASL, CAPFL_UNAVAILABLE, "sasl"), \
+	_CAP(RESUME, FEAT_RESUME, CAPFL_SECURE_WS, "draft/resume-0.5")
 
 /** Client capabilities, counting by index. */
 enum Capab {

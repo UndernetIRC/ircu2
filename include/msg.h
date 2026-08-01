@@ -388,6 +388,27 @@ struct Client;
 #define TOK_AUTHENTICATE	"AUTHENTICATE"
 #define CMD_AUTHENTICATE	MSG_AUTHENTICATE, TOK_AUTHENTICATE
 
+#define MSG_RESUME		"RESUME"
+#define TOK_RESUME		"RESUME"
+#define CMD_RESUME		MSG_RESUME, TOK_RESUME
+
+#define MSG_BRB			"BRB"
+#define TOK_BRB			"BRB"
+#define CMD_BRB			MSG_BRB, TOK_BRB
+
+/* IRCv3 standard replies (server -> client only) */
+#define MSG_FAIL		"FAIL"
+#define TOK_FAIL		"FAIL"
+#define CMD_FAIL		MSG_FAIL, TOK_FAIL
+
+#define MSG_WARN		"WARN"
+#define TOK_WARN		"WARN"
+#define CMD_WARN		MSG_WARN, TOK_WARN
+
+#define MSG_NOTE		"NOTE"
+#define TOK_NOTE		"NOTE"
+#define CMD_NOTE		MSG_NOTE, TOK_NOTE
+
 #define MSG_CONFIG		"CONFIG"
 #define TOK_CONFIG		"CF"
 #define CMD_CONFIG		MSG_CONFIG, TOK_CONFIG

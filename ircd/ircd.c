@@ -49,6 +49,7 @@
 #include "opercmds.h"
 #include "parse.h"
 #include "res.h"
+#include "resume.h"
 #include "s_auth.h"
 #include "s_bsd.h"
 #include "s_conf.h"
@@ -451,6 +452,12 @@ static void check_pings(struct Event* ev) {
         sendto_opmask_butone(0, SNO_OLDSNO,
                              "No response from %s, closing link",
                              cli_name(cptr));
+      /* A resume-eligible client that stops answering pings (e.g. a silent
+       * transport loss a proxy never propagated) detaches and is held for the
+       * resume window instead of quitting, so it can still reattach. */
+      if (feature_bool(FEAT_RESUME_DETACH_PINGOUT)
+          && resume_try_detach(cptr, RESUME_DETACH_PING_TIMEOUT))
+        continue;
       exit_client_msg(cptr, cptr, &me, "Ping timeout");
       continue;
     }
@@ -731,6 +738,7 @@ int main(int argc, char **argv) {
   initmsgtree();
   initstats();
   sasl_init();
+  resume_init();
 
   /* we need this for now, when we're modular this 
      should be removed -- hikari */

@@ -93,6 +93,8 @@
 #include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
+#include "resume.h"
+#include "s_auth.h"
 #include "s_debug.h"
 #include "s_misc.h"
 #include "s_user.h"
@@ -252,6 +254,15 @@ int m_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     exit_client(cptr, acptr, &me, "Overridden by other sign on");
     return set_nick_name(cptr, sptr, nick, parc, parv);
   }
+  /*
+   * Collision with a detached, resume-eligible session: defer the decision.
+   * Keep the nick out of the hash (iauth still sees it, so registration can
+   * finish) and let registration adopt that session once the account is known
+   * (see auth_defer_resume_nick() and check_auth_finished()).
+   */
+  if (resume_account_deferrable(sptr, acptr))
+    return auth_defer_resume_nick(sptr, nick);
+
   /*
    * NICK is coming from local client connection. Just
    * send error reply and ignore the command.

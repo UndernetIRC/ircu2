@@ -49,6 +49,7 @@
 #include "parse.h"
 #include "querycmds.h"
 #include "res.h"
+#include "resume.h"
 #include "sasl.h"
 #include "s_auth.h"
 #include "s_conf.h"
@@ -477,6 +478,42 @@ void close_connection(struct Client *cptr)
     release_listener(cli_listener(cptr));
     cli_listener(cptr) = 0;
   }
+
+  for ( ; HighestFd > 0; --HighestFd) {
+    if (LocalClientArray[HighestFd])
+      break;
+  }
+}
+
+/** Tear down a client's live transport while keeping the Client alive.
+ *
+ * Used by session resume when an eligible client loses its transport: the fd,
+ * TLS object, socket, and I/O queues are released, but -- unlike
+ * close_connection() -- FLAG_DEADSOCKET is NOT set (so the main loop will not
+ * reap the client), and the listener, conf attachments, and clone/IPCheck
+ * accounting are left in place so the session stays network-visible and
+ * correctly counted until it is resumed or expires.  The Connection shell is
+ * retained (con_client stays set), so the socket's queued ET_DESTROY will not
+ * free it.
+ * @param[in] cptr Client whose transport should be detached.
+ */
+void detach_connection(struct Client *cptr)
+{
+  if (-1 < cli_fd(cptr)) {
+    auth_send_exit(cptr);  /* tell iauth this fd is gone before we close it */
+    LocalClientArray[cli_fd(cptr)] = 0;
+    if (IsTLS(cptr) && s_tls(&cli_socket(cptr))) {
+      ircd_tls_close(s_tls(&cli_socket(cptr)), NULL);
+      s_tls(&cli_socket(cptr)) = NULL;
+    }
+    close(cli_fd(cptr));
+    socket_del(&(cli_socket(cptr))); /* queue a socket delete */
+    cli_fd(cptr) = -1;
+  }
+
+  MsgQClear(&(cli_sendQ(cptr)));
+  client_drop_sendq(cli_connect(cptr));
+  DBufClear(&(cli_recvQ(cptr)));
 
   for ( ; HighestFd > 0; --HighestFd) {
     if (LocalClientArray[HighestFd])
@@ -1223,7 +1260,15 @@ static void client_sock_callback(struct Event* ev)
   assert(0 == cptr || 0 == cli_connect(cptr) || con == cli_connect(cptr));
 
   if (fallback) {
-    const char* msg = (cli_error(cptr)) ? strerror(cli_error(cptr)) : fallback;
+    const char* msg;
+
+    /* An eligible client that lost its transport unexpectedly detaches its
+       session instead of exiting, so it can resume within the grace window. */
+    if (resume_try_detach(cptr, cli_error(cptr) ? RESUME_DETACH_RESET
+                                                : RESUME_DETACH_EOF))
+      return;
+
+    msg = (cli_error(cptr)) ? strerror(cli_error(cptr)) : fallback;
     if (!msg)
       msg = "Unknown error";
 

@@ -885,6 +885,107 @@ this list (case-insensitive); a handshake with a non-matching or missing
 Origin is rejected.  When empty (the default), the Origin header is not
 checked and any origin may connect, which is the traditional behavior.
 
+RESUME
+ * Type: boolean
+ * Default: FALSE
+
+Master switch for IRCv3 session resume (draft/resume-0.5).  When enabled,
+the server offers the "draft/resume-0.5" capability on eligible secure
+connections (see RESUME_REQUIRE_WEBSOCKET) and issues each such client a bearer
+token.  If an eligible client later loses its transport unexpectedly (EOF,
+reset, TLS error, abnormal WebSocket loss), its session is held for a short
+window instead of quitting, and the client may reconnect and resume it with its
+token, keeping its nick, account, and channel memberships.  Enforced exits
+(QUIT, KILL, K/G-line, flood, protocol/auth failure, server shutdown) always
+exit normally and are never detached; ping timeout detaches eligible clients
+only when RESUME_DETACH_PINGOUT is set.  When FALSE the capability is
+not advertised, no tokens are issued, no client is ever detached, and behavior
+is exactly as before.  Session state is in memory on a single server only.
+
+RESUME_TIMEOUT
+ * Type: integer
+ * Default: 60
+
+How many seconds a detached session is held before it is expired with an
+ordinary QUIT.  Clamped to the range 10-300.  Changing it by rehash affects
+only sessions that detach afterwards; already-detached sessions keep their
+original deadline.
+
+RESUME_ALLOW_BRB
+ * Type: boolean
+ * Default: TRUE
+
+Whether an eligible client may send the BRB command to suspend its own
+session (for example, before a client software update).  The server replies
+"BRB <seconds>" and detaches the session, which can then be resumed like any
+other detached session.
+
+RESUME_MAX_DETACHED
+ * Type: integer
+ * Default: 5000
+
+Global hard limit on the number of concurrently detached sessions.  When the
+limit is reached, further transport losses use ordinary disconnect behavior
+rather than detaching; existing detached sessions are never evicted.
+
+RESUME_SERVER_NOTICES
+ * Type: boolean
+ * Default: TRUE
+
+Whether routine server notices are emitted (to the connect/exit notice mask)
+for resume detach, resume, and expiry events.  Notices never contain token
+material.
+
+RESUME_AUTO_ACCOUNT
+ * Type: boolean
+ * Default: TRUE
+
+Whether an authenticated client (SASL or login-on-connect) that reconnects to
+the same server with the same nick and account is reattached to its detached
+session automatically, without needing to support the resume capability or
+present a token.  The account, verified by the server, is the authorization;
+the nick selects which detached session (nick is unique, so at most one).  When
+a capable client presents a token, that path takes precedence.  Has no effect
+unless RESUME is also TRUE.  An account may opt out per-user: if the
+authentication service sets the 0x080 bit in the account's flags, that account
+is never auto-detached or auto-reattached (the token path still works).
+
+RESUME_ACCOUNT_ANY_IP
+ * Type: boolean
+ * Default: TRUE
+
+Whether account-based reattach (RESUME_AUTO_ACCOUNT) is allowed from a different
+IP address than the detached session used.  Because the account is a verified
+identity, this is safe and enables roaming (for example a mobile client moving
+between networks).  When FALSE, account reattach also requires the same IP.
+This does not affect the token path, which always requires the same IP.
+
+
+RESUME_DETACH_PINGOUT
+ * Type: boolean
+ * Default: TRUE
+
+Whether a resume-eligible client that stops answering pings is detached (and
+held for the resume window) instead of being quit with "Ping timeout".  This
+catches silent transport losses that no clean close ever reached the server for
+-- for example a client behind a proxy that keeps the upstream socket open.
+Only resume-eligible clients are affected; everything else still quits on ping
+timeout as before.  Detection latency is the connection class ping frequency
+(timeout at twice that), so put resume WebSocket listeners in a class with a
+short ping frequency.  Has no effect unless RESUME is also TRUE.
+
+RESUME_REQUIRE_WEBSOCKET
+ * Type: boolean
+ * Default: TRUE
+
+Whether resume eligibility is restricted to secure WebSocket connections.  The
+actual security requirement for resume is TLS, so the bearer token cannot be
+intercepted; this setting additionally requires that the connection be a
+WebSocket.  When FALSE, any TLS connection is eligible, extending resume --
+including account-based auto-reattach -- to standard TLS clients.  Plain
+(non-TLS) connections are never eligible either way.  Has no effect unless
+RESUME is also TRUE.
+
 IPCHECK_CLONE_LIMIT
  * Type: integer
  * Default: 4

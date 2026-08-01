@@ -38,6 +38,7 @@
 #include "s_auth.h"
 #include "class.h"
 #include "client.h"
+#include "hash.h"
 #include "IPcheck.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
@@ -58,6 +59,7 @@
 #include "querycmds.h"
 #include "random.h"
 #include "res.h"
+#include "resume.h"
 #include "s_bsd.h"
 #include "s_conf.h"
 #include "s_debug.h"
@@ -108,6 +110,7 @@ struct AuthRequest {
   struct AuthRequestFlags flags;  /**< current state of request */
   unsigned int        cookie;     /**< cookie the user must PONG */
   unsigned short      port;       /**< client's remote port number */
+  char resume_wantnick[NICKLEN + 1]; /**< nick deferred for account reattach */
 };
 
 /** Array of message text (with length) pairs for AUTH status
@@ -461,6 +464,8 @@ static void iauth_notify(struct AuthRequest *auth, enum AuthRequestFlag flag)
     break;
 
   case AR_NEEDS_NICK:
+    /* Send the nick even while deferred for resume: iauth needs it to finish
+       the registration handshake and reply (login-on-connect stalls otherwise). */
     if (IAuthHas(iauth, IAUTH_UNDERNET))
       sendto_iauth(auth->client, "n %s", cli_name(sptr));
     break;
@@ -655,7 +660,36 @@ static int check_auth_finished(struct AuthRequest *auth, int bitclr)
           cli_user(auth->client)->account);
       }
       memset(cli_passwd(cptr), 0, sizeof(cli_passwd(cptr)));
-      res = register_user(cptr, cptr);
+
+      /* Resolve a nick collision deferred for account-based reattach: adopt the
+         detached session if this login owns it, take the nick if it has since
+         freed, or ask for another nick. */
+      if (auth->resume_wantnick[0] && !cli_resume_claim(cptr)) {
+        struct Client *held = FindClient(auth->resume_wantnick);
+        if (IsAccount(cptr) && resume_account_try_claim(cptr, held)) {
+          /* claimed -- resume_complete() runs below */
+        } else if (!held) {
+          /* Nick freed up; the client keeps it -- forward the now-committed
+             nick to iauth (it was withheld while deferred). */
+          hAddClient(cptr);
+          auth->resume_wantnick[0] = '\0';
+          iauth_notify(auth, AR_NEEDS_NICK);
+        } else {
+          send_reply(cptr, ERR_NICKNAMEINUSE, auth->resume_wantnick);
+          cli_name(cptr)[0] = '\0';
+          auth->resume_wantnick[0] = '\0';
+          FlagSet(&auth->flags, AR_NEEDS_NICK);
+          return 0;
+        }
+      }
+
+      /* If this client presented a valid resume token, adopt the detached
+         session now that all auth, ban, and policy checks have passed;
+         otherwise register normally. */
+      if (cli_resume_claim(cptr))
+        res = resume_complete(cptr);
+      else
+        res = register_user(cptr, cptr);
     }
   }
   if (res == 0)
@@ -1399,6 +1433,35 @@ int auth_set_nick(struct AuthRequest *auth, const char *nickname)
     FlagSet(&auth->flags, AR_NEEDS_PONG);
   }
   return check_auth_finished(auth, AR_NEEDS_NICK);
+}
+
+/** Defer a registering secure client whose nick collides with a detached,
+ * resume-eligible session (see resume_account_deferrable()).  The nick is set
+ * on the client for registration bookkeeping but is NOT hashed (the detached
+ * session keeps it) nor forwarded to iauth (withheld until committed); it is
+ * remembered so check_auth_finished() can adopt that session once the account
+ * is known.
+ * @return the auth_set_nick() result (registration proceeds normally). */
+int auth_defer_resume_nick(struct Client *cptr, const char *nick)
+{
+  struct AuthRequest *auth = cli_auth(cptr);
+
+  assert(auth != NULL);
+  /* If the client already registered an earlier nick, unhash it: a deferred
+     client must stay out of the nick table (the detached session holds it). */
+  if (cli_name(cptr)[0])
+    hRemClient(cptr);
+  ircd_strncpy(auth->resume_wantnick, nick, NICKLEN);
+  ircd_strncpy(cli_name(cptr), nick, NICKLEN);
+  return auth_set_nick(auth, nick);
+}
+
+/** Forget any nick deferred for account reattach (e.g. the client picked a
+ * different, concrete nick during registration). */
+void auth_forget_resume_nick(struct Client *cptr)
+{
+  if (cli_auth(cptr))
+    cli_auth(cptr)->resume_wantnick[0] = '\0';
 }
 
 /** Record a user's password.

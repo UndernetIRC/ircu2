@@ -46,6 +46,7 @@
 #include "parse.h"
 #include "querycmds.h"
 #include "res.h"
+#include "resume.h"
 #include "s_auth.h"
 #include "s_bsd.h"
 #include "s_conf.h"
@@ -196,6 +197,15 @@ static void exit_one_client(struct Client* bcptr, const char* comment)
     sasl_session_remove(cli_sasl(bcptr));
     cli_sasl(bcptr) = 0;
   }
+
+  /* Invalidate any resume session and its token on final client removal. */
+  if (cli_resume(bcptr))
+    resume_session_invalidate(bcptr);
+
+  /* If this client was mid-resume, release its claim so the target session
+     stays detached and can still be resumed or expire normally. */
+  if (MyConnect(bcptr) && cli_resume_claim(bcptr))
+    resume_release_claim(bcptr);
 
   if (IsUser(bcptr)) {
     /*

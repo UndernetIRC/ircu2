@@ -40,6 +40,7 @@
 #include "websocket.h"
 #include "numnicks.h"
 #include "parse.h"
+#include "resume.h"
 #include "s_bsd.h"
 #include "s_debug.h"
 #include "s_misc.h"
@@ -353,6 +354,17 @@ void send_buffer(struct Client* to, struct Client* from, struct MsgBuf* buf, int
   if (cli_from(to))
     to = cli_from(to);
 
+  /*
+   * A detached session has no transport: discard output aimed at it here,
+   * at the single lowest local-send boundary, rather than growing its sendQ.
+   * Note the loss so the client can be warned on resume.  Delivery to every
+   * other recipient (and to servers) is unaffected -- this is per-target.
+   */
+  if (IsDetached(to)) {
+    resume_mark_history_lost(to);
+    return;
+  }
+
   if (!can_send(to))
     /*
      * This socket has already been marked as dead
@@ -527,6 +539,37 @@ void sendcmdto_one(struct Client *from, const char *cmd, const char *tok,
 
   msgtagctx_init(&mctx, tok);
   send_buffer(to, from, mb, 0, &mctx, NULL);
+
+  msgq_clean(mb);
+}
+
+/**
+ * Send an IRCv3 standard reply to a single local client.
+ * Emits ":me <severity> <command> <code> :<description>", e.g.
+ * ":irc.example.net FAIL RESUME INVALID_TOKEN :Cannot resume connection".
+ * Standard replies are server-to-client only, so no server token form is used.
+ * @param[in] to Destination client.
+ * @param[in] severity "FAIL", "WARN", or "NOTE" (see MSG_FAIL etc.).
+ * @param[in] command Subject command, e.g. "RESUME".
+ * @param[in] code Machine-readable code, e.g. "HISTORY_LOST".
+ * @param[in] pattern Format string for the human-readable description.
+ */
+void sendstdreply(struct Client *to, const char *severity, const char *command,
+		  const char *code, const char *pattern, ...)
+{
+  struct VarData vd;
+  struct MsgBuf *mb;
+
+  to = cli_from(to);
+
+  vd.vd_format = pattern; /* set up the struct VarData for %v */
+  va_start(vd.vd_args, pattern);
+
+  mb = msgq_make(to, "%:#C %s %s %s :%v", &me, severity, command, code, &vd);
+
+  va_end(vd.vd_args);
+
+  send_buffer(to, NULL, mb, 0, NULL, NULL);
 
   msgq_clean(mb);
 }

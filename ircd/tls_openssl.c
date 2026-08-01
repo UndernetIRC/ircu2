@@ -44,6 +44,7 @@
 #include <openssl/x509v3.h>
 #include <sys/uio.h> /* IOV_MAX */
 #include <unistd.h> /* write() on failure of ssl_accept() */
+#include <limits.h> /* INT_MAX */
 
 const char *ircd_tls_version = OPENSSL_VERSION_TEXT;
 
@@ -947,4 +948,11 @@ int ircd_tls_sha1_base64(const void *data, size_t len, char *out, size_t outlen)
   out[bptr->length] = '\0';
   BIO_free_all(b64);
   return 0;
+}
+
+int ircd_tls_random_bytes(void *buf, size_t len)
+{
+  if (!buf || len == 0 || len > (size_t)INT_MAX)
+    return -1;
+  return (RAND_bytes((unsigned char *)buf, (int)len) == 1) ? 0 : -1;
 }

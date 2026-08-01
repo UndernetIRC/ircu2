@@ -32,6 +32,7 @@ TLS_HUB = {
     "tls_port_ca": 16699,
     "wss_port": 16700,
     "wss_cf_port": 16701,
+    "ws_plain_port": 16702,
     "server_port": 14440,
     "server_tls_ca_port": 14441,
     "name": "tls-hub.test.net",
@@ -43,6 +44,11 @@ TLS_LEAF = {
     "server_port": 14411,
     "server_tls_ca_port": 14412,
     "name": "tls-leaf.test.net",
+}
+ACCT_HUB = {
+    "host": "127.0.0.1",
+    "wss_port": 16710,
+    "name": "acct-hub.test.net",
 }
 
 DNS_HUB = {
@@ -84,7 +90,9 @@ def docker_compose(*args, check=True):
         ["docker", "compose"] + list(args),
         capture_output=True,
         text=True,
-        timeout=600,
+        # Allow for a cold rebuild of several images (ircu recompiles when the
+        # build context changes) before the network is brought up.
+        timeout=1500,
         cwd=REPO_ROOT,
         env=compose_env(),
     )
@@ -230,9 +238,11 @@ def _start_topology_network():
 
 
 def _start_topology_tls_network():
-    _start_services("ircd-tls-hub", "ircd-tls-leaf")
+    _start_services("ircd-tls-hub", "ircd-tls-leaf", "ircd-acct-hub")
     _wait_tls_hub_ports()
+    wait_for_port(TLS_HUB["host"], TLS_HUB["ws_plain_port"])
     wait_for_port(TLS_LEAF["host"], TLS_LEAF["server_port"])
+    wait_for_port(ACCT_HUB["host"], ACCT_HUB["wss_port"])
     # Allow autoconnect TLS links hub <-> tls-leaf
     time.sleep(20)
 
@@ -449,8 +459,12 @@ def ircd_tls_hub():
 
 @pytest.fixture(scope="session")
 def ircd_tls_network():
-    """Connection info for the TLS-enabled hub and leaf containers."""
-    return {"hub": TLS_HUB, "leaf": TLS_LEAF}
+    """Connection info for the TLS-enabled hub, leaf, and account-hub containers.
+
+    The container lifecycle is handled by _ircd_topology, which starts the
+    tls_network topology (including ircd-acct-hub for the resume account tests).
+    """
+    return {"hub": TLS_HUB, "leaf": TLS_LEAF, "acct": ACCT_HUB}
 
 
 @pytest.fixture(scope="session")

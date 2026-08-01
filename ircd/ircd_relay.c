@@ -59,6 +59,7 @@
 #include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
+#include "resume.h"
 #include "s_debug.h"
 #include "s_misc.h"
 #include "s_user.h"
@@ -514,6 +515,16 @@ void relay_private_message(struct Client* sptr, const char* name, const char* te
    */
   if (cli_user(acptr) && cli_user(acptr)->away)
     send_reply(sptr, RPL_AWAY, cli_name(acptr), cli_user(acptr)->away);
+  /*
+   * a detached client cannot receive the message; tell the sender
+   */
+  if (IsDetached(acptr)) {
+    const char *cannot = RESUME_CANNOTSEND;
+    if (*cannot) {
+      send_reply(sptr, ERR_CANNOTSENDTOUSER, cli_name(acptr), cannot);
+      return;
+    }
+  }
   /*
    * deliver the message
    */

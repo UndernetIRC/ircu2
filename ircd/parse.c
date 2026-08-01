@@ -43,6 +43,7 @@
 #include "opercmds.h"
 #include "querycmds.h"
 #include "res.h"
+#include "resume.h"
 #include "s_bsd.h"
 #include "s_conf.h"
 #include "s_debug.h"
@@ -493,6 +494,20 @@ struct Message msgtab[] = {
     0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_not_oper, m_ignore, mo_close, m_ignore }
+  },
+  {
+    MSG_RESUME,
+    TOK_RESUME,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_resume, m_resume, m_ignore, m_resume, m_ignore }
+  },
+  {
+    MSG_BRB,
+    TOK_BRB,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_brb, m_ignore, m_brb, m_ignore }
   },
   {
     MSG_SILENCE,

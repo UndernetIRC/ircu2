@@ -36,3 +36,9 @@ ircu.tags
 tests/debug-output/*
 !tests/debug-output/.gitkeep
 tests/debug-output/failures/
+
+# Python test-harness artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/

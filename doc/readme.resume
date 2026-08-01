@@ -1,0 +1,144 @@
+IRCv3 session resume (draft/resume-0.5)
+=======================================
+
+Overview
+--------
+Session resume lets a client that briefly loses its transport reconnect to the
+same server and reattach to its existing IRC session, instead of being seen to
+QUIT and having to rejoin its channels.  This is aimed at web clients behind a
+proxy (client -> Cloudflare -> Nginx -> ircu), where the WebSocket transport can
+drop while the IRC session should remain valid.
+
+This design is deliberately conservative:
+
+  * Same server only (no cross-server transfer; session state is in memory).
+  * Secure transport only: TLS is required so the token cannot be intercepted;
+    by default eligibility is further restricted to secure WebSockets, but
+    RESUME_REQUIRE_WEBSOCKET can be cleared to allow any TLS connection.
+  * No stored message history: output aimed at a detached client is dropped and
+    the client is warned that it may have missed messages.
+  * No synthetic QUIT/JOIN churn: other users and servers keep seeing the client
+    as online throughout a detach/resume.
+
+It is off by default; see the RESUME* settings in doc/readme.features.
+
+Client flow
+-----------
+On connect, a secure-WebSocket client negotiates the capability and is given a
+token:
+
+  C: CAP LS 302
+  C: CAP REQ :draft/resume-0.5
+  S: :server CAP <nick> ACK :draft/resume-0.5
+  S: :server RESUME TOKEN <token>
+  C: NICK / USER / CAP END ...
+
+If the transport is later lost unexpectedly, the session is held for
+RESUME_TIMEOUT seconds.  The client reconnects with a fresh secure WebSocket
+and, during registration, presents its token:
+
+  C: CAP REQ :draft/resume-0.5
+  C: NICK <nick> / USER ...
+  C: RESUME <token>
+  S: :server RESUME SUCCESS :<oldnick>
+  S: <welcome burst, self JOIN/topic/NAMES for each channel>
+  S: :server WARN RESUME HISTORY_LOST :...        (only if output was dropped)
+  S: :server RESUME TOKEN <new-token>
+
+The new connection must pass all normal registration policy (bans, IPCheck,
+IAuth, class, PASS, same client IP) before it may adopt the old session.  On
+success the old token is invalidated and a new one issued.
+
+Failures use IRCv3 standard replies and are intentionally generic so a caller
+cannot probe which sessions exist:
+
+  FAIL RESUME INVALID_TOKEN :...           (unknown/expired/used/active/other IP)
+  FAIL RESUME INSECURE_SESSION :...        (not a secure WebSocket)
+  FAIL RESUME REGISTRATION_IS_COMPLETED :...
+
+BRB
+---
+An eligible client may suspend its own session (for example before a client
+update) with:
+
+  C: BRB :reason
+  S: :server BRB <seconds>
+
+The server then detaches the session, which can be resumed like any other.
+
+Account-based automatic reattach
+--------------------------------
+A client does not have to support the capability at all.  When RESUME_AUTO_ACCOUNT
+is set, an authenticated client that reconnects to the same server -- via SASL,
+login-on-connect, or a services login after connecting -- and registers with the
+same nick it had, is reattached to its detached session automatically:
+
+  C: NICK oldnick / USER ... / (SASL or PASS login for account "oldaccount")
+  S: :server RESUME SUCCESS :oldnick
+  S: <welcome burst, self JOIN/topic/NAMES for each channel>
+
+No token and no client changes are required.  The verified account is the
+authorization; the nick selects the session (a nick is unique, so it matches at
+most one detached session).  Reattach happens only if the detached session's
+account matches the reconnecting client's account (case-insensitive) and, unless
+RESUME_ACCOUNT_ANY_IP is set, the same IP.  If a capable client also presents a
+token, the token path takes precedence.
+
+Because the detached session still holds the nick, the reconnecting client keeps
+its requested nick visible to iauth and services during registration but is not
+itself placed in the nick table until the outcome is known; if the account does
+not match, it is asked for another nick as usual.
+
+A user may opt out: if the authentication service includes the 0x080 bit in the
+account's flags (gnuworld's X_NO_AUTO_RESUME account flag, set from a per-user
+preference), the account is never auto-detached or auto-reattached.  This only
+affects the automatic account path; a client that presents a resume token is
+unaffected.
+
+Messaging a detached client
+---------------------------
+While detached, a session is still visible but cannot receive output (it is
+dropped, and the client is warned it may have missed messages on resume).  Two
+independent, compile-time hints tell others about this, each disabled by setting
+its string empty:
+
+  * RESUME_DETACH_AWAY: an away message set on the session for the duration of
+    the detach (default "Temporarily detached, messages will be missed."),
+    preserving and restoring any away the user had.  Anyone who messages the
+    client gets the usual RPL_AWAY.
+  * RESUME_CANNOTSEND: the context of an ERR_CANNOTSENDTOUSER (531) reply sent to
+    a client that PRIVMSGs (or CPRIVMSGs, or CTCPs) a detached user, and the
+    message is not delivered.  The 531 carries a fixed "Cannot send message: "
+    prefix plus this context, so other callers of 531 can supply their own.
+    Per RFC, no reply is sent for NOTICE/CNOTICE.
+
+If both are set, a sender gets both the RPL_AWAY and the ERR_CANNOTSENDTOUSER.
+
+Operator visibility
+-------------------
+  * WHOIS: a detached client is reported with an informational line
+    ("is temporarily detached (resume window: N seconds)").  By default this is
+    shown to operators (and the user themselves) only.
+  * Notices: detach, resume, and expiry emit connect/exit notices when
+    RESUME_SERVER_NOTICES is set.  Tokens never appear in notices or logs.
+
+Security notes
+--------------
+  * Tokens are generated from the TLS backend CSPRNG, are opaque, are never sent
+    to other clients or servers, and are rotated on every successful resume.
+  * Only a detached session can be resumed; a healthy active session cannot be
+    taken over.
+  * The reconnecting connection must come from the same client IP by default.
+  * Account-based reattach authorizes on the server-verified account, so it is
+    only as strong as the login (SASL/login-on-connect); it can adopt only a
+    detached session that shares that account.
+  * The resumed client keeps its user modes, including operator mode (+o) and
+    privileges; re-OPER is not required.
+
+Limitations / draft differences
+-------------------------------
+  * Same-server, in-memory only; sessions do not survive an ircu restart and are
+    not transferable across a netsplit or to another server.
+  * No message-history replay; the resumed client is told history may be lost.
+  * No synthetic QUIT/JOIN is sent to legacy observers on history loss (the
+    draft permits this); the whole point is to preserve visible presence.

@@ -88,6 +88,7 @@
 #include "ircd_string.h"
 #include "msg.h"
 #include "numnicks.h"
+#include "resume.h"
 #include "s_conf.h"
 #include "s_debug.h"
 #include "s_user.h"
@@ -184,6 +185,12 @@ int ms_account(struct Client* cptr, struct Client* sptr, int parc,
     Debug((DEBUG_DEBUG, "Received account flags: account \"%s\", "
            "flags %qu", parv[2], cli_user(acptr)->acc_flags));
   }
+
+  /* A local secure client that authenticates after connecting (via services,
+     not login-on-connect/SASL) becomes reattachable by account too.  Called
+     after acc_flags is set so a RESUME_ACC_NO_AUTO opt-out is honored. */
+  if (MyConnect(acptr))
+    resume_session_ensure(acptr);
 
   /* Flag-only / same-name ACCOUNT updates for already-authed users
    * confuse peers on u2.10.12.19 and earlier (they protocol_violate on

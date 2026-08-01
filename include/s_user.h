@@ -67,6 +67,7 @@ typedef void (*InfoFormatter)(struct Client* who, struct Client *sptr, struct Ms
 extern struct User* make_user(struct Client *cptr);
 extern void         free_user(struct User *user);
 extern int          register_user(struct Client* cptr, struct Client *sptr);
+extern void         send_welcome(struct Client *sptr);
 
 extern void         user_count_memory(size_t* count_out, size_t* bytes_out);
 

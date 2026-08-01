@@ -268,4 +268,12 @@ IOResult ircd_tls_sendv(struct Client *cptr, struct MsgQ *buf,
  */
 int ircd_tls_sha1_base64(const void *data, size_t len, char *out, size_t outlen);
 
+/** Fill \a buf with \a len cryptographically secure random bytes.
+ * Drawn from the active TLS backend's CSPRNG; the tls_none build falls back
+ * to /dev/urandom.  This is the only approved source for security tokens --
+ * ircrandom() is a non-cryptographic PRNG and must not be used for them.
+ * \returns 0 on success, -1 on failure (fails closed; never partial).
+ */
+int ircd_tls_random_bytes(void *buf, size_t len);
+
 #endif /* INCLUDED_ircd_tls_h */

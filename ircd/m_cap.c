@@ -35,6 +35,7 @@
 #include "ircd_string.h"
 #include "msg.h"
 #include "numeric.h"
+#include "resume.h"
 #include "send.h"
 #include "s_auth.h"
 #include "s_user.h"
@@ -213,6 +214,15 @@ send_caplist(struct Client *sptr, capset_t set,
     if (!set && HasFlag(sptr, FLAG_CAP302) && (flags & CAPFL_HIDDEN_302))
       continue;
 
+    /* Some capabilities need a secure transport: TLS always, plus a WebSocket
+     * unless RESUME_REQUIRE_WEBSOCKET is cleared. */
+    if (flags & CAPFL_SECURE_WS) {
+      if (!IsTLS(sptr))
+        continue;
+      if (feature_bool(FEAT_RESUME_REQUIRE_WEBSOCKET) && !IsWebsocket(sptr))
+        continue;
+    }
+
     /* This is a little bit subtle, but just involves applying de
      * Morgan's laws to the obvious check: We must display the
      * capability if (and only if) it is set in \a rem or \a set, or
@@ -329,6 +339,15 @@ cap_req(struct Client *sptr, const char *caplist)
   send_caplist(sptr, set, rem, "ACK");
   cli_capab(sptr) = cs;
   cli_active(sptr) = as;
+
+  /* Issue a resume token when the capability is first gained, or invalidate
+     the session when it is dropped. */
+  if (CapHas(cli_active(sptr), CAP_RESUME)) {
+    if (!cli_resume(sptr))
+      resume_token_issue(sptr);
+  } else if (cli_resume(sptr)) {
+    resume_session_invalidate(sptr);
+  }
 
   return 0;
 }

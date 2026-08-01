@@ -129,6 +129,7 @@ ircd_SOURCES = \
 	parse.c \
 	querycmds.c \
 	random.c \
+	resume.c \
 	s_auth.c \
 	s_bsd.c \
 	s_conf.c \

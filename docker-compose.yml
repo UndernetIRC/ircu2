@@ -76,6 +76,7 @@ services:
       - "16699:6699"
       - "16700:6700"
       - "16701:6701"
+      - "16702:6702"
       - "14440:4440"
       - "14441:4441"
     networks:
@@ -99,6 +100,22 @@ services:
         ipv4_address: 10.55.0.21
     depends_on:
       - ircd-tls-hub
+
+  # Standalone secure-WebSocket hub with login-on-connect (iauth), for
+  # account-based resume reattach tests.  Isolated from ircd-tls-hub so its
+  # mandatory iauth does not affect other TLS tests.
+  ircd-acct-hub:
+    build:
+      context: .
+      args:
+        IRCD_CONF: tests/docker/ircd-acct-hub.conf
+        TLS_BACKEND: ${TLS_BACKEND:-openssl}
+    container_name: ircu-acct-hub
+    ports:
+      - "16710:6710"
+    networks:
+      ircu-test-net:
+        ipv4_address: 10.55.0.22
 
   # The config is baked into the image (IRCD_CONF); tests push config
   # changes with docker cp (see tests/class_limits/helpers.py).  Do NOT

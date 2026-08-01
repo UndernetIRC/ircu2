@@ -50,6 +50,7 @@
 #include "parse.h"
 #include "querycmds.h"
 #include "random.h"
+#include "resume.h"
 #include "s_auth.h"
 #include "s_bsd.h"
 #include "s_conf.h"
@@ -338,6 +339,34 @@ int hunt_server_prio_cmd(struct Client *from, const char *cmd, const char *tok,
  * @param[in,out] sptr Client who has been fully introduced.
  * @return Zero or CPTR_KILLED.
  */
+/** Send the local registration welcome burst (001-005, LUSERS, MOTD) to a
+ * single client.  Contains no state mutations, so it is reused to reconstruct
+ * a resumed client's view.
+ * @param[in] sptr Locally connected client to greet.
+ */
+void send_welcome(struct Client *sptr)
+{
+  char *parv[4];
+
+  parv[0] = cli_name(sptr);
+  parv[1] = parv[2] = parv[3] = NULL;
+
+  send_reply(sptr,
+             RPL_WELCOME,
+             feature_str(FEAT_NETWORK),
+             feature_str(FEAT_PROVIDER) ? " via " : "",
+             feature_str(FEAT_PROVIDER) ? feature_str(FEAT_PROVIDER) : "",
+             cli_name(sptr));
+  send_reply(sptr, RPL_YOURHOST, cli_name(&me), version);
+  send_reply(sptr, RPL_CREATED, creation);
+  send_reply(sptr, RPL_MYINFO, cli_name(&me), version, infousermodes,
+             infochanmodes, infochanmodeswithparams);
+  send_supported(sptr);
+  m_lusers(sptr, sptr, 1, parv);
+  update_load();
+  motd_signon(sptr);
+}
+
 int register_user(struct Client *cptr, struct Client *sptr)
 {
   char*            parv[4];
@@ -368,23 +397,7 @@ int register_user(struct Client *cptr, struct Client *sptr)
     SetUser(sptr);
     cli_handler(sptr) = CLIENT_HANDLER;
     SetLocalNumNick(sptr);
-    send_reply(sptr,
-               RPL_WELCOME,
-               feature_str(FEAT_NETWORK),
-               feature_str(FEAT_PROVIDER) ? " via " : "",
-               feature_str(FEAT_PROVIDER) ? feature_str(FEAT_PROVIDER) : "",
-               cli_name(sptr));
-    /*
-     * This is a duplicate of the NOTICE but see below...
-     */
-    send_reply(sptr, RPL_YOURHOST, cli_name(&me), version);
-    send_reply(sptr, RPL_CREATED, creation);
-    send_reply(sptr, RPL_MYINFO, cli_name(&me), version, infousermodes,
-               infochanmodes, infochanmodeswithparams);
-    send_supported(sptr);
-    m_lusers(sptr, sptr, 1, parv);
-    update_load();
-    motd_signon(sptr);
+    send_welcome(sptr);
     if (cli_snomask(sptr) & SNO_NOISY)
       set_snomask(sptr, cli_snomask(sptr) & SNO_NOISY, SNO_ADD);
     if (feature_bool(FEAT_CONNEXIT_NOTICES))
@@ -395,6 +408,10 @@ int register_user(struct Client *cptr, struct Client *sptr)
                            cli_info(sptr), NumNick(cptr) /* two %s's */);
 
     IPcheck_connect_succeeded(sptr);
+
+    /* Make an authenticated secure client reattachable by account even if it
+       never negotiated the resume capability. */
+    resume_session_ensure(sptr);
   }
   else {
     struct Client *acptr = user->server;
@@ -577,6 +594,8 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
      * if client is on any channels where it is currently
      * banned.  If so, do not allow the nick change to occur.
      */
+    /* A concrete nick choice abandons any nick deferred for account reattach. */
+    auth_forget_resume_nick(sptr);
     if (MyUser(sptr)) {
       const char* channel_name;
       struct Membership *member;
@@ -818,6 +837,13 @@ int whisper(struct Client* source, const char* nick, const char* channel,
   {
     if (cli_user(dest)->away)
       send_reply(source, RPL_AWAY, cli_name(dest), cli_user(dest)->away);
+    if (IsDetached(dest)) {
+      const char *cannot = RESUME_CANNOTSEND;
+      if (*cannot) {
+        send_reply(source, ERR_CANNOTSENDTOUSER, cli_name(dest), cannot);
+        return 0;
+      }
+    }
     sendcmdto_one(source, CMD_PRIVATE, dest, "%C :%s", dest, text);
   }
   return 0;

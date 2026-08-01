@@ -39,6 +39,7 @@
 #include "numeric.h"
 #include "numnicks.h"
 #include "random.h"	/* random_seed_set */
+#include "resume.h"	/* resume_feat_notify */
 #include "s_bsd.h"
 #include "s_debug.h"
 #include "s_misc.h"
@@ -403,6 +404,17 @@ static struct FeatureDesc {
   /* IRCv3 CLIENTTAGDENY: deny-list / allow-list for client-only (+) tags.
    * Default "*" denies all; empty (FEAT_NULL) allows all. Rebuilds via notify. */
   F_S(CLIENTTAGDENY, FEAT_NULL, "*", feature_notify_clienttagdeny),
+
+  /* Session resume (draft/resume-0.5) */
+  F_B(RESUME, 0, 0, 0),
+  F_I(RESUME_TIMEOUT, 0, 60, resume_feat_notify),
+  F_B(RESUME_ALLOW_BRB, 0, 1, 0),
+  F_I(RESUME_MAX_DETACHED, 0, 5000, resume_feat_notify),
+  F_B(RESUME_SERVER_NOTICES, 0, 1, 0),
+  F_B(RESUME_AUTO_ACCOUNT, 0, 1, 0),
+  F_B(RESUME_ACCOUNT_ANY_IP, 0, 1, 0),
+  F_B(RESUME_DETACH_PINGOUT, 0, 1, 0),
+  F_B(RESUME_REQUIRE_WEBSOCKET, 0, 1, 0),
 
   /* HEAD_IN_SAND Features */
   F_B(HIS_SNOTICES, 0, 1, 0),

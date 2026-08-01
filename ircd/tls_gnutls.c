@@ -686,3 +686,10 @@ int ircd_tls_sha1_base64(const void *data, size_t len, char *out, size_t outlen)
   gnutls_free(encoded.data);
   return 0;
 }
+
+int ircd_tls_random_bytes(void *buf, size_t len)
+{
+  if (!buf || len == 0)
+    return -1;
+  return (gnutls_rnd(GNUTLS_RND_RANDOM, buf, len) == 0) ? 0 : -1;
+}

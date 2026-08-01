@@ -684,3 +684,11 @@ int ircd_tls_sha1_base64(const void *data, size_t len, char *out, size_t outlen)
 {
   return ircd_sha1_base64(data, len, out, outlen);
 }
+
+int ircd_tls_random_bytes(void *buf, size_t len)
+{
+  if (!buf || len == 0)
+    return -1;
+  arc4random_buf(buf, len);
+  return 0;
+}

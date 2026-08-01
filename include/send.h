@@ -50,6 +50,11 @@ extern void sendcmdto_one(struct Client *from, const char *cmd,
 			  const char *tok, struct Client *to,
 			  const char *pattern, ...);
 
+/* Send an IRCv3 standard reply (FAIL/WARN/NOTE) to one local client */
+extern void sendstdreply(struct Client *to, const char *severity,
+			 const char *command, const char *code,
+			 const char *pattern, ...);
+
 /* Same as above, except it puts the message on the priority queue */
 extern void sendcmdto_prio_one(struct Client *from, const char *cmd,
 			       const char *tok, struct Client *to,
