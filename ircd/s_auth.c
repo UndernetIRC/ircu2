@@ -91,6 +91,7 @@ enum AuthRequestFlag {
     AR_IAUTH_FUSERNAME, /**< iauth sent a forced username */
     AR_IAUTH_SOFT_DONE, /**< iauth has no objection to client */
     AR_GLINE_CHECKED,   /**< checked for a G-line banning the client */
+    AR_FREE_PENDING,    /**< destroy during timer MARKED; freelist on ET_DESTROY */
     AR_NUM_FLAGS
 };
 
@@ -962,10 +963,28 @@ void destroy_auth_request(struct AuthRequest* auth)
     s_fd(&auth->socket) = -1;
   }
 
-  if (t_active(&auth->timeout))
+  /*
+   * Detach from the client before touching the freelist.  If this is
+   * called from auth_timeout_callback while the timeout timer is
+   * GEN_MARKED, timer_del() is a no-op and timer_run() still owns the
+   * Timer.  Freelisting now lets start_auth() memset/reuse the same
+   * AuthRequest, which zeros timeout links still referenced by the
+   * timer queue and creates a self-loop — timer_enqueue() then spins
+   * forever (100% CPU).
+   */
+  if (auth->client)
+    cli_auth(auth->client) = NULL;
+  auth->client = NULL;
+
+  if (t_onqueue(&auth->timeout) || t_active(&auth->timeout))
     timer_del(&auth->timeout);
 
-  cli_auth(auth->client) = NULL;
+  if (auth->timeout.t_header.gh_flags & GEN_MARKED) {
+    /* timer_run() will ET_DESTROY after the expire callback returns. */
+    FlagSet(&auth->flags, AR_FREE_PENDING);
+    return;
+  }
+
   auth->next = auth_freelist;
   auth_freelist = auth;
 }
@@ -1029,8 +1048,22 @@ static void auth_timeout_callback(struct Event* ev)
 
   auth = (struct AuthRequest*) t_data(ev_timer(ev));
 
+  if (ev_type(ev) == ET_DESTROY) {
+    /* Completes destroy_auth_request() deferred while GEN_MARKED. */
+    if (FlagHas(&auth->flags, AR_FREE_PENDING)) {
+      FlagClr(&auth->flags, AR_FREE_PENDING);
+      auth->next = auth_freelist;
+      auth_freelist = auth;
+    }
+    return;
+  }
+
   if (ev_type(ev) == ET_EXPIRE) {
     int flag = 0;
+
+    /* Already destroyed while marked (client gone). */
+    if (!auth->client)
+      return;
 
     /* Report the timeout in the log. */
     log_write(LS_RESOLVER, L_INFO, 0, "Registration timeout %s",
@@ -1233,6 +1266,8 @@ static void start_iauth_query(struct AuthRequest *auth)
     FlagClr(&auth->flags, AR_IAUTH_PENDING);
 }
 
+static void start_dns_ident_queries(struct Client *client);
+
 /** Starts auth (identd) and dns queries for a client.
  * @param[in] client The client for which to start queries.
  */
@@ -1256,9 +1291,16 @@ void start_auth(struct Client* client)
 
   /* Allocate the AuthRequest. */
   auth = auth_freelist;
-  if (auth)
+  if (auth) {
       auth_freelist = auth->next;
-  else
+      /*
+       * Freelist reuse: a buggy path can leave timeout still linked.  Zeroing
+       * the struct (or timer_init) without dequeue creates a timer-list
+       * self-loop and busy-spins timer_enqueue().
+       */
+      if (t_onqueue(&auth->timeout) || t_active(&auth->timeout))
+        timer_del(&auth->timeout);
+  } else
       auth = MyMalloc(sizeof(*auth));
   assert(0 != auth);
   memset(auth, 0, sizeof(*auth));
@@ -1297,9 +1339,15 @@ void start_auth(struct Client* client)
     }
   }
 
-  /* Start DNS and ident queries, except websocket connections not having a handshake. */
+  /*
+   * Start DNS and ident queries, except websocket connections still waiting
+   * for the HTTP upgrade.  Use the query helper — not start_dns_ident() —
+   * so we do not call check_auth_finished() twice on the same AuthRequest.
+   * (start_dns_ident() is the deferred resume path from s_bsd after the
+   * WebSocket handshake and finishes auth itself.)
+   */
   if (!IsWebsocketPort(client) || IsWebsocket(client))
-    start_dns_ident(client);
+    start_dns_ident_queries(client);
 
   /* Add client to GlobalClientList. */
   add_client_to_list(client);
@@ -1308,12 +1356,14 @@ void start_auth(struct Client* client)
   check_auth_finished(auth, 0);
 }
 
-/** Start DNS and ident queries for a client, if appropriate.
- * @param[in] client The client for which to start queries.
+/** Start DNS and ident queries for \a client without finishing auth.
+ * Used from start_auth(); the caller owns the subsequent
+ * check_auth_finished().
  */
-void start_dns_ident(struct Client *client)
+static void start_dns_ident_queries(struct Client *client)
 {
   struct AuthRequest *auth;
+
   assert(client != NULL);
   auth = cli_auth(client);
   assert(auth != NULL);
@@ -1329,8 +1379,20 @@ void start_dns_ident(struct Client *client)
 
   if (IsCloudflarePort(client) && !FlagHas(&auth->flags, AR_IAUTH_PENDING))
     start_iauth_query(auth);
+}
 
-  /* Check which auth events remain pending. */
+/** Resume DNS/ident after a deferred setup phase (WebSocket handshake).
+ * Starts the queries and then checks whether auth can finish.  Must not be
+ * used from start_auth(), which already finishes auth itself.
+ * @param[in] client The client for which to start queries.
+ */
+void start_dns_ident(struct Client *client)
+{
+  struct AuthRequest *auth;
+
+  start_dns_ident_queries(client);
+  auth = cli_auth(client);
+  assert(auth != NULL);
   check_auth_finished(auth, 0);
 }
 
