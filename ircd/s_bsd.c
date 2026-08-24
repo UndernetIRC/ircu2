@@ -297,12 +297,23 @@ unsigned int deliver_it(struct Client *cptr, struct MsgQ *buf)
 
     cli_sendB(cptr) += bytes_written;
     cli_sendB(&me)  += bytes_written;
-    /* A partial write implies that future writes will block. */
-    if (bytes_written < bytes_count)
+    /*
+     * Plain sockets: a short writev means the kernel send buffer is full.
+     * TLS (SSL_MODE_ENABLE_PARTIAL_WRITE) can return a short success without
+     * the socket being full — those backends must return IO_BLOCKED only when
+     * actually blocked (WANT_WRITE/EAGAIN). Treating TLS short writes as
+     * FLAG_BLOCKED busy-loops on ET_WRITE while POLLOUT stays ready.
+     */
+    if (!IsTLS(cptr) && bytes_written < bytes_count)
       SetFlag(cptr, FLAG_BLOCKED);
     break;
   case IO_BLOCKED:
     SetFlag(cptr, FLAG_BLOCKED);
+    /* TLS may have written earlier iovs then hit WANT_WRITE. */
+    if (bytes_written) {
+      cli_sendB(cptr) += bytes_written;
+      cli_sendB(&me)  += bytes_written;
+    }
     break;
   case IO_FAILURE:
     cli_error(cptr) = errno;
@@ -463,6 +474,9 @@ void close_connection(struct Client *cptr)
   SetFlag(cptr, FLAG_DEADSOCKET);
 
   MsgQClear(&(cli_sendQ(cptr)));
+  /* MsgQClear frees MsgBufs; drop TLS mid-message rexmit into them. */
+  cli_connect(cptr)->con_rexmit = NULL;
+  cli_connect(cptr)->con_rexmit_len = 0;
   client_drop_sendq(cli_connect(cptr));
   DBufClear(&(cli_recvQ(cptr)));
   memset(cli_passwd(cptr), 0, sizeof(cli_passwd(cptr)));
@@ -1185,9 +1199,9 @@ static void client_sock_callback(struct Event* ev)
         /* Still negotiating */
         break;
       }
-       /* TLS negotiation succeeded */
-       tls_handshake_succeeded(cptr);
-       return;
+      /* TLS negotiation succeeded */
+      tls_handshake_succeeded(cptr);
+      return;
     }
     ClrFlag(cptr, FLAG_BLOCKED);
     if (cli_listing(cptr) && MsgQLength(&(cli_sendQ(cptr))) < 2048)

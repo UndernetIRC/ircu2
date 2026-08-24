@@ -672,14 +672,6 @@ void ircd_tls_listen_free(struct Listener *listener)
   }
 }
 
-static void clear_tls_rexmit(struct Connection *con)
-{
-  if (con && con->con_rexmit) {
-    con->con_rexmit = NULL;
-    con->con_rexmit_len = 0;
-  }
-}
-
 static IOResult ssl_handle_error(struct Client *cptr, SSL *tls, int res, int orig_errno)
 {
   int err = SSL_get_error(tls, res);
@@ -856,38 +848,45 @@ IOResult ircd_tls_sendv(struct Client *cptr, struct MsgQ *buf,
   struct iovec iov[512];
   SSL *tls;
   struct Connection *con;
-  IOResult result = IO_BLOCKED;
   int ii, count, res, orig_errno;
 
   con = cli_connect(cptr);
   tls = s_tls(&con_socket(con));
   if (!tls)
     return IO_FAILURE;
+  *count_in = 0;
   *count_out = 0;
   if (con->con_rexmit)
   {
-    ERR_clear_error();
-    res = SSL_write(tls, con->con_rexmit, con->con_rexmit_len);
-    if (res <= 0) {
-      orig_errno = errno;
-      return ssl_handle_error(cptr, tls, res, orig_errno);
+    /* Drain mid-message remainder until finished or TLS blocks.
+     * A short SSL_write does not mean the socket is full
+     * (SSL_MODE_ENABLE_PARTIAL_WRITE). Do not msgq_mapiov until after
+     * msgq_delete of these bytes. Real WANT_WRITE/EAGAIN must return
+     * IO_BLOCKED (deliver_it does not treat TLS short IO_SUCCESS as
+     * blocked).
+     */
+    *count_in = con->con_rexmit_len;
+    while (con->con_rexmit)
+    {
+      ERR_clear_error();
+      res = SSL_write(tls, con->con_rexmit, (int)con->con_rexmit_len);
+      if (res <= 0) {
+        orig_errno = errno;
+        return ssl_handle_error(cptr, tls, res, orig_errno);
+      }
+      *count_out += (unsigned int)res;
+      if (res == (int)con->con_rexmit_len) {
+        con->con_rexmit_len = 0;
+        con->con_rexmit = NULL;
+      } else {
+        con->con_rexmit = (char *)con->con_rexmit + res;
+        con->con_rexmit_len -= (size_t)res;
+      }
     }
-
-    // Only excise the message if the full message was sent
-    if (res == (int)con->con_rexmit_len) {
-      msgq_excise(buf, con->con_rexmit, con->con_rexmit_len);
-      con->con_rexmit_len = 0;
-      con->con_rexmit = NULL;
-      result = IO_SUCCESS;
-    } else {
-      // Partial send, update pointer and length for next retry
-      con->con_rexmit = (char *)con->con_rexmit + res;
-      con->con_rexmit_len -= res;
-      return IO_BLOCKED;
-    }
+    return IO_SUCCESS;
   }
 
-  // Process remaining messages in the queue
+  /* Process remaining messages in the queue. */
   count = msgq_mapiov(buf, iov, sizeof(iov) / sizeof(iov[0]), count_in);
   for (ii = 0; ii < count; ++ii)
   {
@@ -896,25 +895,39 @@ IOResult ircd_tls_sendv(struct Client *cptr, struct MsgQ *buf,
     if (res > 0)
     {
       *count_out += res;
-      result = IO_SUCCESS;
       if (res < (int)iov[ii].iov_len) {
-        // Partial send, store for retransmission
-        cli_connect(cptr)->con_rexmit = (char *)iov[ii].iov_base + res;
-        cli_connect(cptr)->con_rexmit_len = iov[ii].iov_len - res;
-        return IO_BLOCKED;
+        con->con_rexmit = (char *)iov[ii].iov_base + res;
+        con->con_rexmit_len = iov[ii].iov_len - (size_t)res;
+        /* Finish this message or stop on real TLS block. */
+        while (con->con_rexmit)
+        {
+          ERR_clear_error();
+          res = SSL_write(tls, con->con_rexmit, (int)con->con_rexmit_len);
+          if (res <= 0) {
+            orig_errno = errno;
+            return ssl_handle_error(cptr, tls, res, orig_errno);
+          }
+          *count_out += (unsigned int)res;
+          if (res == (int)con->con_rexmit_len) {
+            con->con_rexmit_len = 0;
+            con->con_rexmit = NULL;
+          } else {
+            con->con_rexmit = (char *)con->con_rexmit + res;
+            con->con_rexmit_len -= (size_t)res;
+          }
+        }
       }
-      // else, full message sent, continue to next
       continue;
     }
 
-    /* We only reach this if the SSL_write failed. */
+    /* SSL_write failed before any bytes of this iov were accepted. */
     orig_errno = errno;
-    cli_connect(cptr)->con_rexmit = iov[ii].iov_base;
-    cli_connect(cptr)->con_rexmit_len = iov[ii].iov_len;
+    con->con_rexmit = iov[ii].iov_base;
+    con->con_rexmit_len = iov[ii].iov_len;
     return ssl_handle_error(cptr, tls, res, orig_errno);
   }
 
-  return result;
+  return *count_out ? IO_SUCCESS : IO_BLOCKED;
 }
 
 int ircd_tls_sha1_base64(const void *data, size_t len, char *out, size_t outlen)

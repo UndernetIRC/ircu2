@@ -600,28 +600,33 @@ IOResult ircd_tls_sendv(struct Client *cptr, struct MsgQ *buf,
    * has been accepted or must be provided to a future call to
    * gnutls_record_send()?
    */
+  *count_in = 0;
   *count_out = 0;
   if (con->con_rexmit)
   {
-    res = gnutls_record_send(tls, con->con_rexmit, con->con_rexmit_len);
-    if (res <= 0) {
-      if (res == GNUTLS_E_INTERRUPTED || res == GNUTLS_E_AGAIN)
-        return IO_BLOCKED;
-      return gnutls_error_is_fatal(res) ? IO_FAILURE : IO_BLOCKED;
+    /* Drain mid-message remainder until finished or TLS blocks. A short
+     * gnutls_record_send does not imply the socket is full. Real
+     * EAGAIN must return IO_BLOCKED (deliver_it does not treat TLS
+     * short IO_SUCCESS as blocked). */
+    *count_in = con->con_rexmit_len;
+    while (con->con_rexmit)
+    {
+      res = gnutls_record_send(tls, con->con_rexmit, con->con_rexmit_len);
+      if (res <= 0) {
+        if (res == GNUTLS_E_INTERRUPTED || res == GNUTLS_E_AGAIN)
+          return IO_BLOCKED;
+        return gnutls_error_is_fatal(res) ? IO_FAILURE : IO_BLOCKED;
+      }
+      *count_out += (unsigned int)res;
+      if (res == (int)con->con_rexmit_len) {
+        con->con_rexmit_len = 0;
+        con->con_rexmit = NULL;
+      } else {
+        con->con_rexmit = (char *)con->con_rexmit + res;
+        con->con_rexmit_len -= (size_t)res;
+      }
     }
-
-    // Only excise the message if the full message was sent
-    if (res == (int)con->con_rexmit_len) {
-      msgq_excise(buf, con->con_rexmit, con->con_rexmit_len);
-      con->con_rexmit_len = 0;
-      con->con_rexmit = NULL;
-      result = IO_SUCCESS;
-    } else {
-      // Partial send, update pointer and length for next retry
-      con->con_rexmit = (char *)con->con_rexmit + res;
-      con->con_rexmit_len -= res;
-      return IO_BLOCKED;
-    }
+    return IO_SUCCESS;
   }
 
   // Process remaining messages in the queue
@@ -634,10 +639,25 @@ IOResult ircd_tls_sendv(struct Client *cptr, struct MsgQ *buf,
       *count_out += res;
       result = IO_SUCCESS;
       if (res < (int)iov[ii].iov_len) {
-        // Partial send, store for retransmission
-        cli_connect(cptr)->con_rexmit = (char *)iov[ii].iov_base + res;
-        cli_connect(cptr)->con_rexmit_len = iov[ii].iov_len - res;
-        return IO_BLOCKED;
+        con->con_rexmit = (char *)iov[ii].iov_base + res;
+        con->con_rexmit_len = iov[ii].iov_len - (size_t)res;
+        while (con->con_rexmit)
+        {
+          res = gnutls_record_send(tls, con->con_rexmit, con->con_rexmit_len);
+          if (res <= 0) {
+            if (res == GNUTLS_E_INTERRUPTED || res == GNUTLS_E_AGAIN)
+              return IO_BLOCKED;
+            return gnutls_error_is_fatal(res) ? IO_FAILURE : IO_BLOCKED;
+          }
+          *count_out += (unsigned int)res;
+          if (res == (int)con->con_rexmit_len) {
+            con->con_rexmit_len = 0;
+            con->con_rexmit = NULL;
+          } else {
+            con->con_rexmit = (char *)con->con_rexmit + res;
+            con->con_rexmit_len -= (size_t)res;
+          }
+        }
       }
       // else, full message sent, continue to next
       continue;
@@ -645,8 +665,8 @@ IOResult ircd_tls_sendv(struct Client *cptr, struct MsgQ *buf,
 
     /* We only reach this if the gnutls_record_send failed. */
     if (res == GNUTLS_E_INTERRUPTED || res == GNUTLS_E_AGAIN) {
-      cli_connect(cptr)->con_rexmit = iov[ii].iov_base;
-      cli_connect(cptr)->con_rexmit_len = iov[ii].iov_len;
+      con->con_rexmit = iov[ii].iov_base;
+      con->con_rexmit_len = iov[ii].iov_len;
     }
     result = gnutls_error_is_fatal(res) ? IO_FAILURE : IO_BLOCKED;
     break;

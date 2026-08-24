@@ -75,3 +75,95 @@ def is_error(msg: Message | str) -> bool:
     if isinstance(msg, str):
         return msg.upper().startswith("ERROR")
     return msg.command == "ERROR"
+
+
+# ---------------------------------------------------------------------------
+# Busy-channel helpers for TLS NAMES / sendq stress
+# ---------------------------------------------------------------------------
+
+NAMES_BURST_CHANNELS = [f"#burst{i}" for i in range(4)]
+NAMES_BURST_CROWD = 30  # plaintext fillers; Local class maxlinks=100
+
+
+async def register_and_join_channels(
+    host: str, port: int, nick: str, channels: list[str]
+) -> IRCClient:
+    """Plaintext register, JOIN channels, wait for every RPL_ENDOFNAMES."""
+    c = IRCClient()
+    await c.connect(host, port)
+    msgs = await c.register(nick, "crowd", "TLS burst crowd")
+    assert any(m.command == "001" for m in msgs), nick
+    await c.send("JOIN " + ",".join(channels))
+    pending = {ch.lower() for ch in channels}
+    while pending:
+        msg = await c.recv(timeout=20.0)
+        if msg.command == "366" and len(msg.params) >= 2:
+            pending.discard(msg.params[1].lower())
+    return c
+
+
+async def populate_channels(
+    hub: dict,
+    channels: list[str] | None = None,
+    crowd: int = NAMES_BURST_CROWD,
+) -> list[IRCClient]:
+    """Fill channels with many nicks so JOIN NAMES replies are large."""
+    channels = channels or NAMES_BURST_CHANNELS
+    clients: list[IRCClient] = []
+    batch = 10
+    for start in range(0, crowd, batch):
+        chunk = await asyncio.gather(
+            *[
+                register_and_join_channels(
+                    hub["host"], hub["port"], f"crwd{i:02d}", channels
+                )
+                for i in range(start, min(start + batch, crowd))
+            ]
+        )
+        clients.extend(chunk)
+    return clients
+
+
+async def drain_channel_joins(
+    victim: IRCClient, channels: list[str], timeout: float
+) -> None:
+    """JOIN all channels and wait for every RPL_ENDOFNAMES (366)."""
+    pending = {c.lower() for c in channels}
+    await victim.send("JOIN " + ",".join(channels))
+
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + timeout
+    while pending:
+        remaining = deadline - loop.time()
+        if remaining <= 0:
+            raise TimeoutError(
+                f"NAMES burst incomplete; still waiting for {sorted(pending)}"
+            )
+        try:
+            msg = await victim.recv(timeout=remaining)
+        except ConnectionError as exc:
+            raise AssertionError(
+                f"TLS link died mid-NAMES burst (pending={sorted(pending)}): {exc}"
+            ) from exc
+
+        if msg.command == "PING":
+            await victim.send(f"PONG :{msg.params[-1]}")
+            continue
+        if msg.command == "ERROR":
+            raise AssertionError(f"ERROR during NAMES burst: {msg.raw}")
+        if msg.command == "366" and len(msg.params) >= 2:
+            pending.discard(msg.params[1].lower())
+
+
+async def assert_client_alive(victim: IRCClient, token: str = "tlsburstalive") -> None:
+    """Client PING must get a matching PONG."""
+    await victim.send(f"PING :{token}")
+    while True:
+        msg = await victim.recv(timeout=15.0)
+        if msg.command == "PING":
+            await victim.send(f"PONG :{msg.params[-1]}")
+            continue
+        if msg.command == "PONG" and token in msg.params[-1]:
+            return
+        if msg.command == "ERROR":
+            raise AssertionError(f"ERROR after ping probe: {msg.raw}")

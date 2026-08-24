@@ -90,6 +90,9 @@ static void dead_link(struct Client *to, char *notice)
    */
   DBufClear(&(cli_recvQ(to)));
   MsgQClear(&(cli_sendQ(to)));
+  /* MsgQClear frees MsgBufs; drop TLS mid-message rexmit into them. */
+  cli_connect(to)->con_rexmit = NULL;
+  cli_connect(to)->con_rexmit_len = 0;
   client_drop_sendq(cli_connect(to));
 
   /*

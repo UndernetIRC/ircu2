@@ -624,31 +624,36 @@ IOResult ircd_tls_sendv(struct Client *cptr, struct MsgQ *buf,
     return IO_FAILURE;
 
   /* tls_write() does not document any restriction on retries. */
+  *count_in = 0;
   *count_out = 0;
   if (con->con_rexmit)
   {
-    res = tls_write(tls, con->con_rexmit, con->con_rexmit_len);
-    if (res <= 0) {
-      if (res == TLS_WANT_POLLIN || res == TLS_WANT_POLLOUT)
-        return IO_BLOCKED;
-      return tls_handle_error(cptr, tls, res);
+    /* Drain mid-message remainder until finished or TLS blocks. A short
+     * tls_write does not imply the socket is full. Real WANT_POLL*
+     * must return IO_BLOCKED (deliver_it does not treat TLS short
+     * IO_SUCCESS as blocked). */
+    *count_in = con->con_rexmit_len;
+    while (con->con_rexmit)
+    {
+      res = tls_write(tls, con->con_rexmit, con->con_rexmit_len);
+      if (res <= 0) {
+        if (res == TLS_WANT_POLLIN || res == TLS_WANT_POLLOUT)
+          return IO_BLOCKED;
+        return tls_handle_error(cptr, tls, res);
+      }
+      *count_out += (unsigned int)res;
+      if (res == (int)con->con_rexmit_len) {
+        con->con_rexmit_len = 0;
+        con->con_rexmit = NULL;
+      } else {
+        con->con_rexmit = (char *)con->con_rexmit + res;
+        con->con_rexmit_len -= (size_t)res;
+      }
     }
-
-    // Only excise the message if the full message was sent
-    if (res == (int)con->con_rexmit_len) {
-      msgq_excise(buf, con->con_rexmit, con->con_rexmit_len);
-      con->con_rexmit_len = 0;
-      con->con_rexmit = NULL;
-      result = IO_SUCCESS;
-    } else {
-      // Partial send, update pointer and length for next retry
-      con->con_rexmit = (char *)con->con_rexmit + res;
-      con->con_rexmit_len -= res;
-      return IO_BLOCKED;
-    }
+    return IO_SUCCESS;
   }
 
-  // Process remaining messages in the queue
+  /* Process remaining messages in the queue. */
   count = msgq_mapiov(buf, iov, sizeof(iov) / sizeof(iov[0]), count_in);
   for (ii = 0; ii < count; ++ii)
   {
@@ -658,19 +663,33 @@ IOResult ircd_tls_sendv(struct Client *cptr, struct MsgQ *buf,
       *count_out += res;
       result = IO_SUCCESS;
       if (res < (int)iov[ii].iov_len) {
-        // Partial send, store for retransmission
-        cli_connect(cptr)->con_rexmit = (char *)iov[ii].iov_base + res;
-        cli_connect(cptr)->con_rexmit_len = iov[ii].iov_len - res;
-        return IO_BLOCKED;
+        con->con_rexmit = (char *)iov[ii].iov_base + res;
+        con->con_rexmit_len = iov[ii].iov_len - (size_t)res;
+        while (con->con_rexmit)
+        {
+          res = tls_write(tls, con->con_rexmit, con->con_rexmit_len);
+          if (res <= 0) {
+            if (res == TLS_WANT_POLLIN || res == TLS_WANT_POLLOUT)
+              return IO_BLOCKED;
+            return tls_handle_error(cptr, tls, res);
+          }
+          *count_out += (unsigned int)res;
+          if (res == (int)con->con_rexmit_len) {
+            con->con_rexmit_len = 0;
+            con->con_rexmit = NULL;
+          } else {
+            con->con_rexmit = (char *)con->con_rexmit + res;
+            con->con_rexmit_len -= (size_t)res;
+          }
+        }
       }
-      // else, full message sent, continue to next
       continue;
     }
 
-    /* We only reach this if the tls_write failed. */
+    /* tls_write failed before any bytes of this iov. */
     if (res == TLS_WANT_POLLIN || res == TLS_WANT_POLLOUT) {
-      cli_connect(cptr)->con_rexmit = iov[ii].iov_base;
-      cli_connect(cptr)->con_rexmit_len = iov[ii].iov_len;
+      con->con_rexmit = iov[ii].iov_base;
+      con->con_rexmit_len = iov[ii].iov_len;
       return IO_BLOCKED;
     }
     result = tls_handle_error(cptr, tls, res);

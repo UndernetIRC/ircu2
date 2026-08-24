@@ -168,6 +168,9 @@ static void dealloc_connection(struct Connection* con)
   if (-1 < con_fd(con))
     close(con_fd(con));
   MsgQClear(&(con_sendQ(con)));
+  /* MsgQClear frees MsgBufs; drop TLS mid-message rexmit into them. */
+  con->con_rexmit = NULL;
+  con->con_rexmit_len = 0;
   client_drop_sendq(con);
   DBufClear(&(con_recvQ(con)));
   if (con_listener(con))
