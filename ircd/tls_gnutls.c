@@ -428,8 +428,10 @@ int ircd_tls_negotiate(struct Client *cptr)
 
   tls = s_tls(&cli_socket(cptr));
 
-  if (!tls)
-    return 1;
+  if (!tls) {
+    ClearNegotiatingTLS(cptr);
+    return -1;
+  }
 
   /* Check for handshake timeout - use the constant from header */
   if (CurrentTime - cli_firsttime(cptr) > TLS_HANDSHAKE_TIMEOUT) {

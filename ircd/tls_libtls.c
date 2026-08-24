@@ -521,8 +521,10 @@ int ircd_tls_negotiate(struct Client *cptr)
   const char* const error_tls = "ERROR :TLS connection error\r\n";
 
   tls = s_tls(&cli_socket(cptr));
-  if (!tls)
-    return 1;
+  if (!tls) {
+    ClearNegotiatingTLS(cptr);
+    return -1;
+  }
 
   /* Check for handshake timeout */
   if (CurrentTime - cli_firsttime(cptr) > TLS_HANDSHAKE_TIMEOUT) {

@@ -728,8 +728,13 @@ int ircd_tls_negotiate(struct Client *cptr)
   const char* const error_ssl = "ERROR :SSL connection error\r\n";
 
   tls = s_tls(&cli_socket(cptr));
-  if (!tls)
-    return 1;
+  if (!tls) {
+    /* No session left to negotiate; do not report success or start_auth
+     * will be invoked on every subsequent ET_WRITE while FLAG_NEGOTIATING_TLS
+     * remains set. */
+    ClearNegotiatingTLS(cptr);
+    return -1;
+  }
 
   /* Check for handshake timeout */
   if (CurrentTime - cli_firsttime(cptr) > TLS_HANDSHAKE_TIMEOUT) {
@@ -800,8 +805,10 @@ int ircd_tls_negotiate(struct Client *cptr)
       }
     }
     ClearNegotiatingTLS(cptr);
+    /* X509_digest may have overwritten res; handshake itself succeeded. */
+    return 1;
   }
-  else
+
   {
     int orig_errno = errno;
     /* Handshake in progress. */
@@ -814,8 +821,6 @@ int ircd_tls_negotiate(struct Client *cptr)
     /* ssl_result == IO_BLOCKED - handshake still in progress */
     return 0;
   }
-
-  return res;
 }
 
 IOResult ircd_tls_recv(struct Client *cptr, char *buf,
