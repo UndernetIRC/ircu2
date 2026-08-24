@@ -407,8 +407,12 @@ def pytest_runtest_makereport(item, call):
     report = outcome.get_result()
     if report.when != "call" or not report.failed:
         return
-    snapshot = snapshot_failure_artifacts(item.nodeid)
-    extra = format_failure_report(snapshot)
+    try:
+        snapshot = snapshot_failure_artifacts(item.nodeid)
+        extra = format_failure_report(snapshot)
+    except OSError as exc:
+        # Never abort the suite over debug capture (e.g. root-owned failures/).
+        extra = f"\n\n[debug snapshot failed: {exc}]"
     if extra:
         report.longrepr = f"{report.longrepr}{extra}"
 

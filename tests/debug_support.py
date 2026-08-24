@@ -147,7 +147,33 @@ def analyze_core_postmortem(core: Path, dest: Path) -> str:
     return text
 
 
-def container_state(container: str = HUB_CONTAINER) -> str:
+def running_hub_containers() -> list[str]:
+    """Return hub-like container names that are currently present.
+
+    Prefer tls-hub when both exist; snapshots used to hard-code ircu-hub and
+    silently missed TLS topology failures.
+    """
+    preferred = ("ircu-tls-hub", "ircu-hub", "ircu-limits")
+    found: list[str] = []
+    for name in preferred:
+        result = subprocess.run(
+            ["docker", "inspect", "-f", "{{.State.Status}}", name],
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            found.append(name)
+    if found:
+        return found
+    # Fall back so callers still attempt the historical default.
+    return [HUB_CONTAINER]
+
+
+def container_state(container: str | None = None) -> str:
+    if container is None:
+        states = [f"{name}: {container_state(name)}" for name in running_hub_containers()]
+        return "; ".join(states)
     result = subprocess.run(
         [
             "docker",
@@ -165,7 +191,12 @@ def container_state(container: str = HUB_CONTAINER) -> str:
     return result.stdout.strip()
 
 
-def docker_logs(container: str = HUB_CONTAINER, tail: int = 500) -> str:
+def docker_logs(container: str | None = None, tail: int = 500) -> str:
+    if container is None:
+        chunks: list[str] = []
+        for name in running_hub_containers():
+            chunks.append(f"===== {name} =====\n{docker_logs(name, tail=tail)}")
+        return "\n".join(chunks)
     result = subprocess.run(
         ["docker", "logs", "--tail", str(tail), container],
         capture_output=True,
@@ -207,11 +238,22 @@ def _copy_asan_logs(dest: Path) -> list[str]:
 
 
 def snapshot_failure_artifacts(test_nodeid: str) -> Path | None:
-    """Save hub logs and debug files for a failed test; return snapshot dir."""
+    """Save hub logs and debug files for a failed test; return snapshot dir.
+
+    Raises OSError if the snapshot directory cannot be created (caller should
+    catch so a permissions problem never aborts the pytest session).
+    """
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     safe_name = test_nodeid.replace("/", "_").replace("::", "__")
     dest = FAILURES_DIR / f"{safe_name}__{stamp}"
-    dest.mkdir(parents=True, exist_ok=True)
+    try:
+        FAILURES_DIR.mkdir(parents=True, exist_ok=True)
+        dest.mkdir(parents=True, exist_ok=True)
+    except PermissionError:
+        # Root-owned leftover from a prior docker/sudo run: fall back under /tmp
+        # so we still capture logs without poisoning the pytest session.
+        dest = Path("/tmp") / "ircu2-test-failures" / f"{safe_name}__{stamp}"
+        dest.mkdir(parents=True, exist_ok=True)
 
     state = container_state()
     (dest / "container-state.txt").write_text(state + "\n", encoding="utf-8")

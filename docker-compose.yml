@@ -68,7 +68,22 @@ services:
       args:
         IRCD_CONF: tests/docker/ircd-tls-hub.conf
         TLS_BACKEND: ${TLS_BACKEND:-openssl}
+        SANITIZE: ${IRCD_SANITIZE:-}
     container_name: ircu-tls-hub
+    environment:
+      IRCD_DEBUG: ${IRCD_DEBUG:-}
+      ASAN_OPTIONS: ${ASAN_OPTIONS:-abort_on_error=1:halt_on_error=1:detect_leaks=0:log_path=/opt/ircu/debug/asan}
+    volumes:
+      - ${IRCD_DEBUG_DIR:-./tests/debug-output}:/opt/ircu/debug
+    security_opt:
+      - seccomp:unconfined
+    ulimits:
+      core:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 4096
+        hard: 4096
     ports:
       - "16677:6677"
       - "16697:6697"
@@ -88,7 +103,22 @@ services:
       args:
         IRCD_CONF: tests/docker/ircd-tls-leaf.conf
         TLS_BACKEND: ${TLS_BACKEND:-openssl}
+        SANITIZE: ${IRCD_SANITIZE:-}
     container_name: ircu-tls-leaf
+    environment:
+      IRCD_DEBUG: ${IRCD_DEBUG:-}
+      ASAN_OPTIONS: ${ASAN_OPTIONS:-abort_on_error=1:halt_on_error=1:detect_leaks=0:log_path=/opt/ircu/debug/asan}
+    volumes:
+      - ${IRCD_DEBUG_DIR:-./tests/debug-output}:/opt/ircu/debug
+    security_opt:
+      - seccomp:unconfined
+    ulimits:
+      core:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 4096
+        hard: 4096
     ports:
       - "16678:6678"
       - "16680:6680"
