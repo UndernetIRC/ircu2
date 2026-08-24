@@ -240,14 +240,83 @@ async def test_stalled_handshake_times_out(ircd_tls_network):
     hub = ircd_tls_network["hub"]
     reader, writer = await asyncio.open_connection(hub["host"], hub["tls_port"])
     try:
-        # Send nothing (no ClientHello). The server should close on timeout.
+        # Send nothing (no ClientHello). The server must close on timeout with
+        # a plain TCP EOF: no close_notify alert may be sent for a session whose
+        # handshake never completed (all backends: OpenSSL, GnuTLS, libtls).
         data = await asyncio.wait_for(reader.read(1), timeout=15.0)
-        assert data == b"", "server should close the stalled handshake"
-    except (asyncio.TimeoutError, ConnectionResetError):
+        assert data == b"", f"server should close the stalled handshake with EOF, got {data!r}"
+    except asyncio.TimeoutError:
         pytest.fail("server did not close a stalled TLS handshake in time")
+    except ConnectionResetError:
+        pass  # RST is also a close
     finally:
         writer.close()
         try:
             await writer.wait_closed()
         except Exception:
             pass
+
+
+async def test_stalled_handshake_after_clienthello_times_out(ircd_tls_network):
+    """L1 (variant): ClientHello sent, client never sends Finished.
+
+    The server must still tear the session down on timeout with a plain TCP
+    EOF.  With TLS 1.3 a close_notify sent at this point is *encrypted*, so a
+    first-byte check cannot see it; drive the client side of the handshake in
+    a MemoryBIO so the ssl module decodes whatever the server sends last.
+    """
+    hub = ircd_tls_network["hub"]
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    inb, outb = ssl.MemoryBIO(), ssl.MemoryBIO()
+    obj = ctx.wrap_bio(inb, outb, server_side=False)
+    try:
+        obj.do_handshake()
+    except ssl.SSLWantReadError:
+        pass
+    reader, writer = await asyncio.open_connection(hub["host"], hub["tls_port"])
+    handshake_done = False
+    verdict = None
+    try:
+        writer.write(outb.read())  # ClientHello only; Finished is never sent
+        await writer.drain()
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + 15.0
+        while verdict is None:
+            remaining = deadline - loop.time()
+            assert remaining > 0, "server did not close a stalled TLS handshake in time"
+            try:
+                data = await asyncio.wait_for(reader.read(65536), remaining)
+            except ConnectionResetError:
+                verdict = "rst"
+                break
+            if not data:
+                inb.write_eof()
+            else:
+                inb.write(data)
+            try:
+                if not handshake_done:
+                    obj.do_handshake()
+                    handshake_done = True
+                obj.read(1)
+            except ssl.SSLWantReadError:
+                if not data:
+                    verdict = "eof"
+                continue
+            except ssl.SSLZeroReturnError:
+                verdict = "close_notify"
+            except ssl.SSLEOFError:
+                verdict = "eof"
+            except ssl.SSLError as exc:
+                verdict = f"sslerror:{exc.reason}"
+            else:
+                verdict = "eof" if not data else None
+    finally:
+        writer.close()
+        try:
+            await writer.wait_closed()
+        except Exception:
+            pass
+    assert handshake_done, "server never answered the ClientHello"
+    assert verdict in ("eof", "rst"), f"expected plain EOF/RST after timeout, got {verdict}"

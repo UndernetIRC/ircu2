@@ -375,7 +375,13 @@ int ircd_tls_check_peer_hostname(struct Client *cptr, const char *name)
 
 void ircd_tls_close(void *ctx, const char *message)
 {
-  gnutls_bye(ctx, GNUTLS_SHUT_RDWR);
+  /* Match OpenSSL SSL_is_init_finished() / libtls tls_close(): only send
+   * close_notify after a completed handshake.  ircd_tls_negotiate() marks
+   * success via the session pointer; gnutls_protocol_get_version() is not
+   * usable for this (it is already set before any ClientHello arrives), so
+   * a stalled handshake would otherwise get a TLS alert instead of TCP EOF. */
+  if (gnutls_session_get_ptr(ctx))
+    gnutls_bye(ctx, GNUTLS_SHUT_WR);
   gnutls_deinit(ctx);
 }
 
@@ -488,6 +494,7 @@ int ircd_tls_negotiate(struct Client *cptr)
 
     if (!datum)
     {
+      gnutls_session_set_ptr(tls, (void *)1); /* handshake complete: see ircd_tls_close() */
       ClearNegotiatingTLS(cptr);
       return 1;
     }
@@ -537,6 +544,7 @@ int ircd_tls_negotiate(struct Client *cptr)
         Debug((DEBUG_DEBUG, "Invalid fingerprint length: %zu", len));
     }
 
+    gnutls_session_set_ptr(tls, (void *)1); /* handshake complete: see ircd_tls_close() */
     ClearNegotiatingTLS(cptr);
     return 1;
 
@@ -570,6 +578,14 @@ IOResult ircd_tls_recv(struct Client *cptr, char *buf,
     *count_out = res;
     return IO_SUCCESS;
   }
+  /*
+   * Peer cleanly closed (close_notify) or EOF.  gnutls_error_is_fatal(0) is
+   * false, so treating this as IO_BLOCKED leaves the socket open while the
+   * client waits for our close_notify (asyncio SSL_SHUTDOWN_TIMEOUT = 30s).
+   * Match OpenSSL SSL_ERROR_ZERO_RETURN → IO_FAILURE.
+   */
+  if (res == 0)
+    return IO_FAILURE;
   if (res == GNUTLS_E_REHANDSHAKE)
   {
     res = gnutls_handshake(tls);
