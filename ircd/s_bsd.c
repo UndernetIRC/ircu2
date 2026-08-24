@@ -373,11 +373,25 @@ static int completed_connection(struct Client* cptr)
       SetTLS(cptr);
     }
 
-    /* Are we making progress? */
+    /* Are we making progress?  Handle the result like tls_negotiate_client():
+     * a negative result (timeout, fatal handshake error, missing session) must
+     * fail the link now rather than wait for the ping timeout or fall through
+     * to sending PASS/SERVER on a socket without a TLS session. */
     if (IsNegotiatingTLS(cptr)) {
-      ircd_tls_negotiate(cptr);
-      if (IsNegotiatingTLS(cptr))
-        return 1;
+      int res = ircd_tls_negotiate(cptr);
+
+      if (res < 0) {
+        sendto_opmask_butone(0, SNO_OLDSNO, "TLS negotiation failed to %s",
+                             cli_name(cptr));
+        ClearNegotiatingTLS(cptr);
+        if (s_tls(&cli_socket(cptr))) {
+          ircd_tls_close(s_tls(&cli_socket(cptr)), NULL);
+          s_tls(&cli_socket(cptr)) = NULL;
+        }
+        return 0;
+      }
+      if (res == 0)
+        return 1; /* still negotiating */
     }
   }
 
