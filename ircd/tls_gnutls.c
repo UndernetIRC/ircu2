@@ -507,26 +507,31 @@ int ircd_tls_negotiate(struct Client *cptr)
         return -1;
     }
 
-    /* Complete the fingerprint extraction - convert buf to hex */
+    /* Extract the SHA-256 fingerprint.  If the certificate cannot be
+     * re-parsed or hashed, treat it like "no fingerprint" (len = 0 takes the
+     * empty-fingerprint branch below) and still complete the handshake, as the
+     * OpenSSL and libtls backends do.  Returning early here would leave
+     * FLAG_NEGOTIATING_TLS set and wedge the connection. */
     res = gnutls_x509_crt_import(crt, datum, GNUTLS_X509_FMT_DER);
     if (res)
     {
       log_write(LS_SYSTEM, L_ERROR, 0, "gnutls_x509_crt_import failed for %s: %d",
         cli_name(cptr), res);
-      gnutls_x509_crt_deinit(crt);
-      return 1;
+      len = 0;
     }
-
-    len = sizeof(buf);
-    res = gnutls_x509_crt_get_fingerprint(crt, GNUTLS_DIG_SHA256, buf, &len);
-    gnutls_x509_crt_deinit(crt);
-    if (res)
+    else
     {
-      log_write(LS_SYSTEM, L_ERROR, 0, "gnutls_x509_crt_get_fingerprint failed for %s: %d",
-        cli_name(cptr), res);
-      return 1;
+      len = sizeof(buf);
+      res = gnutls_x509_crt_get_fingerprint(crt, GNUTLS_DIG_SHA256, buf, &len);
+      if (res)
+      {
+        log_write(LS_SYSTEM, L_ERROR, 0, "gnutls_x509_crt_get_fingerprint failed for %s: %d",
+          cli_name(cptr), res);
+        len = 0;
+      }
     }
-    
+    gnutls_x509_crt_deinit(crt);
+
     /* Convert buf to hex like OpenSSL version */
     if (len == 32 && !IsCloudflarePort(cptr)) {
       char *p = cli_tls_fingerprint(cptr);
