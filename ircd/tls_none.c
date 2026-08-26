@@ -84,8 +84,10 @@ void ircd_tls_listen_free(struct Listener *listener)
   (void)listener;
 }
 
-int ircd_tls_negotiate(struct Client *cptr)
+int ircd_tls_negotiate(struct Client *cptr, char *reason, size_t reasonlen)
 {
+  (void)reason;
+  (void)reasonlen;
   ClearNegotiatingTLS(cptr);
   return 1;
 }

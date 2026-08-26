@@ -25,6 +25,7 @@
 #include "ircd_alloc.h"
 #include "ircd_features.h"
 #include "ircd_log.h"
+#include "ircd_snprintf.h"
 #include "ircd_string.h"
 #include "ircd_tls.h"
 #include "ircd.h"
@@ -42,8 +43,22 @@
 #include <openssl/buffer.h>
 #include <openssl/ssl.h>
 #include <openssl/x509v3.h>
+#include <stdarg.h>
+#include <string.h> /* strerror() */
 #include <sys/uio.h> /* IOV_MAX */
 #include <unistd.h> /* write() on failure of ssl_accept() */
+
+/** Fill \a reason (if non-NULL) with a formatted TLS failure description. */
+static void tls_reason(char *reason, size_t reasonlen, const char *fmt, ...)
+{
+  va_list vl;
+
+  if (!reason || reasonlen == 0)
+    return;
+  va_start(vl, fmt);
+  ircd_vsnprintf(0, reason, reasonlen, fmt, vl);
+  va_end(vl);
+}
 
 const char *ircd_tls_version = OPENSSL_VERSION_TEXT;
 
@@ -718,20 +733,26 @@ static IOResult ssl_handle_error(struct Client *cptr, SSL *tls, int res, int ori
   return IO_FAILURE;
 }
 
-int ircd_tls_negotiate(struct Client *cptr)
+int ircd_tls_negotiate(struct Client *cptr, char *reason, size_t reasonlen)
 {
   SSL *tls;
   X509 *cert;
   unsigned int len;
   int res;
   unsigned char buf[EVP_MAX_MD_SIZE];
-  const char* const error_ssl = "ERROR :SSL connection error\r\n";
+  const char* const err_certreq   = "ERROR :TLS certificate required\r\n";
+  const char* const err_certrej   = "ERROR :TLS certificate rejected\r\n";
+  const char* const err_handshake = "ERROR :TLS handshake failed\r\n";
+
+  if (reason && reasonlen)
+    reason[0] = '\0';
 
   tls = s_tls(&cli_socket(cptr));
   if (!tls) {
     /* No session left to negotiate; do not report success or start_auth
      * will be invoked on every subsequent ET_WRITE while FLAG_NEGOTIATING_TLS
      * remains set. */
+    tls_reason(reason, reasonlen, "TLS setup failed (no session)");
     ClearNegotiatingTLS(cptr);
     return -1;
   }
@@ -739,6 +760,9 @@ int ircd_tls_negotiate(struct Client *cptr)
   /* Check for handshake timeout */
   if (CurrentTime - cli_firsttime(cptr) > TLS_HANDSHAKE_TIMEOUT) {
     Debug((DEBUG_DEBUG, "SSL handshake timeout for fd=%d", cli_fd(cptr)));
+    /* No peer write: a stalled handshake must close with a plain EOF, not a
+     * plaintext line (which would corrupt a mid-handshake peer's TLS stream). */
+    tls_reason(reason, reasonlen, "TLS handshake timed out");
     return -1;
   }
 
@@ -755,7 +779,9 @@ int ircd_tls_negotiate(struct Client *cptr)
     {
       Debug((DEBUG_DEBUG, "TLS peer certificate required but not presented for %C",
              cptr));
-      write(cli_fd(cptr), error_ssl, strlen(error_ssl));
+      tls_reason(reason, reasonlen,
+                 "no peer certificate presented (certificate required)");
+      write(cli_fd(cptr), err_certreq, strlen(err_certreq));
       return -1;
     }
 
@@ -768,9 +794,11 @@ int ircd_tls_negotiate(struct Client *cptr)
         Debug((DEBUG_DEBUG,
                "TLS peer certificate verification failed for %C: %ld",
                cptr, vr));
+        tls_reason(reason, reasonlen, "certificate verification failed: %s",
+                   X509_verify_cert_error_string(vr));
         if (cert)
           X509_free(cert);
-        write(cli_fd(cptr), error_ssl, strlen(error_ssl));
+        write(cli_fd(cptr), err_certrej, strlen(err_certrej));
         return -1;
       }
     }
@@ -811,11 +839,27 @@ int ircd_tls_negotiate(struct Client *cptr)
 
   {
     int orig_errno = errno;
+    int sslerr = SSL_get_error(tls, res);
+    long vr = SSL_get_verify_result(tls);
+    unsigned long queued = ERR_peek_last_error(); /* before ssl_handle_error drains */
     /* Handshake in progress. */
     IOResult ssl_result = ssl_handle_error(cptr, tls, res, orig_errno);
     if (ssl_result == IO_FAILURE) {
       Debug((DEBUG_DEBUG, "SSL handshake failed for fd=%d", cli_fd(cptr)));
-      write(cli_fd(cptr), error_ssl, strlen(error_ssl));
+      if (vr != X509_V_OK)
+        /* Handshake aborted on certificate verification: report the exact
+         * X509 error.  SSL_get_verify_result() is set during verification,
+         * so it is available even though SSL_accept()/SSL_connect() failed. */
+        tls_reason(reason, reasonlen, "%s", X509_verify_cert_error_string(vr));
+      else if (queued)
+        tls_reason(reason, reasonlen, "%s", ERR_reason_error_string(queued));
+      else if (sslerr == SSL_ERROR_ZERO_RETURN)
+        tls_reason(reason, reasonlen, "peer closed connection");
+      else if (sslerr == SSL_ERROR_SYSCALL && orig_errno)
+        tls_reason(reason, reasonlen, "%s", strerror(orig_errno));
+      else
+        tls_reason(reason, reasonlen, "handshake error");
+      write(cli_fd(cptr), err_handshake, strlen(err_handshake));
       return -1;
     }
     /* ssl_result == IO_BLOCKED - handshake still in progress */

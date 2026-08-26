@@ -96,6 +96,9 @@ static inline int ircd_tls_trust_verifies_ca(ircd_tls_trust_policy policy)
 /** Timeout for TLS handshake in seconds */
 #define TLS_HANDSHAKE_TIMEOUT 5
 
+/** Size of the human-readable reason buffer filled by ircd_tls_negotiate(). */
+#define TLS_REASON_LEN 128
+
 /* The following variables and functions are provided by ircu2's core
  * code, not by the TLS interface.
  */
@@ -227,10 +230,15 @@ void ircd_tls_listen_free(struct Listener *listener);
  * client's socket and returns 0.
  *
  * @param[in] cptr Locally connected client to perform handshake for.
+ * @param[out] reason If non-NULL, receives a human-readable failure reason
+ *   on a -1 return (empty otherwise).  Intended for operator notices and
+ *   the disconnect log, not for the peer (a categorical ERROR line is sent
+ *   to the peer instead).
+ * @param[in] reasonlen Size of the \a reason buffer (see TLS_REASON_LEN).
  * \returns 1 on completed handshake, 0 on continuing handshake, -1 on
  *   error.
  */
-int ircd_tls_negotiate(struct Client *cptr);
+int ircd_tls_negotiate(struct Client *cptr, char *reason, size_t reasonlen);
 
 /** ircd_tls_recv() performs a non-blocking receive of TLS application
  * data from \a cptr into \a buf.

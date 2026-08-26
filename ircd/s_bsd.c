@@ -378,11 +378,12 @@ static int completed_connection(struct Client* cptr)
      * fail the link now rather than wait for the ping timeout or fall through
      * to sending PASS/SERVER on a socket without a TLS session. */
     if (IsNegotiatingTLS(cptr)) {
-      int res = ircd_tls_negotiate(cptr);
+      char reason[TLS_REASON_LEN];
+      int res = ircd_tls_negotiate(cptr, reason, sizeof(reason));
 
       if (res < 0) {
-        sendto_opmask_butone(0, SNO_OLDSNO, "TLS negotiation failed to %s",
-                             cli_name(cptr));
+        sendto_opmask_butone(0, SNO_OLDSNO, "TLS negotiation failed to %s%s%s",
+                             cli_name(cptr), reason[0] ? ": " : "", reason);
         /* Mark dead before returning so exit_client() does not flush an
          * ERROR line as plaintext into the half-open handshake stream
          * (can_send() rejects a dead socket).  Mirrors tls_negotiate_client(). */
@@ -1099,21 +1100,26 @@ void init_server_identity(void)
 }
 
 /** Notify operators of inbound TLS failures on server ports. */
-static void tls_negotiation_failed(struct Client *cptr)
+static void tls_negotiation_failed(struct Client *cptr, const char *reason)
 {
   if (IsServerPort(cptr))
     sendto_opmask_butone(0, SNO_OLDSNO,
-                         "TLS negotiation failed from unknown server");
+                         "TLS negotiation failed from unknown server%s%s",
+                         (reason && reason[0]) ? ": " : "",
+                         reason ? reason : "");
 }
 
 /** Run ircd_tls_negotiate() and handle a fatal result. */
 static int tls_negotiate_client(struct Client *cptr, char **fmt, char **fallback)
 {
-  int res = ircd_tls_negotiate(cptr);
+  /* static: *fallback is read by the caller after we return, still within the
+   * same (synchronous) socket callback, so a stack buffer would dangle. */
+  static char reason[TLS_REASON_LEN];
+  int res = ircd_tls_negotiate(cptr, reason, sizeof(reason));
 
   if (res < 0)
   {
-    tls_negotiation_failed(cptr);
+    tls_negotiation_failed(cptr, reason);
     SetFlag(cptr, FLAG_DEADSOCKET);
     ClrFlag(cptr, FLAG_NEGOTIATING_TLS);
     if (s_tls(&cli_socket(cptr)))
@@ -1121,8 +1127,8 @@ static int tls_negotiate_client(struct Client *cptr, char **fmt, char **fallback
       ircd_tls_close(s_tls(&cli_socket(cptr)), "TLS negotiation failed");
       s_tls(&cli_socket(cptr)) = NULL;
     }
-    *fmt = "TLS negotiation failed: %s";
-    *fallback = "TLS negotiation failed";
+    *fmt = "%s";
+    *fallback = reason[0] ? reason : "TLS negotiation failed";
   }
 
   return res;

@@ -25,6 +25,7 @@
 #include "ircd_features.h"
 #include "ircd.h"
 #include "ircd_log.h"
+#include "ircd_snprintf.h"
 #include "ircd_string.h"
 #include "ircd_tls.h"
 #include "listener.h"
@@ -34,12 +35,25 @@
 #include "s_debug.h"
 #include "ircd_sha1.h"
 
+#include <stdarg.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <tls.h>
+
+/** Fill \a reason (if non-NULL) with a formatted TLS failure description. */
+static void tls_reason(char *reason, size_t reasonlen, const char *fmt, ...)
+{
+  va_list vl;
+
+  if (!reason || reasonlen == 0)
+    return;
+  va_start(vl, fmt);
+  ircd_vsnprintf(0, reason, reasonlen, fmt, vl);
+  va_end(vl);
+}
 
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
@@ -513,15 +527,21 @@ void ircd_tls_listen_free(struct Listener *listener)
   }
 }
 
-int ircd_tls_negotiate(struct Client *cptr)
+int ircd_tls_negotiate(struct Client *cptr, char *reason, size_t reasonlen)
 {
   const char *hash;
   struct tls *tls;
   int res;
-  const char* const error_tls = "ERROR :TLS connection error\r\n";
+  const char* const err_certreq   = "ERROR :TLS certificate required\r\n";
+  const char* const err_certrej   = "ERROR :TLS certificate rejected\r\n";
+  const char* const err_handshake = "ERROR :TLS handshake failed\r\n";
+
+  if (reason && reasonlen)
+    reason[0] = '\0';
 
   tls = s_tls(&cli_socket(cptr));
   if (!tls) {
+    tls_reason(reason, reasonlen, "TLS setup failed (no session)");
     ClearNegotiatingTLS(cptr);
     return -1;
   }
@@ -529,6 +549,8 @@ int ircd_tls_negotiate(struct Client *cptr)
   /* Check for handshake timeout */
   if (CurrentTime - cli_firsttime(cptr) > TLS_HANDSHAKE_TIMEOUT) {
     Debug((DEBUG_DEBUG, "libtls handshake timeout for %s", cli_name(cptr)));
+    /* No peer write: a stalled handshake must close with a plain EOF. */
+    tls_reason(reason, reasonlen, "TLS handshake timed out");
     return -1;
   }
 
@@ -543,6 +565,9 @@ int ircd_tls_negotiate(struct Client *cptr)
       Debug((DEBUG_DEBUG,
              "TLS peer certificate required but not presented for %s",
              cli_name(cptr)));
+      tls_reason(reason, reasonlen,
+                 "no peer certificate presented (certificate required)");
+      write(cli_fd(cptr), err_certreq, strlen(err_certreq));
       return -1;
     }
 
@@ -551,6 +576,8 @@ int ircd_tls_negotiate(struct Client *cptr)
       Debug((DEBUG_DEBUG,
              "TLS peer certificate verification failed for %s",
              cli_name(cptr)));
+      tls_reason(reason, reasonlen, "peer certificate could not be verified");
+      write(cli_fd(cptr), err_certrej, strlen(err_certrej));
       return -1;
     }
 
@@ -581,14 +608,23 @@ int ircd_tls_negotiate(struct Client *cptr)
     return 0; /* Handshake in progress */
   }
   
-  IOResult tls_result = tls_handle_error(cptr, tls, res);
-  if (tls_result == IO_FAILURE) {
-    Debug((DEBUG_DEBUG, "TLS handshake failed for %s", cli_name(cptr)));
-    write(cli_fd(cptr), error_tls, strlen(error_tls));
-    return -1;
+  {
+    const char *tls_err = tls_error(tls);   /* before tls_handle_error frees it */
+    IOResult tls_result;
+
+    if (tls_err)
+      tls_reason(reason, reasonlen, "%s", tls_err);
+    tls_result = tls_handle_error(cptr, tls, res);
+    if (tls_result == IO_FAILURE) {
+      Debug((DEBUG_DEBUG, "TLS handshake failed for %s", cli_name(cptr)));
+      if (!tls_err)
+        tls_reason(reason, reasonlen, "handshake error");
+      write(cli_fd(cptr), err_handshake, strlen(err_handshake));
+      return -1;
+    }
+    /* tls_result == IO_BLOCKED - handshake still in progress */
+    return 0;
   }
-  /* tls_result == IO_BLOCKED - handshake still in progress */
-  return 0;
 }
 
 IOResult ircd_tls_recv(struct Client *cptr, char *buf,
