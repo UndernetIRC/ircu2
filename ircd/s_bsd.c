@@ -383,6 +383,10 @@ static int completed_connection(struct Client* cptr)
       if (res < 0) {
         sendto_opmask_butone(0, SNO_OLDSNO, "TLS negotiation failed to %s",
                              cli_name(cptr));
+        /* Mark dead before returning so exit_client() does not flush an
+         * ERROR line as plaintext into the half-open handshake stream
+         * (can_send() rejects a dead socket).  Mirrors tls_negotiate_client(). */
+        SetFlag(cptr, FLAG_DEADSOCKET);
         ClearNegotiatingTLS(cptr);
         if (s_tls(&cli_socket(cptr))) {
           ircd_tls_close(s_tls(&cli_socket(cptr)), NULL);
@@ -1127,8 +1131,14 @@ static int tls_negotiate_client(struct Client *cptr, char **fmt, char **fallback
 /** Continue client setup after an inbound or outbound TLS handshake completes. */
 static void tls_handshake_succeeded(struct Client *cptr)
 {
-  if (IsConnecting(cptr))
-    completed_connection(cptr);
+  if (IsConnecting(cptr)) {
+    /* completed_connection() returns 0 when the link can no longer be set up
+     * (e.g. the Connect block vanished on a rehash mid-handshake).  Exit the
+     * client instead of leaving it half-initialized until the ping timeout,
+     * matching the ET_CONNECT path. */
+    if (!completed_connection(cptr) && !IsDead(cptr))
+      exit_client(cptr, cptr, &me, "Connection setup failed");
+  }
   else if (!cli_auth(cptr))
     start_auth(cptr);
 }
