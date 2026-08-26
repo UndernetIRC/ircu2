@@ -608,6 +608,52 @@ msgq_add(struct MsgQ *mq, struct MsgBuf *mb, int prio)
   mq->count++; /* and the queue count */
 }
 
+/** Excise the head message of \a qlist if \a buf points into its buffer.
+ * @param[in,out] mq Message queue owning \a qlist.
+ * @param[in] qlist Queue list (normal or priority) to test.
+ * @param[in] buf Pointer that may fall within the head message's buffer.
+ * @return Non-zero if the head message was found and removed.
+ */
+static int msgqlist_excise(struct MsgQ *mq, struct MsgQList *qlist,
+                           const char *buf)
+{
+  struct Msg *msg = qlist->head;
+  unsigned int len;
+
+  if (!msg)
+    return 0;
+
+  /* Does buf point somewhere within this head message's buffer? */
+  if (buf < msg->msg->msg || buf >= msg->msg->msg + msg->msg->length)
+    return 0;
+
+  len = msg->msg->length - msg->sent; /* delete the whole remaining message */
+  msgq_delmsg(mq, qlist, &len);
+  return 1;
+}
+
+/** Remove, by identity, the queued message that \a buf points into.
+ *
+ * Used by the TLS send path.  A partial-write remainder (con_rexmit) is a raw
+ * pointer into a queued message, decoupled from the queue's own byte
+ * accounting.  When that message finishes draining it must be removed by
+ * identity rather than by feeding its byte count to msgq_delete(): the latter
+ * deletes in (partial-normal, prio, normal) order and would misattribute the
+ * bytes to a priority message that jumped ahead of it while the socket was
+ * blocked.  \a buf always points into the head message of one of the two
+ * queues (new priority messages append at the tail, so they never displace an
+ * in-flight head), which both lists are checked for.
+ *
+ * @param[in,out] mq Message queue to operate on.
+ * @param[in] buf Pointer anywhere within the head message to remove.
+ */
+void msgq_excise(struct MsgQ *mq, const char *buf)
+{
+  if (!msgqlist_excise(mq, &mq->queue, buf)
+      && !msgqlist_excise(mq, &mq->prio, buf))
+    assert(0 && "msgq_excise() could not find message to excise");
+}
+
 /** Report memory statistics for message buffers.
  * @param[in] cptr Client requesting information.
  * @param[out] msg_alloc Receives number of bytes allocated in Msg structs.

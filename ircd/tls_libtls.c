@@ -619,6 +619,7 @@ IOResult ircd_tls_sendv(struct Client *cptr, struct MsgQ *buf,
   struct Connection *con;
   IOResult result = IO_BLOCKED;
   int ii, count, res;
+  int made_progress = 0;
 
   con = cli_connect(cptr);
   tls = s_tls(&con_socket(con));
@@ -630,20 +631,23 @@ IOResult ircd_tls_sendv(struct Client *cptr, struct MsgQ *buf,
   *count_out = 0;
   if (con->con_rexmit)
   {
-    /* Drain mid-message remainder until finished or TLS blocks. A short
-     * tls_write does not imply the socket is full. Real WANT_POLL*
-     * must return IO_BLOCKED (deliver_it does not treat TLS short
-     * IO_SUCCESS as blocked). */
-    *count_in = con->con_rexmit_len;
+    /* Drain the unfinished head message, then remove it by identity with
+     * msgq_excise().  Its bytes are NOT added to *count_out — see the OpenSSL
+     * backend for why (msgq_delete() would misattribute them to a priority
+     * message enqueued while we were blocked). */
+    const char *rexmit_base = con->con_rexmit;
+
     while (con->con_rexmit)
     {
       res = tls_write(tls, con->con_rexmit, con->con_rexmit_len);
       if (res <= 0) {
         if (res == TLS_WANT_POLLIN || res == TLS_WANT_POLLOUT)
           return IO_BLOCKED;
-        return tls_handle_error(cptr, tls, res);
+        result = tls_handle_error(cptr, tls, res);
+        if (result == IO_FAILURE)
+          *count_out = 0;
+        return result;
       }
-      *count_out += (unsigned int)res;
       if (res == (int)con->con_rexmit_len) {
         con->con_rexmit_len = 0;
         con->con_rexmit = NULL;
@@ -652,7 +656,9 @@ IOResult ircd_tls_sendv(struct Client *cptr, struct MsgQ *buf,
         con->con_rexmit_len -= (size_t)res;
       }
     }
-    return IO_SUCCESS;
+    msgq_excise(buf, rexmit_base);
+    made_progress = 1;
+    /* fall through to send more from the now-shorter queue */
   }
 
   /* Process remaining messages in the queue. */
@@ -663,7 +669,6 @@ IOResult ircd_tls_sendv(struct Client *cptr, struct MsgQ *buf,
     if (res > 0)
     {
       *count_out += res;
-      result = IO_SUCCESS;
       if (res < (int)iov[ii].iov_len) {
         con->con_rexmit = (char *)iov[ii].iov_base + res;
         con->con_rexmit_len = iov[ii].iov_len - (size_t)res;
@@ -673,7 +678,10 @@ IOResult ircd_tls_sendv(struct Client *cptr, struct MsgQ *buf,
           if (res <= 0) {
             if (res == TLS_WANT_POLLIN || res == TLS_WANT_POLLOUT)
               return IO_BLOCKED;
-            return tls_handle_error(cptr, tls, res);
+            result = tls_handle_error(cptr, tls, res);
+            if (result == IO_FAILURE)
+              *count_out = 0;
+            return result;
           }
           *count_out += (unsigned int)res;
           if (res == (int)con->con_rexmit_len) {
@@ -695,10 +703,12 @@ IOResult ircd_tls_sendv(struct Client *cptr, struct MsgQ *buf,
       return IO_BLOCKED;
     }
     result = tls_handle_error(cptr, tls, res);
-    break;
+    if (result == IO_FAILURE)
+      *count_out = 0;
+    return result;
   }
 
-  return result;
+  return (*count_out || made_progress) ? IO_SUCCESS : IO_BLOCKED;
 }
 
 int ircd_tls_sha1_base64(const void *data, size_t len, char *out, size_t outlen)
