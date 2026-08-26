@@ -156,7 +156,7 @@ void show_ports(struct Client* sptr, const struct StatDesc* sd,
                 char* param)
 {
   struct Listener *listener = 0;
-  char flags[8];
+  char flags[16];  /* type + H + E + "4-" + "6-" + F + NUL = 9 bytes max */
   int show_hidden = IsOper(sptr);
   int count = (IsOper(sptr) || MyUser(sptr)) ? 100 : 8;
   int port = 0;
