@@ -1294,12 +1294,15 @@ void start_auth(struct Client* client)
   if (auth) {
       auth_freelist = auth->next;
       /*
-       * Freelist reuse: a buggy path can leave timeout still linked.  Zeroing
-       * the struct (or timer_init) without dequeue creates a timer-list
-       * self-loop and busy-spins timer_enqueue().
+       * A freelisted AuthRequest must have had its timeout timer fully
+       * destroyed (off-queue, inactive) before it was freed — destroy_auth_request()
+       * defers freelisting until the timer's ET_DESTROY via AR_FREE_PENDING for
+       * exactly this reason.  Assert the invariant rather than "repairing" it:
+       * a timer_del() on a still-GEN_MARKED timer is a no-op, after which the
+       * memset() below would zero links timer_run() still owns and recreate the
+       * timer-enqueue self-loop (100% CPU).
        */
-      if (t_onqueue(&auth->timeout) || t_active(&auth->timeout))
-        timer_del(&auth->timeout);
+      assert(!t_onqueue(&auth->timeout) && !t_active(&auth->timeout));
   } else
       auth = MyMalloc(sizeof(*auth));
   assert(0 != auth);
