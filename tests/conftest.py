@@ -410,8 +410,10 @@ def pytest_runtest_makereport(item, call):
     try:
         snapshot = snapshot_failure_artifacts(item.nodeid)
         extra = format_failure_report(snapshot)
-    except OSError as exc:
-        # Never abort the suite over debug capture (e.g. root-owned failures/).
+    except (OSError, subprocess.SubprocessError) as exc:
+        # Never abort the suite over debug capture: a root-owned failures/ dir
+        # raises OSError, and a hung docker daemon raises TimeoutExpired
+        # (a SubprocessError, not an OSError) from the inspect/logs calls.
         extra = f"\n\n[debug snapshot failed: {exc}]"
     if extra:
         report.longrepr = f"{report.longrepr}{extra}"
