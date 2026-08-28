@@ -653,6 +653,7 @@ IOResult ircd_tls_sendv(struct Client *cptr, struct MsgQ *buf,
   ssize_t res;
   int ii, count;
   int made_progress = 0;
+  IOResult result;
 
   con = cli_connect(cptr);
   tls = s_tls(&con_socket(con));
@@ -714,8 +715,10 @@ IOResult ircd_tls_sendv(struct Client *cptr, struct MsgQ *buf,
           if (res <= 0) {
             if (res == GNUTLS_E_INTERRUPTED || res == GNUTLS_E_AGAIN)
               return IO_BLOCKED;
-            *count_out = 0;
-            return gnutls_error_is_fatal(res) ? IO_FAILURE : IO_BLOCKED;
+            result = gnutls_error_is_fatal(res) ? IO_FAILURE : IO_BLOCKED;
+            if (result == IO_FAILURE)
+              *count_out = 0;
+            return result;
           }
           *count_out += (unsigned int)res;
           if (res == (int)con->con_rexmit_len) {
@@ -737,8 +740,10 @@ IOResult ircd_tls_sendv(struct Client *cptr, struct MsgQ *buf,
       con->con_rexmit_len = iov[ii].iov_len;
       return IO_BLOCKED;
     }
-    *count_out = 0;
-    return gnutls_error_is_fatal(res) ? IO_FAILURE : IO_BLOCKED;
+    result = gnutls_error_is_fatal(res) ? IO_FAILURE : IO_BLOCKED;
+    if (result == IO_FAILURE)
+      *count_out = 0;
+    return result;
   }
 
   return (*count_out || made_progress) ? IO_SUCCESS : IO_BLOCKED;
