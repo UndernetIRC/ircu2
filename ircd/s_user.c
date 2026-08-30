@@ -693,11 +693,13 @@ add_target(struct Client *sptr, void *target)
  * @param[in] sptr User trying to join a channel or send a message.
  * @param[in] acptr Destination client (NULL if sending to a channel).
  * @param[in] chptr Destination channel (NULL if sending to a client).
- * @return Non-zero if too many target changes (after sending
- *   ERR_TARGETTOOFAST); zero if okay to send.
+ * @param[in] report If non-zero, send ERR_TARGETTOOFAST and apply the
+ *   anti-flood penalty when the limit is hit; if zero, only report the
+ *   verdict (for callers that proceed regardless).
+ * @return Non-zero if too many target changes; zero if okay to send.
  */
-int check_target_limit(struct Client *sptr, struct Client *acptr,
-                       struct Channel *chptr)
+static int check_target_limit_int(struct Client *sptr, struct Client *acptr,
+                                  struct Channel *chptr, int report)
 {
   unsigned char hash = hash_target(acptr ? (void *)acptr : chptr);
   int            i;
@@ -727,7 +729,7 @@ int check_target_limit(struct Client *sptr, struct Client *acptr,
     /* If user is invited to channel, give him/her a free target */
     if (chptr && IsInvited(sptr, chptr))
       return 0;
-    if (cli_nexttarget(sptr) - CurrentTime < TARGET_DELAY + 8) {
+    if (report && cli_nexttarget(sptr) - CurrentTime < TARGET_DELAY + 8) {
       const char *name;
       /*
        * No server flooding
@@ -748,6 +750,34 @@ int check_target_limit(struct Client *sptr, struct Client *acptr,
   memmove(&targets[1], &targets[0], MAXTARGETS - 1);
   targets[0] = hash;
   return 0;
+}
+
+/** Check whether \a sptr can send to or join \a target yet, sending
+ * ERR_TARGETTOOFAST (and applying the anti-flood penalty) if not.
+ * @param[in] sptr User trying to join a channel or send a message.
+ * @param[in] acptr Destination client (NULL if sending to a channel).
+ * @param[in] chptr Destination channel (NULL if sending to a client).
+ * @return Non-zero if too many target changes (after sending
+ *   ERR_TARGETTOOFAST); zero if okay to send.
+ */
+int check_target_limit(struct Client *sptr, struct Client *acptr,
+                       struct Channel *chptr)
+{
+  return check_target_limit_int(sptr, acptr, chptr, 1);
+}
+
+/** Like check_target_limit(), but silent: no ERR_TARGETTOOFAST and no
+ * penalty when the limit is hit.  For callers that proceed either way
+ * and only need to know whether the target was charged now.
+ * @param[in] sptr User trying to join a channel or send a message.
+ * @param[in] acptr Destination client (NULL if sending to a channel).
+ * @param[in] chptr Destination channel (NULL if sending to a client).
+ * @return Non-zero if too many target changes; zero if okay to send.
+ */
+int check_target_limit_quiet(struct Client *sptr, struct Client *acptr,
+                             struct Channel *chptr)
+{
+  return check_target_limit_int(sptr, acptr, chptr, 0);
 }
 
 /** Allows a channel operator to avoid target change checks when
@@ -820,6 +850,17 @@ int whisper(struct Client* source, const char* nick, const char* channel,
       send_reply(source, RPL_AWAY, cli_name(dest), cli_user(dest)->away);
     sendcmdto_one(source, CMD_PRIVATE, dest, "%C :%s", dest, text);
   }
+
+  /* echo-message: hand the sender a copy, as PRIVMSG/NOTICE do.
+   * (CMD_* expand to a message/token pair, hence the two calls.) */
+  if (CapHas(cli_active(source), CAP_ECHOMESSAGE))
+  {
+    if (is_notice)
+      sendcmdto_one(source, CMD_NOTICE, cli_from(source), "%C :%s", dest, text);
+    else
+      sendcmdto_one(source, CMD_PRIVATE, cli_from(source), "%C :%s", dest, text);
+  }
+
   return 0;
 }
 

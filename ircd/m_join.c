@@ -104,12 +104,14 @@ last0(struct Client *cptr, struct Client *sptr, char *chanlist)
  */
 static int check_target_join(struct Client *cptr, struct Channel *chptr)
 {
-  if (check_target_limit(cptr, NULL, chptr))
-  {
-    return feature_bool(FEAT_JOIN_TARGET) ? 1 : CHFL_DELAYED_TARGET;
-  }
+  if (feature_bool(FEAT_JOIN_TARGET))
+    return check_target_limit(cptr, NULL, chptr) ? 1 : 0;
 
-  return 0;
+  /* The join is allowed regardless: only find out whether the target
+   * budget covered it, without sending ERR_TARGETTOOFAST or applying
+   * the penalty.  If not, the target is charged when the user first
+   * speaks on (or parts) the channel instead. */
+  return check_target_limit_quiet(cptr, NULL, chptr) ? CHFL_DELAYED_TARGET : 0;
 }
 
 /** Handle a JOIN message from a client connection.

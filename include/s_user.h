@@ -100,6 +100,8 @@ extern void set_snomask(struct Client *, unsigned int, int);
 extern int is_snomask(char *);
 extern int check_target_limit(struct Client *sptr, struct Client *acptr,
                               struct Channel *chptr);
+extern int check_target_limit_quiet(struct Client *sptr, struct Client *acptr,
+                                    struct Channel *chptr);
 extern void add_target(struct Client *sptr, void *target);
 extern unsigned int umode_make_snomask(unsigned int oldmask, char *arg,
                                        int what);

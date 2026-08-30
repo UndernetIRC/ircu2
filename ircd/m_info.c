@@ -175,13 +175,12 @@ int mo_info(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (hunt_server_cmd(sptr, CMD_INFO, cptr, 1, ":%C", 1, parc, parv) ==
       HUNTED_ISME)
   {
-    while (text[218])
-    {
-      if (!IsOper(sptr))
-	send_reply(sptr, RPL_INFO, *text);
-      text++;
-    }
-    if (IsOper(sptr) && (NULL != parv[1]))
+    /* The public text ends at the "Sources:" marker (as in m_info());
+     * the file hash list that follows is only shown to operators who
+     * asked for a specific server. */
+    while (*text && strcmp(*text, "Sources:"))
+      send_reply(sptr, RPL_INFO, *text++);
+    if (NULL != parv[1])
     {
       while (*text)
 	send_reply(sptr, RPL_INFO, *text++);

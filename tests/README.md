@@ -102,6 +102,33 @@ conftest.py            # pytest fixtures (ircd_hub, ircd_network, make_client)
 - **test_fix.py** — focused tests that reproduce the bug or verify the feature claimed by the PR. These fail on the base branch and pass with the PR applied.
 - **test_edge_cases.py** — adversarial tests that exercise boundary conditions, invalid inputs, and feature interactions. Tests that depend on the PR feature use `pytest.skip()` when it's not available.
 
+## Behaviour suites (main-branch changes since 2019)
+
+Besides the per-PR directories, these suites pin down behaviour changes made
+directly on the release branch (each module docstring names the commits):
+
+| Path | What it covers |
+|------|----------------|
+| `chanmodes/` | channel modes +P (no part/quit messages) and +M (moderate unauthed users) |
+| `cap/test_cap_list.py`, `cap/test_extended_join.py`, `cap/test_echo_message.py`, `cap/test_cap_edge_cases_main.py` | capability list, extended-join on every JOIN path, echo-message |
+| `relay/` | `NOTICE nick@server`, JOIN target limits (`JOIN_TARGET`), CPRIVMSG idle reset |
+| `commands/` | WHOWAS `0`, WHOX `%l`, PART, INFO, CONNECT `0`, PRIVS, remote STATS |
+| `features/` | Boolean features (`0`/`1`, spellings), HIS_REMOTE, defaults, removed features |
+| `s2s/` | server parser robustness (`END_OF_BURST`, bad numerics), GLINE reason/lifetime updates |
+| `username/` | ident / WebIRC username handling, STRICT_USERNAME rules |
+| `iauth/` | `/STATS iauth` and `/STATS iauthconf`, asynchronous `? stats2`, IAuth line parsing |
+| `config/` | `Include` and the configuration lexer via `ircd -k` inside the hub container |
+
+Shared helpers for these live in `common.py` (`join`, `drain`, `whois`,
+`set_feature`, ...).  `set_feature()` exists because `SET` only answers when
+the value changes and ircu defers a client's commands once its flood penalty
+builds up, so "SET + sleep" is racy.
+
+Strict `xfail` markers in `config/test_include.py` document known ircd bugs:
+`Include <types> from "file"` is a syntax error (the lexer has no `from`
+token), a missing include file makes `ircd -k` hang, and a self-including
+file aborts it.
+
 ## Docker Topology
 
 Three ircd servers form a test network:
@@ -111,6 +138,12 @@ Three ircd servers form a test network:
 | ircd-hub   | hub.test.net   | 6667        | 4400        | 1       |
 | ircd-leaf1 | leaf1.test.net | 6668        | 4401        | 2       |
 | ircd-leaf2 | leaf2.test.net | 6669        | 4402        | 3       |
+
+leaf2 differs from the others: ident lookups are on (`Client { username = "*" }`),
+it runs the non-forcing `docker/iauth-test.pl` (policy `ARUS`, supports `? config` /
+`? stats2`) instead of `iauth-tilded.pl`, and port 6691 is a WebIRC port
+(`WEBIRC webircpass ...`).  The hub Connect block `notulined.test.net` points at
+port 4499 where nothing listens (CONNECT tests).
 
 | ircd-tls-hub  | tls-hub.test.net  | 16677 / 16697 | 14440 / 14441 | 10        |
 | ircd-tls-leaf | tls-leaf.test.net | 16678 / 16680 | 14411 / 14412 | 11        |
@@ -227,7 +260,11 @@ The P10 server handles the full handshake (PASS, SERVER, burst, EB/EA), auto-res
   ```python
   client = await make_client("mynick")
   client = await make_client("mynick", host="127.0.0.1", port=6668)
+  client = await make_client("mynick", caps=["extended-join"])  # negotiates CAPs first
   ```
+- **`oper`** (function) — a registered global operator (`testop`) on the hub
+- **`ulined_server`** (function) — U:lined fake P10 server (`services.test.net`) linked to the hub
+- `docker_exec()` / `docker_cp_text()` — run commands / write files inside a test container
 
 ## Writing Tests for a New PR
 

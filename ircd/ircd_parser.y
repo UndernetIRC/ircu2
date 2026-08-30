@@ -1492,7 +1492,10 @@ includeblock: INCLUDE {
 } blockspec ';' {
   lexer_include($3, flags);
   yychar = YYEMPTY;
-} blocks TEOF;
+} includebody TEOF;
+
+/* An included file may legitimately be empty or contain only comments. */
+includebody: /* empty */ | blocks;
 
 blockspec: QSTRING { flags = ~0; }
   | blocktypes FROM QSTRING { flags = $1; $$ = $3; };

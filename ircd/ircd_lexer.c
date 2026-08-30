@@ -95,6 +95,7 @@ static const struct lexer_token tokens[] = {
   { "fingerprint", FINGERPRINT },
   { "force_local_opmode", TPRIV_FORCE_LOCAL_OPMODE },
   { "force_opmode", TPRIV_FORCE_OPMODE },
+  { "from", FROM },
   { "gb", GBYTES },
   { "gbytes", GBYTES },
   { "general", GENERAL },
@@ -209,23 +210,42 @@ const char *lexer_position(int *lineno)
   return "<undef>";
 }
 
-static int lexer_open(const char *fname, int allow_fail, unsigned int allowed)
+/** Maximum nesting depth for Include directives. */
+#define MAX_INCLUDE_DEPTH 16
+
+/** Push a new input file onto the lexer's stack.
+ * @param[in] fname Name to report for the file.
+ * @param[in] fd Open file descriptor, or -1 for a file that yields no
+ *   tokens (yylex() pops it and returns TEOF).
+ * @param[in] allowed Bitmask of block types permitted in the file.
+ * @return The new lexer input.
+ */
+static struct lex_file *lexer_push(const char *fname, int fd, unsigned int allowed)
 {
   struct lex_file *obj;
 
   obj = MyMalloc(sizeof(*obj));
-  obj->fd = open(fname, O_RDONLY | O_NOCTTY | O_CLOEXEC);
+  obj->fd = fd;
   DupString(obj->name, fname);
   obj->allowed = allowed;
   obj->parent = yy_in;
   obj->lineno = 1;
   obj->tok_ofs = obj->buf_used = 0;
   yy_in = obj;
+  return obj;
+}
+
+static int lexer_open(const char *fname, int allow_fail, unsigned int allowed)
+{
+  struct lex_file *obj;
+
+  obj = lexer_push(fname, open(fname, O_RDONLY | O_NOCTTY | O_CLOEXEC), allowed);
 
   if (obj->fd < 0) {
     yyerror("error opening file");
     if (!allow_fail) {
       yy_in = obj->parent;
+      MyFree(obj->name);
       MyFree(obj);
       return -1;
     }
@@ -274,8 +294,8 @@ int init_lexer(void)
 
 void deinit_lexer(void)
 {
-  assert(!yy_in);
-
+  /* A parse that was abandoned (e.g. by a parser stack overflow) leaves
+   * inputs on the stack; unwind them instead of asserting. */
   while (yy_in) {
     lexer_pop();
   }
@@ -283,6 +303,26 @@ void deinit_lexer(void)
 
 void lexer_include(const char *fname, unsigned int allowed)
 {
+  struct lex_file *obj;
+  unsigned int depth = 0;
+
+  /* Refuse recursive includes and unreasonable nesting; either would
+   * otherwise recurse until the parser stack overflows.  Push an input
+   * that yields no tokens so the Include block still ends with TEOF. */
+  for (obj = yy_in; obj; obj = obj->parent) {
+    ++depth;
+    if (0 == strcmp(obj->name, fname)) {
+      lexer_push(fname, -1, allowed);
+      yyerror("recursive include");
+      return;
+    }
+  }
+  if (depth >= MAX_INCLUDE_DEPTH) {
+    lexer_push(fname, -1, allowed);
+    yyerror("include nesting too deep");
+    return;
+  }
+
   lexer_open(fname, 1, allowed);
 }
 
@@ -315,8 +355,14 @@ int yylex(void)
   if (!yy_in)
     return YYEOF;
 
-  if (yy_in->fd < 0)
-    return TOKERR;
+  if (yy_in->fd < 0) {
+    /* The file could not be opened (lexer_open() already reported it).
+     * Treat it as an empty file: pop it and end the include, instead of
+     * returning TOKERR forever and hanging the parser's error recovery.
+     */
+    lexer_pop();
+    return yy_in ? TEOF : YYEOF;
+  }
 
   for (;;) {
     pos = yy_in->buf + yy_in->tok_ofs;

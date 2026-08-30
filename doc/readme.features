@@ -967,6 +967,17 @@ AWAY_BURST
 
 Send the away message for clients flagged as away during burst.
 
+JOIN_TARGET
+ * Type: boolean
+ * Default: FALSE
+
+Whether the target-change limit (ERR_TARGETTOOFAST) applies to JOIN.
+When FALSE, a user may always join channels: a join beyond the free
+target budget is not refused and not reported, the channel is simply
+charged as a target when the user first speaks on (or parts) it.  When
+TRUE, joins beyond the budget are refused with ERR_TARGETTOOFAST like
+messages to new targets.
+
 CHANNELLEN
  * Type: integer
  * Default: 200

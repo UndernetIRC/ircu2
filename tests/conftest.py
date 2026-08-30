@@ -1,5 +1,6 @@
 """pytest fixtures for ircu2 integration testing."""
 
+import itertools
 import os
 import subprocess
 import time
@@ -20,9 +21,29 @@ from p10_server import P10Server
 # docker-compose.yml and Dockerfile live in the repo root (parent of tests/)
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-HUB = {"host": "127.0.0.1", "port": 6667, "server_port": 4400, "name": "hub.test.net"}
-LEAF1 = {"host": "127.0.0.1", "port": 6668, "server_port": 4401, "name": "leaf1.test.net", "exempt_port": 6690}
-LEAF2 = {"host": "127.0.0.1", "port": 6669, "server_port": 4402, "name": "leaf2.test.net"}
+HUB = {
+    "host": "127.0.0.1",
+    "port": 6667,
+    "server_port": 4400,
+    "name": "hub.test.net",
+    "container": "ircu-hub",
+}
+LEAF1 = {
+    "host": "127.0.0.1",
+    "port": 6668,
+    "server_port": 4401,
+    "name": "leaf1.test.net",
+    "exempt_port": 6690,
+    "container": "ircu-leaf1",
+}
+LEAF2 = {
+    "host": "127.0.0.1",
+    "port": 6669,
+    "server_port": 4402,
+    "webirc_port": 6691,
+    "name": "leaf2.test.net",
+    "container": "ircu-leaf2",
+}
 
 TLS_HUB = {
     "host": "127.0.0.1",
@@ -93,6 +114,30 @@ def docker_compose(*args, check=True):
             f"docker compose {' '.join(args)} failed:\n{result.stderr}"
         )
     return result
+
+
+def docker_exec(container: str, *cmd: str, timeout: float = 60.0, user: str | None = None):
+    """Run a command inside a running test container (as root unless ``user``)."""
+    args = ["docker", "exec"]
+    if user:
+        args += ["-u", user]
+    return subprocess.run(
+        args + [container] + list(cmd),
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+    )
+
+
+def docker_cp_text(container: str, path: str, text: str):
+    """Write ``text`` to ``path`` inside a running container."""
+    subprocess.run(
+        ["docker", "exec", "-i", container, "sh", "-c", f"cat > {path}"],
+        input=text,
+        text=True,
+        check=True,
+        timeout=60,
+    )
 
 
 LIMITS = {
@@ -594,9 +639,14 @@ async def make_client(ircd_hub):
         realname: str = "Test User",
         host: str | None = None,
         port: int | None = None,
+        caps: list[str] | None = None,
     ) -> IRCClient:
         client = IRCClient()
         await client.connect(host or ircd_hub["host"], port or ircd_hub["port"])
+        if caps:
+            acked = await client.negotiate_cap(caps)
+            missing = [c for c in caps if c not in acked]
+            assert not missing, f"CAP(s) not acknowledged: {missing} (acked={acked})"
         await client.register(nick, username, realname)
         clients.append(client)
         return client
@@ -609,6 +659,24 @@ async def make_client(ircd_hub):
         except Exception:
             pass
         await client.disconnect()
+
+
+_oper_seq = itertools.count(1)
+
+
+@pytest_asyncio.fixture
+async def oper(make_client):
+    """A registered global operator on the hub.
+
+    The nick is unique per test: ircu defers a client's commands once its
+    flood penalty builds up, so the previous test's QUIT may still be
+    pending when the next test registers.
+    """
+    from cap_helpers import oper_up
+
+    client = await make_client(f"op{next(_oper_seq)}")
+    await oper_up(client)
+    return client
 
 
 @pytest_asyncio.fixture
