@@ -267,6 +267,8 @@ struct Connection
   struct Timer        con_sasl_timer; /**< SASL timeout timer */
   char*               con_rexmit;    /**< TLS retransmission data */
   size_t              con_rexmit_len; /**, TLS retransmission length */
+  unsigned char       con_tls_want_rd; /**< enum ircd_tls_want: a TLS read's blocked direction */
+  unsigned char       con_tls_want_wr; /**< enum ircd_tls_want: a TLS write's blocked direction */
 };
 
 /** Magic constant to identify valid Connection structures. */
@@ -413,6 +415,10 @@ struct Client {
 #define cli_buffer(cli)		con_buffer(cli_connect(cli))
 /** Get the Socket structure for sending to a client. */
 #define cli_socket(cli)		con_socket(cli_connect(cli))
+/** Blocked direction (enum ircd_tls_want) of a TLS read for a client. */
+#define cli_tls_want_rd(cli)	con_tls_want_rd(cli_connect(cli))
+/** Blocked direction (enum ircd_tls_want) of a TLS write for a client. */
+#define cli_tls_want_wr(cli)	con_tls_want_wr(cli_connect(cli))
 /** Get Timer for processing waiting messages from the client. */
 #define cli_proc(cli)		con_proc(cli_connect(cli))
 /** Get auth request for client. */
@@ -498,6 +504,10 @@ struct Client {
 #define con_buffer(con)		((con)->con_buffer)
 /** Get the Socket for the connection. */
 #define con_socket(con)		((con)->con_socket)
+/** Blocked direction (enum ircd_tls_want) of a TLS read on the connection. */
+#define con_tls_want_rd(con)	((con)->con_tls_want_rd)
+/** Blocked direction (enum ircd_tls_want) of a TLS write on the connection. */
+#define con_tls_want_wr(con)	((con)->con_tls_want_wr)
 /** Get the Timer for processing more data from the connection. */
 #define con_proc(con)		((con)->con_proc)
 /** Get the oper privilege set for the connection. */

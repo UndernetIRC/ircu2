@@ -142,6 +142,7 @@ ircd_SOURCES = \
 	sasl.c \
 	send.c \
 	sline.c \
+	tls_io.c \
 	uping.c \
 	userload.c \
 	websocket.c \

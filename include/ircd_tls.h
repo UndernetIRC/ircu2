@@ -99,6 +99,20 @@ static inline int ircd_tls_trust_verifies_ca(ircd_tls_trust_policy policy)
 /** Size of the human-readable reason buffer filled by ircd_tls_negotiate(). */
 #define TLS_REASON_LEN 128
 
+/** Which socket direction a TLS operation is blocked on.
+ *
+ * TLS breaks the plaintext assumption that a read waits on readable and a
+ * write waits on writable: a TLS *write* can be blocked waiting to *read* the
+ * socket (and vice versa).  Backends report the blocked direction with these
+ * values; the core (tls_io.c) turns them into socket event interest.  This is
+ * the single source of truth for cross-direction I/O — there are no separate
+ * ad-hoc flags. */
+enum ircd_tls_want {
+  IRCD_TLS_WANT_NONE = 0,  /**< not blocked (or blocked on its natural direction) */
+  IRCD_TLS_WANT_READ,      /**< the operation needs the socket to become readable */
+  IRCD_TLS_WANT_WRITE      /**< the operation needs the socket to become writable */
+};
+
 /* The following variables and functions are provided by ircu2's core
  * code, not by the TLS interface.
  */
@@ -226,49 +240,95 @@ void ircd_tls_listen_free(struct Listener *listener);
 /** ircd_tls_negotiate() attempts to continue an initial TLS handshake
  * for \a cptr.  If the handshake completes, this function calls
  * \a ClearNegotiatingTLS(cptr) and returns 1.  If the handshake failed,
- * this function returns -1.  Otherwise it updates event flags for the
- * client's socket and returns 0.
+ * this function returns -1.  Otherwise it returns 0 and reports through
+ * \a want which socket direction the handshake is blocked on, so the caller
+ * can set the socket's event interest.  The backend never touches socket
+ * events itself, and it does not enforce the handshake deadline (a core
+ * timer does).
  *
  * @param[in] cptr Locally connected client to perform handshake for.
  * @param[out] reason If non-NULL, receives a human-readable failure reason
  *   on a -1 return (empty otherwise).  Intended for operator notices and
- *   the disconnect log, not for the peer (a categorical ERROR line is sent
- *   to the peer instead).
+ *   the disconnect log, not for the peer.
  * @param[in] reasonlen Size of the \a reason buffer (see TLS_REASON_LEN).
+ * @param[out] want If non-NULL, set on a 0 return to the socket direction the
+ *   handshake is waiting on (IRCD_TLS_WANT_READ / IRCD_TLS_WANT_WRITE);
+ *   IRCD_TLS_WANT_NONE otherwise.
  * \returns 1 on completed handshake, 0 on continuing handshake, -1 on
  *   error.
  */
-int ircd_tls_negotiate(struct Client *cptr, char *reason, size_t reasonlen);
+int ircd_tls_negotiate(struct Client *cptr, char *reason, size_t reasonlen,
+                       enum ircd_tls_want *want);
 
-/** ircd_tls_recv() performs a non-blocking receive of TLS application
- * data from \a cptr into \a buf.
+/** tls_backend_read() reads TLS application data from \a cptr into \a buf.
+ *
+ * Thin per-backend primitive (tls_io_recv() in the core wraps it and records
+ * the blocked direction).
  *
  * @param[in] cptr Locally connected client to read from.
  * @param[out] buf Buffer to receive application data into.
  * @param[in] length Length of \a buf.
- * @param[out] count_out Number of bytes actually read into \a buf.
- * \returns IO_FAILURE on error, IO_BLOCKED if no data is available, or
- *   IO_SUCCESS if any data was read into \a buf.
+ * @param[out] count_out Number of bytes read (0 unless IO_SUCCESS).
+ * @param[out] want On IO_BLOCKED, the socket direction the read is waiting on.
+ * \returns IO_FAILURE on a fatal error (session torn down), IO_BLOCKED if no
+ *   data is available (with \a want set), or IO_SUCCESS if data was read.
  */
-IOResult ircd_tls_recv(struct Client *cptr, char *buf,
-                       unsigned int length, unsigned int *count_out);
+/** Raw peer material a backend hands back after a completed handshake, for the
+ * core (tls_io.c) to apply trust policy to.  The backend does no policy of its
+ * own beyond what the TLS library enforces during the handshake. */
+struct tls_peer {
+  int           have_cert;             /**< peer presented a certificate */
+  int           verified;              /**< PKIX/CA verification passed */
+  unsigned char digest[32];            /**< SHA-256 of the peer cert */
+  unsigned int  digest_len;            /**< bytes in \a digest (0 if none) */
+  char          fp_hex[65];            /**< pre-formatted hex, for libtls */
+  char          verify_err[TLS_REASON_LEN]; /**< backend-specific verify reason */
+};
 
-/** ircd_tls_sendv() performs a non-blocking send of TLS application
- * data from \a buf to \a cptr.
+/** tls_backend_handshake() advances the TLS handshake for \a cptr.
  *
- * This function must accomodate changes to \a buf for successive calls
- * to \a cptr.  The connection's \a con_rexmit and \a con_rexmit_len
- * fields are provided to support this requirement.
+ * Thin per-backend primitive (ircd_tls_negotiate() in the core wraps it and
+ * applies the cert-required / verifypeer trust policy and fingerprint storage).
+ * It performs no teardown and touches no client flags.
+ *
+ * @param[out] peer On IO_SUCCESS, filled with the peer's raw material.
+ * @param[out] reason On IO_FAILURE, a human-readable failure reason.
+ * @param[out] want On IO_BLOCKED, the socket direction to wait on.
+ * \returns IO_SUCCESS (handshake complete, \a peer filled), IO_BLOCKED (in
+ *   progress), or IO_FAILURE (fatal; \a reason set, session left for the caller
+ *   to drop).
+ */
+IOResult tls_backend_handshake(struct Client *cptr, struct tls_peer *peer,
+                               char *reason, size_t reasonlen,
+                               enum ircd_tls_want *want);
+
+/** tls_backend_drop() hard-frees \a cptr's TLS session after a fatal error and
+ * NULLs the socket's session pointer.  Unlike ircd_tls_close() it sends no
+ * close_notify (the session is unusable).  The core teardown (tls_io.c) calls
+ * this; the backend touches no client flags or connection state itself. */
+void tls_backend_drop(struct Client *cptr);
+
+IOResult tls_backend_read(struct Client *cptr, char *buf, unsigned int length,
+                          unsigned int *count_out, enum ircd_tls_want *want);
+
+/** tls_backend_write() writes one contiguous buffer to \a cptr's TLS session.
+ *
+ * This is a thin per-backend primitive: it does no message-queue or
+ * retransmit bookkeeping (tls_io_sendv() in the core owns that).  It performs
+ * a single non-blocking record write and classifies the outcome.
  *
  * @param[in] cptr Locally connected client to send to.
- * @param[in] buf Client's message queue.
- * @param[out] count_in Total number of bytes in \a buf at entry.
- * @param[out] count_out Number of bytes consumed from \a buf.
- * \returns IO_FAILURE on error, IO_BLOCKED if no data could be sent, or
- *   IO_SUCCESS if any data was written from \a buf.
+ * @param[in] buf Bytes to write.
+ * @param[in] len Number of bytes in \a buf.
+ * @param[out] written Number of bytes accepted (only meaningful on IO_SUCCESS).
+ * @param[out] want On IO_BLOCKED, the socket direction the write is waiting on.
+ * \returns IO_SUCCESS if any bytes were written, IO_BLOCKED if none could be
+ *   (with \a want set), or IO_FAILURE on a fatal error (the backend has torn
+ *   the session down).
  */
-IOResult ircd_tls_sendv(struct Client *cptr, struct MsgQ *buf,
-                        unsigned int *count_in, unsigned int *count_out);
+IOResult tls_backend_write(struct Client *cptr, const char *buf,
+                           unsigned int len, unsigned int *written,
+                           enum ircd_tls_want *want);
 
 /** Compute base64(SHA1(\a data)) into \a out.
  * Used for RFC 6455 WebSocket handshakes and similar protocols.

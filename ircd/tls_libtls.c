@@ -28,6 +28,7 @@
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
 #include "ircd_tls.h"
+#include "tls_io.h"
 #include "listener.h"
 #include "s_auth.h"
 #include "send.h"
@@ -449,23 +450,6 @@ void ircd_tls_close(void *ctx, const char *message)
   tls_free(ctx);
 }
 
-static IOResult tls_handle_error(struct Client *cptr, struct tls *tls, int err)
-{
-  switch (err) {
-    case TLS_WANT_POLLIN:
-    case TLS_WANT_POLLOUT:
-      return IO_BLOCKED;
-    
-    default:
-      /* Fatal error */
-      Debug((DEBUG_DEBUG, "tls fatal error for %s: %s", cli_name(cptr), tls_error(tls)));
-      break;
-  }
-  tls_free(tls);
-  s_tls(&cli_socket(cptr)) = NULL;
-  return IO_FAILURE;
-}
-
 int ircd_tls_listen(struct Listener *listener)
 {
   struct tls_config *cfg;
@@ -527,111 +511,68 @@ void ircd_tls_listen_free(struct Listener *listener)
   }
 }
 
-int ircd_tls_negotiate(struct Client *cptr, char *reason, size_t reasonlen)
+IOResult tls_backend_handshake(struct Client *cptr, struct tls_peer *peer,
+                               char *reason, size_t reasonlen,
+                               enum ircd_tls_want *want)
 {
   const char *hash;
   struct tls *tls;
   int res;
-  const char* const err_certreq   = "ERROR :TLS certificate required\r\n";
-  const char* const err_certrej   = "ERROR :TLS certificate rejected\r\n";
-  const char* const err_handshake = "ERROR :TLS handshake failed\r\n";
-
-  if (reason && reasonlen)
-    reason[0] = '\0';
 
   tls = s_tls(&cli_socket(cptr));
-  if (!tls) {
-    tls_reason(reason, reasonlen, "TLS setup failed (no session)");
-    ClearNegotiatingTLS(cptr);
-    return -1;
-  }
-
-  /* Check for handshake timeout */
-  if (CurrentTime - cli_firsttime(cptr) > TLS_HANDSHAKE_TIMEOUT) {
-    Debug((DEBUG_DEBUG, "libtls handshake timeout for %s", cli_name(cptr)));
-    /* No peer write: a stalled handshake must close with a plain EOF. */
-    tls_reason(reason, reasonlen, "TLS handshake timed out");
-    return -1;
-  }
-
-  Debug((DEBUG_DEBUG, "libtls handshake for %s", cli_name(cptr)));
+  if (!tls)
+    return IO_FAILURE;
 
   res = tls_handshake(tls);
   if (res == 0)
   {
+    /* libtls enforces the configured verification during the handshake, so a
+     * completed handshake is verified; report the material for the core. */
     hash = tls_peer_cert_hash(tls);
-    if (ircd_tls_peer_cert_required(cptr) && (!hash || !hash[0]))
-    {
-      Debug((DEBUG_DEBUG,
-             "TLS peer certificate required but not presented for %s",
-             cli_name(cptr)));
-      tls_reason(reason, reasonlen,
-                 "no peer certificate presented (certificate required)");
-      write(cli_fd(cptr), err_certreq, strlen(err_certreq));
-      return -1;
-    }
-
-    if (ircd_tls_verifypeer_enabled(cptr) && (!hash || !hash[0]))
-    {
-      Debug((DEBUG_DEBUG,
-             "TLS peer certificate verification failed for %s",
-             cli_name(cptr)));
-      tls_reason(reason, reasonlen, "peer certificate could not be verified");
-      write(cli_fd(cptr), err_certrej, strlen(err_certrej));
-      return -1;
-    }
-
-    ClearNegotiatingTLS(cptr);
-
-    if (hash && !ircd_strncmp(hash, "SHA256:", 7) && !IsCloudflarePort(cptr))
-    {
-      /* Convert the hash to our fingerprint format */
-      if (strlen(hash + 7) <= 64) {
-        ircd_strncpy(cli_tls_fingerprint(cptr), hash + 7, 64);
-        Debug((DEBUG_DEBUG, "Fingerprint for %s: %s", cli_name(cptr), cli_tls_fingerprint(cptr)));
-      } else {
-        memset(cli_tls_fingerprint(cptr), 0, 65);
-        Debug((DEBUG_DEBUG, "Invalid fingerprint length: %zu", strlen(hash + 7)));
-      }
-    } else {
-      memset(cli_tls_fingerprint(cptr), 0, 65);
-      if (hash && !ircd_strncmp(hash, "SHA256:", 7) && IsCloudflarePort(cptr))
-        Debug((DEBUG_DEBUG, "Skipping TLS fingerprint for Cloudflare port %s", cli_name(cptr)));
-      else
-        Debug((DEBUG_DEBUG, "Failed to get fingerprint for %s", cli_name(cptr)));
-    }
-
-    return 1;
+    peer->have_cert = (hash && hash[0]);
+    peer->verified = 1;
+    if (hash && !ircd_strncmp(hash, "SHA256:", 7))
+      ircd_strncpy(peer->fp_hex, hash + 7, sizeof(peer->fp_hex) - 1);
+    return IO_SUCCESS;
   }
-  
-  if (res == TLS_WANT_POLLIN || res == TLS_WANT_POLLOUT) {
-    return 0; /* Handshake in progress */
-  }
-  
+  if (res == TLS_WANT_POLLIN)
   {
-    const char *tls_err = tls_error(tls);   /* before tls_handle_error frees it */
-    IOResult tls_result;
+    *want = IRCD_TLS_WANT_READ;
+    return IO_BLOCKED;
+  }
+  if (res == TLS_WANT_POLLOUT)
+  {
+    *want = IRCD_TLS_WANT_WRITE;
+    return IO_BLOCKED;
+  }
 
-    if (tls_err)
-      tls_reason(reason, reasonlen, "%s", tls_err);
-    tls_result = tls_handle_error(cptr, tls, res);
-    if (tls_result == IO_FAILURE) {
-      Debug((DEBUG_DEBUG, "TLS handshake failed for %s", cli_name(cptr)));
-      if (!tls_err)
-        tls_reason(reason, reasonlen, "handshake error");
-      write(cli_fd(cptr), err_handshake, strlen(err_handshake));
-      return -1;
-    }
-    /* tls_result == IO_BLOCKED - handshake still in progress */
-    return 0;
+  {
+    const char *tls_err = tls_error(tls);
+    tls_reason(reason, reasonlen, "%s", tls_err ? tls_err : "handshake error");
+  }
+  return IO_FAILURE;
+}
+
+void tls_backend_drop(struct Client *cptr)
+{
+  struct tls *tls = s_tls(&cli_socket(cptr));
+
+  if (tls)
+  {
+    s_tls(&cli_socket(cptr)) = NULL;
+    tls_free(tls);
   }
 }
 
-IOResult ircd_tls_recv(struct Client *cptr, char *buf,
-                       unsigned int length, unsigned int *count_out)
+
+IOResult tls_backend_read(struct Client *cptr, char *buf, unsigned int length,
+                          unsigned int *count_out, enum ircd_tls_want *want)
 {
   struct tls *tls;
-  int res;
+  ssize_t res;
+
+  *count_out = 0;
+  *want = IRCD_TLS_WANT_NONE;
 
   tls = s_tls(&cli_socket(cptr));
   if (!tls)
@@ -640,112 +581,55 @@ IOResult ircd_tls_recv(struct Client *cptr, char *buf,
   res = tls_read(tls, buf, length);
   if (res > 0)
   {
-    *count_out = res;
+    *count_out = (unsigned int)res;
     return IO_SUCCESS;
   }
-
-  return tls_handle_error(cptr, tls, res);
+  if (res == TLS_WANT_POLLIN)
+  {
+    *want = IRCD_TLS_WANT_READ;
+    return IO_BLOCKED;
+  }
+  if (res == TLS_WANT_POLLOUT)
+  {
+    *want = IRCD_TLS_WANT_WRITE;
+    return IO_BLOCKED;
+  }
+  return IO_FAILURE;  /* core (tls_io_fatal) drops the session */
 }
 
-IOResult ircd_tls_sendv(struct Client *cptr, struct MsgQ *buf,
-                        unsigned int *count_in, unsigned int *count_out)
+IOResult tls_backend_write(struct Client *cptr, const char *buf,
+                           unsigned int len, unsigned int *written,
+                           enum ircd_tls_want *want)
 {
-  struct iovec iov[512];
   struct tls *tls;
-  struct Connection *con;
-  IOResult result = IO_BLOCKED;
-  int ii, count, res;
-  int made_progress = 0;
+  ssize_t res;
 
-  con = cli_connect(cptr);
-  tls = s_tls(&con_socket(con));
+  *written = 0;
+  *want = IRCD_TLS_WANT_NONE;
+
+  tls = s_tls(&cli_socket(cptr));
   if (!tls)
     return IO_FAILURE;
 
-  /* tls_write() does not document any restriction on retries. */
-  *count_in = 0;
-  *count_out = 0;
-  if (con->con_rexmit)
+  res = tls_write(tls, buf, len);
+  if (res > 0)
   {
-    /* Drain the unfinished head message, then remove it by identity with
-     * msgq_excise().  Its bytes are NOT added to *count_out — see the OpenSSL
-     * backend for why (msgq_delete() would misattribute them to a priority
-     * message enqueued while we were blocked). */
-    const char *rexmit_base = con->con_rexmit;
-
-    while (con->con_rexmit)
-    {
-      res = tls_write(tls, con->con_rexmit, con->con_rexmit_len);
-      if (res <= 0) {
-        if (res == TLS_WANT_POLLIN || res == TLS_WANT_POLLOUT)
-          return IO_BLOCKED;
-        result = tls_handle_error(cptr, tls, res);
-        if (result == IO_FAILURE)
-          *count_out = 0;
-        return result;
-      }
-      if (res == (int)con->con_rexmit_len) {
-        con->con_rexmit_len = 0;
-        con->con_rexmit = NULL;
-      } else {
-        con->con_rexmit = (char *)con->con_rexmit + res;
-        con->con_rexmit_len -= (size_t)res;
-      }
-    }
-    msgq_excise(buf, rexmit_base);
-    made_progress = 1;
-    /* fall through to send more from the now-shorter queue */
+    *written = (unsigned int)res;
+    return IO_SUCCESS;
   }
-
-  /* Process remaining messages in the queue. */
-  count = msgq_mapiov(buf, iov, sizeof(iov) / sizeof(iov[0]), count_in);
-  for (ii = 0; ii < count; ++ii)
+  if (res == TLS_WANT_POLLIN)
   {
-    res = tls_write(tls, iov[ii].iov_base, iov[ii].iov_len);
-    if (res > 0)
-    {
-      *count_out += res;
-      if (res < (int)iov[ii].iov_len) {
-        con->con_rexmit = (char *)iov[ii].iov_base + res;
-        con->con_rexmit_len = iov[ii].iov_len - (size_t)res;
-        while (con->con_rexmit)
-        {
-          res = tls_write(tls, con->con_rexmit, con->con_rexmit_len);
-          if (res <= 0) {
-            if (res == TLS_WANT_POLLIN || res == TLS_WANT_POLLOUT)
-              return IO_BLOCKED;
-            result = tls_handle_error(cptr, tls, res);
-            if (result == IO_FAILURE)
-              *count_out = 0;
-            return result;
-          }
-          *count_out += (unsigned int)res;
-          if (res == (int)con->con_rexmit_len) {
-            con->con_rexmit_len = 0;
-            con->con_rexmit = NULL;
-          } else {
-            con->con_rexmit = (char *)con->con_rexmit + res;
-            con->con_rexmit_len -= (size_t)res;
-          }
-        }
-      }
-      continue;
-    }
-
-    /* tls_write failed before any bytes of this iov. */
-    if (res == TLS_WANT_POLLIN || res == TLS_WANT_POLLOUT) {
-      con->con_rexmit = iov[ii].iov_base;
-      con->con_rexmit_len = iov[ii].iov_len;
-      return IO_BLOCKED;
-    }
-    result = tls_handle_error(cptr, tls, res);
-    if (result == IO_FAILURE)
-      *count_out = 0;
-    return result;
+    *want = IRCD_TLS_WANT_READ;
+    return IO_BLOCKED;
   }
-
-  return (*count_out || made_progress) ? IO_SUCCESS : IO_BLOCKED;
+  if (res == TLS_WANT_POLLOUT)
+  {
+    *want = IRCD_TLS_WANT_WRITE;
+    return IO_BLOCKED;
+  }
+  return IO_FAILURE;  /* core (tls_io_fatal) drops the session */
 }
+
 
 int ircd_tls_sha1_base64(const void *data, size_t len, char *out, size_t outlen)
 {

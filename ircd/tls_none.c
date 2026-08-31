@@ -84,24 +84,45 @@ void ircd_tls_listen_free(struct Listener *listener)
   (void)listener;
 }
 
-int ircd_tls_negotiate(struct Client *cptr, char *reason, size_t reasonlen)
+IOResult tls_backend_handshake(struct Client *cptr, struct tls_peer *peer,
+                               char *reason, size_t reasonlen,
+                               enum ircd_tls_want *want)
 {
+  (void)cptr;
+  (void)peer;
   (void)reason;
   (void)reasonlen;
-  ClearNegotiatingTLS(cptr);
-  return 1;
+  (void)want;
+  return IO_FAILURE;
 }
 
-IOResult ircd_tls_recv(struct Client *cptr, char *buf,
-                       unsigned int length, unsigned int *count_out)
+void tls_backend_drop(struct Client *cptr)
 {
-  return os_recv_nonb(cli_fd(cptr), buf, length, count_out);
+  (void)cptr;
 }
 
-IOResult ircd_tls_sendv(struct Client *cptr, struct MsgQ *buf,
-                        unsigned int *count_in, unsigned int *count_out)
+
+IOResult tls_backend_read(struct Client *cptr, char *buf, unsigned int length,
+                          unsigned int *count_out, enum ircd_tls_want *want)
 {
-  return os_sendv_nonb(cli_fd(cptr), buf, count_in, count_out);
+  (void)cptr;
+  (void)buf;
+  (void)length;
+  *count_out = 0;
+  *want = IRCD_TLS_WANT_NONE;
+  return IO_FAILURE;
+}
+
+IOResult tls_backend_write(struct Client *cptr, const char *buf,
+                           unsigned int len, unsigned int *written,
+                           enum ircd_tls_want *want)
+{
+  (void)cptr;
+  (void)buf;
+  (void)len;
+  *written = 0;
+  *want = IRCD_TLS_WANT_NONE;
+  return IO_FAILURE;
 }
 
 int ircd_tls_sha1_base64(const void *data, size_t len, char *out, size_t outlen)

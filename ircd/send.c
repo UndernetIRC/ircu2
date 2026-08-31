@@ -208,7 +208,19 @@ void send_queued(struct Client *to)
         char tmp[512];
         sprintf(tmp,"Write error: %s",(strerror(cli_error(to))) ? (strerror(cli_error(to))) : "Unknown error" );
         dead_link(to, tmp);
+        return;
       }
+      if (!IsBlocked(to))
+        /* deliver_it() reported success but credited no bytes: a TLS con_rexmit
+         * drain removed the last queued message by identity (tls_io_sendv)
+         * without counting those bytes.  That is progress, not a block -- loop
+         * round so the now-empty sendQ reaches the client_drop_sendq tail below
+         * instead of being left on send_queues with nothing to send. */
+        continue;
+      /* Genuinely blocked with no bytes sent.  Recompute event interest: a TLS
+       * write waiting to read must drop writable interest here (the backend set
+       * that state) so the level-triggered writable event does not spin. */
+      update_write(to);
       return;
     }
   }

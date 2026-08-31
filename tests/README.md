@@ -42,6 +42,11 @@ uv run pytest -m nf_compat        # A(prod)-B(NF=FALSE)-C topology
 # TLS suite only
 uv run pytest tls/ -v
 
+# TLS suite against a specific TLS backend (default: openssl)
+# The tls-hub/tls-leaf images are (re)built with the chosen backend.
+TLS_BACKEND=gnutls uv run pytest tls/ -v
+TLS_BACKEND=libtls uv run pytest tls/ -v
+
 # NETWORK_FEATURES rolling-upgrade compat (downloads prod release on first build)
 uv run pytest pr_network_features_compat/ -v
 

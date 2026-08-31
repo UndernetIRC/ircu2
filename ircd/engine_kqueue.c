@@ -410,7 +410,15 @@ engine_loop(struct Generators* gen)
       case SS_CONNECTED:
 	if (evt->filter == EVFILT_READ) { /* data on socket */
 	  Debug((DEBUG_ENGINE, "kqueue: EOF or data to be read"));
-	  event_generate(evt->flags & EV_EOF ? ET_EOF : ET_READ, sock, 0);
+	  /* EV_EOF is set as soon as the peer's FIN arrives, even while
+	   * evt->data bytes are still unread (typically the peer's final
+	   * ERROR/SQUIT line).  Deliver those as ET_READ first; the filter is
+	   * level-triggered, so once the buffer is drained the next kevent()
+	   * returns EV_EOF with data == 0 and becomes the real ET_EOF. */
+	  if ((evt->flags & EV_EOF) && evt->data <= 0)
+	    event_generate(ET_EOF, sock, 0);
+	  else
+	    event_generate(ET_READ, sock, 0);
 	}
 	if (evt->filter == EVFILT_WRITE) { /* socket writable */
 	  Debug((DEBUG_ENGINE, "kqueue: Data can be written"));
