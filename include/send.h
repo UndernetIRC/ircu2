@@ -21,8 +21,20 @@ struct Channel;
 struct Client;
 struct DBuf;
 struct MsgBuf;
-struct MsgTagCtx;
+struct MsgTag;
 struct TagSendCache;
+
+/** Immutable per-message tag context.  Small enough to stack on any send
+ * path (single-recipient sends carry only this, not the full cache).
+ * Defined here (not in send.c) because label.c snapshots it by value for
+ * every captured line. */
+struct MsgTagCtx {
+  struct MsgTag *tags;        /**< Tags parsed from the current input line. */
+  time_t         local_time;  /**< Delivery time for server-time / @time=. */
+  const char    *tok;         /**< Command token for S2S policy (or NULL). */
+  int            client_relay;   /**< Has relayable client-only (+) tags. */
+  int            s2s_needs_time; /**< Invent/forward @time= on S2S for this command. */
+};
 
 /*
  * Prototypes
@@ -32,6 +44,10 @@ extern struct SLink *opsarray[];
 extern void send_buffer(struct Client* to, struct Client* from, struct MsgBuf* buf,
                         int prio, const struct MsgTagCtx *ctx,
                         struct TagSendCache *cache);
+
+/* Populate a per-message tag context from the current input line's tags.
+ * \a tok is the command token (for S2S @time= / TAGMSG policy), or NULL. */
+extern void msgtagctx_init(struct MsgTagCtx *ctx, const char *tok);
 
 /** Queue raw octets on a sendq (no IRC CRLF, no WebSocket framing). */
 extern void send_raw_buffer(struct Client *to, struct MsgBuf *mb, int prio);
@@ -54,6 +70,14 @@ extern void sendcmdto_one(struct Client *from, const char *cmd,
 extern void sendcmdto_prio_one(struct Client *from, const char *cmd,
 			       const char *tok, struct Client *to,
 			       const char *pattern, ...);
+
+/* Like sendcmdto_one(), but for hunt_server_cmd()-style forwarding: propagates
+ * an active labeled-response capture for \a from as @label= on the forwarded
+ * line (when FEAT_NETWORK_FEATURES is on), handing the local capture off
+ * instead of leaving it to close as a premature, empty ACK. See send.c and label.c. */
+extern void sendcmdto_one_hunted(struct Client *from, const char *cmd,
+				 const char *tok, struct Client *to,
+				 const char *pattern, ...);
 
 /* Send command to servers by flags except one */
 extern void sendcmdto_flag_serv_butone(struct Client *from, const char *cmd,

@@ -59,6 +59,46 @@ struct Whowas;
 struct hostent;
 struct Privs;
 struct AuthRequest;
+struct LabelDeferred; /* opaque; defined in label.c */
+
+/** One outstanding labeled-response capture for a client.
+ *
+ * A client may have several of these at once (e.g. a parked LIST and an
+ * unrelated command both labeled). Each is independently identified by
+ * \a ref, the eventual client-facing BATCH reference.
+ *
+ * The list hangs off the struct Client itself (cli_labelcap()), not the
+ * Connection: a *remote* requester whose hunted command this server
+ * answers has no Connection of its own here (cli_connect() aliases the
+ * S2S link), and its captures must not be confused with those of other
+ * remote users behind the same link. Only lines addressed to that exact
+ * client are captured (label_capture_intercept() runs on the intended
+ * recipient, before cli_from() resolution) -- never other traffic that
+ * merely travels down the same link.
+ *
+ * Briefly "active" (the current recipient of anything sent to its owner)
+ * during a synchronous command dispatch or a single continuation tick
+ * (e.g. one call to list_next_channels()); "parked" the rest of the
+ * time, waiting for whatever will eventually finish it.
+ */
+struct LabelCapture {
+  struct LabelCapture *next;
+  char ref[16];
+  char value[LABEL_VALUE_MAX + 1];
+  struct LabelDeferred *head;
+  struct LabelDeferred **tail;
+  unsigned int count;
+  unsigned int bytes;
+  /** If set, this capture streams: its BATCH open line has already been
+   * emitted, and every line sent while it's active goes straight to the
+   * wire tagged batch=ref instead of being deferred into head/tail (so
+   * count/bytes and the capture-overflow safety valve do not apply to
+   * it). Finishing it only emits the BATCH close. For a response that's
+   * unconditionally multi-line and may span many event-loop ticks (LIST)
+   * rather than one where the eventual line count decides ACK vs.
+   * single-line vs. BATCH. See label_capture_stream_active() in label.c. */
+  int streaming;
+};
 
 /*
  * Structures
@@ -280,6 +320,7 @@ struct Client {
   struct Client* cli_hnext;       /**< link in hash table bucket or this */
   struct Connection* cli_connect; /**< Connection structure associated with us */
   struct User*   cli_user;        /**< Defined if this client is a user */
+  struct LabelCapture* cli_labelcap; /**< Outstanding labeled-response captures. */
   struct Server* cli_serv;        /**< Defined if this client is a server */
   struct Whowas* cli_whowas;      /**< Pointer to ww struct to be freed on quit */
   char           cli_yxx[4];      /**< Numeric Nick: YY if this is a
@@ -393,6 +434,9 @@ struct Client {
 #define cli_handler(cli)	con_handler(cli_connect(cli))
 /** Get LIST status for client. */
 #define cli_listing(cli)	con_listing(cli_connect(cli))
+/** Get outstanding labeled-response captures for client (per client, not
+ * per connection: a remote requester has no connection of its own). */
+#define cli_labelcap(cli)	((cli)->cli_labelcap)
 /** Get cached max SendQ for client. */
 #define cli_max_sendq(cli)	con_max_sendq(cli_connect(cli))
 /** Get cached flood limit for client. */

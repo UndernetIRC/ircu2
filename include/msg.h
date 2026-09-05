@@ -200,6 +200,19 @@ struct Client;
 #define TOK_TAGMSG              "TM"
 #define CMD_TAGMSG		MSG_TAGMSG, TOK_TAGMSG
 
+/* Note: not named MSG_BATCH -- glibc's <bits/socket.h> already defines
+ * MSG_BATCH as a sendmmsg(2) flag (0x40000); reusing that identifier here
+ * would silently clobber it in every translation unit that pulls in both
+ * headers (which is most of this codebase, via client.h -> res.h ->
+ * sys/socket.h). */
+#define MSG_BATCH_CMD           "BATCH"
+#define TOK_BATCH               "BA"
+#define CMD_BATCH		MSG_BATCH_CMD, TOK_BATCH
+
+#define MSG_ACK                 "ACK"
+#define TOK_ACK                 "AK"
+#define CMD_ACK			MSG_ACK, TOK_ACK
+
 #define MSG_WALLCHOPS           "WALLCHOPS"     /* WC */
 #define TOK_WALLCHOPS           "WC"
 #define CMD_WALLCHOPS		MSG_WALLCHOPS, TOK_WALLCHOPS
@@ -405,6 +418,16 @@ struct Client;
 #define   MFLG_EXTRA             0x08   /** Handler requests that
                                          * mptr->extra be passed in
                                          * parv[1]. */
+#define   MFLG_NO_S2S_TIME       0x10   /** Never invent @time= on the
+                                         * S2S wire for this command:
+                                         * link/state and net-admin
+                                         * protocol, and server<->services
+                                         * RPC parsed positionally by
+                                         * software that does not strip
+                                         * tags (see msg_tag_s2s_needs_
+                                         * time()). Everything else that
+                                         * hits S2S is treated as
+                                         * (eventually) client-visible. */
 
 /*
  * Structures

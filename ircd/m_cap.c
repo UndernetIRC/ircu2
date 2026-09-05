@@ -50,17 +50,18 @@ static struct capabilities {
   char *capstr;
   unsigned int config;
   unsigned long flags;
+  capset_t dependencies;
   char *name;
   int namelen;
   char value[256];
 } capab_list[] = {
-#define _CAP(cap, config, flags, name)      \
-	{ CAP_ ## cap, #cap, (config), (flags), (name), sizeof(name) - 1, "" }
+#define _CAP(cap, config, flags, dependencies, name)      \
+  { CAP_ ## cap, #cap, (config), (flags), (dependencies), (name), sizeof(name) - 1, "" }
   CAPLIST
 #undef _CAP
 };
 
-#define CAPAB_LIST_LEN	(sizeof(capab_list) / sizeof(struct capabilities))
+#define CAPAB_LIST_LEN	((int)(sizeof(capab_list) / sizeof(struct capabilities)))
 
 void cap_set_value(enum Capab cap, const char *value)
 {
@@ -322,6 +323,14 @@ cap_req(struct Client *sptr, const char *caplist)
       CapSet(cs, cap->cap);
       if (!(cap->flags & CAPFL_PROTO))
 	      CapSet(as, cap->cap);
+    }
+  }
+
+  for (int i = 0; i < CAPAB_LIST_LEN; i++) {
+    if (CapHas(cs, capab_list[i].cap)
+        && (capab_list[i].dependencies & cs) != capab_list[i].dependencies) {
+      sendcmdto_one(&me, CMD_CAP, sptr, "%C NAK :%s", sptr, caplist);
+      return 0;
     }
   }
 

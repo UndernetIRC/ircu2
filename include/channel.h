@@ -303,6 +303,12 @@ struct ListingArgs {
   time_t min_topic_time;
   unsigned int bucket;
   char wildcard[CHANNELLEN];
+  /** ref of the LabelCapture this listing is continuing on behalf of, or
+   * an empty string if this LIST wasn't labeled. Set by parse.c once the
+   * initial dispatch leaves a listing running past its own return; read
+   * by list_next_channels() (natural completion) and by m_list.c's
+   * already-listing/STOP path (interrupted early). */
+  char label_ref[16];
 };
 
 struct ModeBuf {

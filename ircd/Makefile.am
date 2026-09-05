@@ -35,12 +35,15 @@ ircd_SOURCES = \
 	ircd_snprintf.c \
 	ircd_string.c \
 	jupe.c \
+	label.c \
 	list.c \
 	listener.c \
 	m_account.c \
+	m_ack.c \
 	m_admin.c \
 	m_asll.c \
 	m_away.c \
+	m_batch.c \
 	m_burst.c \
 	m_cap.c \
 	m_clearmode.c \

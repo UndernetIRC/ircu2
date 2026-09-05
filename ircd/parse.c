@@ -24,6 +24,7 @@
 #include "config.h"
 
 #include "parse.h"
+#include "capab.h"
 #include "client.h"
 #include "channel.h"
 #include "handlers.h"
@@ -35,7 +36,9 @@
 #include "ircd_features.h"
 #include "ircd_log.h"
 #include "ircd_reply.h"
+#include "ircd_snprintf.h"
 #include "ircd_string.h"
+#include "label.h"
 #include "msg.h"
 #include "msg_tag.h"
 #include "numeric.h"
@@ -138,6 +141,24 @@ struct Message msgtab[] = {
     { m_unregistered, m_tagmsg, ms_tagmsg, mo_tagmsg, m_ignore }
   },
   {
+    /* BATCH is server-generated (labeled-response flush, see label.c) or
+     * an S2S relay of one (m_batch.c, addressed by target numnick, see
+     * sendcmdto_one_hunted()/parse_server()'s labeled-response wrapper).
+     * Unavailable to clients -- clients never send BATCH. */
+    MSG_BATCH_CMD,
+    TOK_BATCH,
+    0, MAXPARA, 0, 0, NULL,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_ignore, m_ignore, ms_batch, m_ignore, m_ignore }
+  },
+  {
+    MSG_ACK,
+    TOK_ACK,
+    0, MAXPARA, 0, 0, NULL,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_ignore, m_ignore, ms_ack, m_ignore, m_ignore }
+  },
+  {
     MSG_WALLCHOPS,
     TOK_WALLCHOPS,
     0, MAXPARA, MFLG_SLOW, 0, NULL,
@@ -182,7 +203,7 @@ struct Message msgtab[] = {
   {
     MSG_BURST,
     TOK_BURST,
-    0, MAXPARA, MFLG_SLOW, 0, NULL,
+    0, MAXPARA, MFLG_SLOW | MFLG_NO_S2S_TIME, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_ignore, m_ignore, ms_burst, m_ignore, m_ignore }
   },
@@ -196,7 +217,7 @@ struct Message msgtab[] = {
   {
     MSG_DESTRUCT,
     TOK_DESTRUCT,
-    0, MAXPARA, MFLG_SLOW, 0, NULL,
+    0, MAXPARA, MFLG_SLOW | MFLG_NO_S2S_TIME, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_ignore, m_ignore, ms_destruct, m_ignore, m_ignore }
   },
@@ -259,21 +280,21 @@ struct Message msgtab[] = {
   {
     MSG_PING,
     TOK_PING,
-    0, MAXPARA, MFLG_SLOW, 0, NULL,
+    0, MAXPARA, MFLG_SLOW | MFLG_NO_S2S_TIME, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_ping, ms_ping, mo_ping, m_ignore }
   },
   {
     MSG_PONG,
     TOK_PONG,
-    0, MAXPARA, MFLG_SLOW | MFLG_UNREG, 0, NULL,
+    0, MAXPARA, MFLG_SLOW | MFLG_UNREG | MFLG_NO_S2S_TIME, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { mr_pong, m_pong, ms_pong, m_pong, m_ignore }
   },
   {
     MSG_ERROR,
     TOK_ERROR,
-    0, MAXPARA, MFLG_SLOW | MFLG_UNREG, 0, NULL,
+    0, MAXPARA, MFLG_SLOW | MFLG_UNREG | MFLG_NO_S2S_TIME, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { mr_error, m_ignore, ms_error, m_ignore, m_ignore }
   },
@@ -308,14 +329,14 @@ struct Message msgtab[] = {
   {
     MSG_SERVER,
     TOK_SERVER,
-    0, MAXPARA, MFLG_SLOW | MFLG_UNREG, 0, NULL,
+    0, MAXPARA, MFLG_SLOW | MFLG_UNREG | MFLG_NO_S2S_TIME, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { mr_server, m_registered, ms_server, m_registered, m_ignore }
   },
   {
     MSG_SQUIT,
     TOK_SQUIT,
-    0, MAXPARA, MFLG_SLOW, 0, NULL,
+    0, MAXPARA, MFLG_SLOW | MFLG_NO_S2S_TIME, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_not_oper, ms_squit, mo_squit, m_ignore }
   },
@@ -378,7 +399,7 @@ struct Message msgtab[] = {
   {
     MSG_PASS,
     TOK_PASS,
-    0, MAXPARA, MFLG_SLOW | MFLG_UNREG, 0, NULL,
+    0, MAXPARA, MFLG_SLOW | MFLG_UNREG | MFLG_NO_S2S_TIME, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { mr_pass, m_registered, m_ignore, m_registered, m_ignore }
   },
@@ -399,21 +420,21 @@ struct Message msgtab[] = {
   {
     MSG_SETTIME,
     TOK_SETTIME,
-    0, MAXPARA, MFLG_SLOW, 0, NULL,
+    0, MAXPARA, MFLG_SLOW | MFLG_NO_S2S_TIME, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_not_oper, ms_settime, mo_settime, m_ignore }
   },
   {
     MSG_RPING,
     TOK_RPING,
-    0, MAXPARA, MFLG_SLOW, 0, NULL,
+    0, MAXPARA, MFLG_SLOW | MFLG_NO_S2S_TIME, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_not_oper, ms_rping, mo_rping, m_ignore }
   },
   {
     MSG_RPONG,
     TOK_RPONG,
-    0, MAXPARA, MFLG_SLOW, 0, NULL,
+    0, MAXPARA, MFLG_SLOW | MFLG_NO_S2S_TIME, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_ignore, ms_rpong, m_ignore, m_ignore }
   },
@@ -504,21 +525,21 @@ struct Message msgtab[] = {
   {
     MSG_GLINE,
     TOK_GLINE,
-    0, MAXPARA,         0, 0, NULL,
+    0, MAXPARA, MFLG_NO_S2S_TIME, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_gline, ms_gline, mo_gline, m_ignore }
   },
   {
     MSG_SLINE,
     TOK_SLINE,
-    0, MAXPARA,         0, 0, NULL,
+    0, MAXPARA, MFLG_NO_S2S_TIME, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_ignore, ms_sline, m_ignore, m_ignore }
   },
   {
     MSG_JUPE,
     TOK_JUPE,
-    0, MAXPARA, MFLG_SLOW, 0, NULL,
+    0, MAXPARA, MFLG_SLOW | MFLG_NO_S2S_TIME, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_not_oper, ms_jupe, mo_jupe, m_ignore }
   },
@@ -539,21 +560,21 @@ struct Message msgtab[] = {
   {
     MSG_UPING,
     TOK_UPING,
-    0, MAXPARA, MFLG_SLOW, 0, NULL,
+    0, MAXPARA, MFLG_SLOW | MFLG_NO_S2S_TIME, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_not_oper, ms_uping, mo_uping, m_ignore }
   },
   {
     MSG_END_OF_BURST,
     TOK_END_OF_BURST,
-    0, MAXPARA, MFLG_SLOW, 0, NULL,
+    0, MAXPARA, MFLG_SLOW | MFLG_NO_S2S_TIME, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_ignore, m_ignore, ms_end_of_burst, m_ignore, m_ignore }
   },
   {
     MSG_END_OF_BURST_ACK,
     TOK_END_OF_BURST_ACK,
-    0, MAXPARA, MFLG_SLOW, 0, NULL,
+    0, MAXPARA, MFLG_SLOW | MFLG_NO_S2S_TIME, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_ignore, m_ignore, ms_end_of_burst_ack, m_ignore, m_ignore }
   },
@@ -588,7 +609,7 @@ struct Message msgtab[] = {
   {
     MSG_PROTO,
     TOK_PROTO,
-    0, MAXPARA, MFLG_SLOW, 0, NULL,
+    0, MAXPARA, MFLG_SLOW | MFLG_NO_S2S_TIME, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_proto, m_proto, m_proto, m_proto, m_ignore }
   },
@@ -630,7 +651,7 @@ struct Message msgtab[] = {
   {
     MSG_ASLL,
     TOK_ASLL,
-    0, MAXPARA, MFLG_SLOW, 0, NULL,
+    0, MAXPARA, MFLG_SLOW | MFLG_NO_S2S_TIME, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_ignore, m_not_oper, ms_asll, mo_asll, m_ignore }
    },
@@ -644,14 +665,14 @@ struct Message msgtab[] = {
   {
     MSG_XQUERY,
     TOK_XQUERY,
-    0, MAXPARA, MFLG_SLOW, 0, NULL,
+    0, MAXPARA, MFLG_SLOW | MFLG_NO_S2S_TIME, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_ignore, m_ignore, ms_xquery, mo_xquery, m_ignore }
   },
   {
     MSG_XREPLY,
     TOK_XREPLY,
-    0, MAXPARA, MFLG_SLOW, 0, NULL,
+    0, MAXPARA, MFLG_SLOW | MFLG_NO_S2S_TIME, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_ignore, m_ignore, ms_xreply, m_ignore, m_ignore }
   },
@@ -685,7 +706,7 @@ struct Message msgtab[] = {
   {
     MSG_CONFIG,
     TOK_CONFIG,
-    0, MAXPARA, 0, 0, NULL,
+    0, MAXPARA, MFLG_NO_S2S_TIME, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_ignore, m_ignore, ms_config, m_ignore, m_ignore }
   }, 
@@ -824,6 +845,18 @@ msg_tree_parse(char *cmd, struct MessageTree *root)
   return NULL;
 }
 
+/** Look up a command table entry by its S2S token.
+ * @param[in] tok Token (e.g. TOK_PRIVATE), exact case.
+ * @return The msgtab entry, or NULL if no command has that token.
+ */
+struct Message *
+msg_find_by_tok(const char *tok)
+{
+  if (!tok || !*tok)
+    return NULL;
+  return msg_tree_parse((char *)tok, &tok_tree);
+}
+
 /** Registers a service mapping to the pseudocommand handler.
  * @param[in] map Service mapping to add.
  * @return Non-zero on success; zero if a command already used the name.
@@ -898,6 +931,7 @@ parse_client(struct Client *cptr, char *buffer, char *bufend)
   int             i;
   int             tag_len = 0;
   int             paramcount;
+  const char     *request_label = NULL;
   struct Message* mptr;
   MessageHandler  handler = 0;
 
@@ -933,8 +967,15 @@ parse_client(struct Client *cptr, char *buffer, char *bufend)
     return -1;
   }
 
-  if (!IsServer(cptr))
+  if (!IsServer(cptr)) {
+    struct MsgTag *label_tag = msg_tag_find(current_tags, "label");
+
+    if (label_tag && label_tag->value && *label_tag->value
+        && strlen(label_tag->value) <= LABEL_VALUE_MAX)
+      request_label = label_tag->value;
+
     current_tags = msg_tag_filter_client(current_tags);
+  }
 
   if (*ch == ':')               /* Is any client doing this ? */
   {
@@ -1050,7 +1091,75 @@ parse_client(struct Client *cptr, char *buffer, char *bufend)
       handler != m_ping && handler != m_ignore)
     cli_user(from)->last = CurrentTime;
 
-  return (*handler) (cptr, from, i, para);
+  {
+    /* IRCv3 labeled-response depends on batch (both caps required, per
+     * spec).  Defer this command's output to cptr and decide ACK / single
+     * tag / BATCH-wrap once the handler returns -- unless the handler
+     * left an async continuation running (LIST), in which case leave the
+     * capture parked for whoever will actually finish it later. */
+    int labeled = request_label
+      && CapHas(cli_active(cptr), CAP_LABELED_RESPONSE)
+      && CapHas(cli_active(cptr), CAP_BATCH);
+    /* A local copy of the ref, not the struct LabelCapture* itself: the
+     * handler may already have finished or aborted this capture on its
+     * own before returning (e.g. LIST overflowing the 5000-line/1MB
+     * capture safety valve mid-dispatch, which releases it immediately
+     * and keeps going uncaptured) -- at which point the node is freed.
+     * label_capture_finish()/reopen() below look it up by this string and
+     * no-op harmlessly if it's already gone, but touching the pointer
+     * itself here would be a use-after-free. */
+    char ref[16];
+    int rc;
+
+    if (labeled) {
+      struct LabelCapture *lc = label_capture_start(cptr, request_label);
+      ircd_strncpy(ref, lc->ref, sizeof(ref) - 1);
+      ref[sizeof(ref) - 1] = '\0';
+    }
+
+    rc = (*handler) (cptr, from, i, para);
+
+    if (labeled) {
+      /* Always close the window first: safe even if the handler just
+       * freed cptr (CPTR_KILLED), since this touches no Client. Leaving
+       * it open would let a later, unrelated send to a *different* client
+       * that happens to reuse cptr's freed memory get mistakenly
+       * captured here. */
+      label_capture_close_window();
+
+      if (rc == CPTR_KILLED) {
+        /* cptr was freed by its own handler (e.g. a labeled QUIT/KILL/
+         * self-GLINE) -- must not be dereferenced again. Cleanup of any
+         * capture left on it happens in exit_one_client(), while cptr
+         * was still valid memory, before free_client() ran. */
+      } else if (cli_listing(cptr)
+                 && !strcmp(cli_listing(cptr)->label_ref, ref)) {
+        /* This handler left an async continuation running on behalf of
+         * *this* capture: m_list() stamps the ref into ListingArgs.label_ref
+         * (via label_capture_stream_active()) the moment it starts a
+         * paginated listing, and list_next_channels() resumes it later
+         * from the event loop, well outside this call. Leave the capture
+         * parked; list_next_channels() (natural completion) or an
+         * interrupting LIST in m_list.c (superseded early) finishes it.
+         *
+         * Matching by ref, not by whether cli_listing() changed: a
+         * listing from an earlier command may already be parked when
+         * this one runs (then label_ref holds *its* ref, or is empty for
+         * an unlabeled LIST, and this capture must be finished normally),
+         * and a LIST that supersedes a parked one frees the old
+         * ListingArgs and allocates a new one of the same size -- which
+         * the allocator routinely hands back at the same address, so a
+         * before/after pointer comparison cannot tell "replaced" from
+         * "unchanged" and would finish the new streaming capture right
+         * here, closing its BATCH after the first tick and leaving the
+         * rest of the listing unlabeled. */
+      } else {
+        label_capture_finish(cptr, ref);
+      }
+    }
+
+    return rc;
+  }
 }
 
 /** Parse a line of data from a server.
@@ -1358,5 +1467,111 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
     return (do_numeric(numeric, (*buffer != ':'), cptr, from, i, para));
   mptr->count++;
 
-  return (*mptr->handlers[cli_handler(cptr)]) (cptr, from, i, para);
+  {
+    /* IRCv3 labeled-response over S2S: a peer also running
+     * labeled-response may have propagated @label= on a command it
+     * forwarded to us via hunt_server_cmd() (sendcmdto_one_hunted(),
+     * send.c), because *we* are the one who will actually answer it.
+     * If so, wrap this dispatch the same way parse_client() wraps a
+     * local labeled command -- except the capture belongs to `from`,
+     * the *original* (remote) requester. Only lines addressed to that
+     * exact client are captured (see label_capture_intercept()), never
+     * anything else the handler happens to send down the same link.
+     *
+     * Only a *user*-prefixed line can be such a request: hunt_server_cmd()
+     * always forwards with the requester as prefix. A labeled line with a
+     * *server* prefix is the opposite thing -- an answering server's
+     * single-line reply (e.g. ms_connect()'s NOTICE) being relayed back
+     * to the requester, already labeled by label_capture_finish() -- and
+     * must be passed through untouched, label included, exactly like
+     * do_numeric() relays a labeled numeric. Wrapping it here would strip
+     * the label and deliver the reply unlabeled.
+     *
+     * Also excluded: BATCH/ACK themselves (m_batch.c/m_ack.c) are the
+     * *relay* for a capture some other server already decided the shape
+     * of, not a command whose own reply needs capturing here. */
+    const char *inbound_label = NULL;
+    char ref[16];
+    char from_numnick[16];
+    int rc;
+
+    if (feature_bool(FEAT_NETWORK_FEATURES) && mptr->tok && IsUser(from)
+        && strcmp(mptr->tok, TOK_BATCH) && strcmp(mptr->tok, TOK_ACK)) {
+      struct MsgTag *label_tag = msg_tag_find(current_tags, "label");
+
+      if (label_tag && label_tag->value && *label_tag->value
+          && strlen(label_tag->value) <= LABEL_VALUE_MAX)
+        inbound_label = label_tag->value;
+    }
+
+    if (inbound_label) {
+      struct LabelCapture *lc;
+      /* Strip "label" out of current_tags before the handler runs: it's
+       * ambient for the rest of this dispatch (parse_tags(), read by
+       * every ctx==NULL send along the way, including each captured
+       * line's own snapshot in label_capture_append()) and must not
+       * survive as a *second*, redundant source of "label" once
+       * label_capture_finish() explicitly attaches it to the BATCH open
+       * (or single-line reply) itself -- otherwise the batch=<ref>
+       * body lines wrongly carry label=<value> too, since msg_tag_
+       * format()/_s2s() check for "label" and "batch" independently.
+       * Mirrors parse_client()'s msg_tag_filter_client() call, but
+       * targeted: other tags (e.g. "time") are left alone. */
+      struct MsgTag *stripped = NULL, **tail = &stripped, *t;
+
+      for (t = current_tags; t; t = t->next) {
+        if (!ircd_strcmp(t->key, "label"))
+          continue;
+        *tail = t;
+        tail = &t->next;
+      }
+      *tail = NULL;
+      current_tags = stripped;
+
+      lc = label_capture_start(from, inbound_label);
+      ircd_strncpy(ref, lc->ref, sizeof(ref) - 1);
+      ref[sizeof(ref) - 1] = '\0';
+
+      /* Save from's numnick (while from is definitely still valid) so
+       * it can be safely re-resolved after the handler returns, instead
+       * of trusting rc == CPTR_KILLED the way parse_client() does.
+       * CPTR_KILLED only fires when cptr == victim (s_misc.c) -- true
+       * for a *local* client killing itself, where cptr and from are
+       * the same object, but never true here: cptr is this server
+       * link, from is the remote requester, and e.g. a labeled
+       * server-origin QUIT for from's own user (ms_quit() ->
+       * exit_client(cptr, from, from, ...)) frees from while returning
+       * 0, since cptr != from. Outstanding captures for any client about
+       * to be freed are finished by exit_one_client() (s_misc.c) while
+       * it's still valid memory -- this is just the safety check that
+       * stops the wrapper from also dereferencing from afterward. */
+      ircd_snprintf(0, from_numnick, sizeof(from_numnick), "%s%s", NumNick(from));
+    }
+
+    rc = (*mptr->handlers[cli_handler(cptr)]) (cptr, from, i, para);
+
+    if (inbound_label) {
+      /* Always close the window first: safe even if the handler freed
+       * `from` (CPTR_KILLED), since this touches no Client. */
+      label_capture_close_window();
+
+      if (rc == CPTR_KILLED) {
+        /* cptr itself died; from's Connection aliased it, so from is
+         * gone too either way -- nothing to finish. */
+      } else if (findNUser(from_numnick) != from) {
+        /* from was freed by a cascading side effect of its own handler
+         * even though cptr survived. findNUser() does a hash lookup by
+         * the numnick string saved earlier -- it never dereferences the
+         * (possibly now-dangling) from pointer itself, only compares the
+         * returned value against it, which is always a safe pointer
+         * comparison regardless of what from currently points to.
+         * exit_one_client() already finished this capture properly
+         * before from was freed (see s_misc.c); nothing left to do. */
+      } else {
+        label_capture_finish(from, ref);
+      }
+    }
+
+    return rc;
+  }
 }

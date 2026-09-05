@@ -31,6 +31,7 @@
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "ircd.h"
+#include "label.h"
 #include "match.h"
 #include "msg.h"
 #include "numeric.h"
@@ -432,8 +433,18 @@ void list_next_channels(struct Client *cptr)
   struct ListingArgs *args;
   struct Channel *chptr;
 
+  args = cli_listing(cptr);
+
+  /* This listing is continuing a labeled LIST from an earlier tick. On
+   * the first tick, called synchronously from m_list(), the capture is
+   * already the active window (parse.c's dispatch wrapper), so reopening
+   * it is a harmless no-op; it matters on later, independently-invoked
+   * ticks from the event loop. */
+  if (*args->label_ref)
+    label_capture_reopen(cptr, args->label_ref);
+
   /* Walk consecutive buckets until we hit the end. */
-  for (args = cli_listing(cptr); args->bucket < HASHSIZE; args->bucket++)
+  for (; args->bucket < HASHSIZE; args->bucket++)
   {
     /* Send all the matching channels in the bucket. */
     for (chptr = channelTable[args->bucket]; chptr; chptr = chptr->hnext)
@@ -475,8 +486,26 @@ void list_next_channels(struct Client *cptr)
   /* If we did all buckets, clean the client and send RPL_LISTEND. */
   if (args->bucket >= HASHSIZE)
   {
+    char label_ref[sizeof(args->label_ref)];
+
+    ircd_strncpy(label_ref, args->label_ref, sizeof(label_ref) - 1);
+    label_ref[sizeof(label_ref) - 1] = '\0';
+
     MyFree(cli_listing(cptr));
     cli_listing(cptr) = NULL;
     send_reply(cptr, RPL_LISTEND);
+
+    if (*label_ref) {
+      label_capture_close_window();
+      /* True end of the listing: the whole response really is complete,
+       * so it's honest to finish it labeled (ACK/single-line/BATCH). */
+      label_capture_finish(cptr, label_ref);
+    }
+  } else if (*args->label_ref) {
+    /* Pausing again for another tick: this tick's lines are already
+     * captured, but the capture itself stays parked (not finished) until
+     * a later tick reaches the branch above, or an interrupting
+     * LIST/STOP in m_list.c aborts it early. */
+    label_capture_close_window();
   }
 }

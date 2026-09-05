@@ -91,6 +91,7 @@
 #include "ircd_log.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
+#include "label.h"
 #include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
@@ -114,7 +115,8 @@ static struct ListingArgs la_init = {
   2147483647,                 /* max_topic_time */
   0,                          /* min_topic_time */
   0,                          /* bucket */
-  {0}                         /* wildcard */
+  {0},                        /* wildcard */
+  {0}                         /* label_ref */
 };
 
 static struct ListingArgs la_default = {
@@ -126,7 +128,8 @@ static struct ListingArgs la_default = {
   2147483647,                 /* max_topic_time */
   0,                          /* min_topic_time */
   0,                          /* bucket */
-  {0}                         /* wildcard */
+  {0},                        /* wildcard */
+  {0}                         /* label_ref */
 };
 
 static int
@@ -359,10 +362,63 @@ int m_list(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (cli_listing(sptr))            /* Already listing ? */
   {
+    char old_label_ref[sizeof(cli_listing(sptr)->label_ref)];
+
+    ircd_strncpy(old_label_ref, cli_listing(sptr)->label_ref,
+                 sizeof(old_label_ref) - 1);
+    old_label_ref[sizeof(old_label_ref) - 1] = '\0';
+
     if (cli_listing(sptr))
     MyFree(cli_listing(sptr));
     cli_listing(sptr) = 0;
-    send_reply(sptr, RPL_LISTEND);
+
+    if (*old_label_ref) {
+      /* Being superseded doesn't make the old listing's response
+       * dishonest: RPL_LISTEND terminates it the same way a natural
+       * completion would, just with fewer channels than a full run
+       * would have produced -- LIST never promised completeness beyond
+       * "you get 322s, then 323 ends it". So finish it labeled (fold
+       * this RPL_LISTEND into its own capture, then close that capture
+       * out as its own BATCH/ACK/single-line via reopen()+finish(), not
+       * abort()) the same as any other early-but-clean completion,
+       * rather than dumping whatever it had captured unlabeled. A
+       * *different* capture may be active right now for sptr (e.g. if
+       * this LIST/STOP command is itself labeled); save/restore it
+       * around the old one so this doesn't steal its output.
+       *
+       * This fires against a genuinely live capture in practice, not
+       * just defensively: label_capture_stream_active() (label.c) makes
+       * a labeled LIST's output go out through the *real*
+       * send_buffer()/cli_sendQ() path as it's produced, so list_next_
+       * channels()'s own sendQ-based pause check sees it and can leave
+       * cli_listing() (and this capture) parked across ticks exactly
+       * like an unlabeled LIST always could -- see
+       * label_capture_append()'s streaming branch in label.c. */
+      struct Client *saved_active_client;
+      struct LabelCapture *saved_active_node;
+
+      label_capture_save_active(&saved_active_client, &saved_active_node);
+
+      if (label_capture_reopen(sptr, old_label_ref)) {
+        send_reply(sptr, RPL_LISTEND);
+        label_capture_close_window();
+        label_capture_finish(sptr, old_label_ref);
+      } else {
+        /* old_label_ref doesn't resolve to anything: reopen() no-ops
+         * silently, which -- left unchecked -- would leave RPL_LISTEND
+         * landing in whatever capture happens to be active right now
+         * (e.g. this very LIST/STOP command's own, if it's itself
+         * labeled) instead of nowhere. Close the window explicitly
+         * first so it goes out plain; nothing to finish() either. */
+        label_capture_close_window();
+        send_reply(sptr, RPL_LISTEND);
+      }
+
+      label_capture_restore_active(saved_active_client, saved_active_node);
+    } else {
+      send_reply(sptr, RPL_LISTEND);
+    }
+
     update_write(sptr);
     if (parc < 2 || 0 == ircd_strcmp("STOP", parv[1]))
       return 0;                 /* Let LIST or LIST STOP abort a listing. */
@@ -398,6 +454,22 @@ int m_list(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       cli_listing(sptr) = (struct ListingArgs*) MyMalloc(sizeof(struct ListingArgs));
       assert(0 != cli_listing(sptr));
       memcpy(cli_listing(sptr), &args, sizeof(struct ListingArgs));
+
+      {
+        /* If this LIST is labeled, commit to a streaming BATCH right now
+         * rather than deferring the ACK/single-line/BATCH decision to
+         * parse.c's normal end-of-dispatch finish(): a paginated listing
+         * is unconditionally multi-line (at minimum RPL_LISTEND) and may
+         * span many event-loop ticks, so there is nothing to decide and
+         * nothing worth buffering in memory until some eventual finish().
+         * See label_capture_stream_active() in label.c. */
+        const char *ref = label_capture_stream_active(sptr);
+
+        if (ref)
+          ircd_strncpy(cli_listing(sptr)->label_ref, ref,
+                       sizeof(cli_listing(sptr)->label_ref) - 1);
+      }
+
       list_next_channels(sptr);
       return 0;
     }

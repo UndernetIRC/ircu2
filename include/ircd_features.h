@@ -125,6 +125,8 @@ enum Feature {
   FEAT_CAP_MESSAGE_TAGS,
   FEAT_CAP_SERVER_TIME,
   FEAT_CAP_ACCOUNT_TAG,
+  FEAT_CAP_BATCH,
+  FEAT_CAP_LABELED_RESPONSE,
   FEAT_CAP_SASL,
 
   /* IRCv3 CLIENTTAGDENY: deny-list / allow-list for client-only (+) tags */

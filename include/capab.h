@@ -40,22 +40,24 @@
 #define CAPFL_UNAVAILABLE 	(CAPFL_HIDDEN | CAPFL_PROHIBIT)
 
 #define CAPLIST	\
-	_CAP(ACCOUNTNOTIFY, FEAT_CAP_ACCOUNTNOTIFY, 0, "account-notify"), \
-	_CAP(AWAYNOTIFY, FEAT_CAP_AWAYNOTIFY, 0 , "away-notify"), \
-	_CAP(CHGHOST, FEAT_CAP_CHGHOST, 0, "chghost"), \
-	_CAP(ECHOMESSAGE, FEAT_CAP_ECHOMESSAGE, 0, "echo-message"), \
-	_CAP(EXTJOIN, FEAT_CAP_EXTJOIN, 0, "extended-join"), \
-	_CAP(INVITENOTIFY, FEAT_CAP_INVITENOTIFY, 0, "invite-notify"), \
-	_CAP(UHNAMES, FEAT_CAP_UHNAMES, 0, "userhost-in-names"), \
-	_CAP(MESSAGE_TAGS, FEAT_CAP_MESSAGE_TAGS, 0, "message-tags"), \
-	_CAP(SERVER_TIME, FEAT_CAP_SERVER_TIME, 0, "server-time"), \
-	_CAP(ACCOUNT_TAG, FEAT_CAP_ACCOUNT_TAG, 0, "account-tag"), \
-	_CAP(CAPNOTIFY, 0, CAPFL_HIDDEN_302 | CAPFL_STICKY_302, "cap-notify"), \
-	_CAP(SASL, FEAT_CAP_SASL, CAPFL_UNAVAILABLE, "sasl")
+	_CAP(ACCOUNTNOTIFY, FEAT_CAP_ACCOUNTNOTIFY, 0, 0, "account-notify"), \
+	_CAP(AWAYNOTIFY, FEAT_CAP_AWAYNOTIFY, 0, 0, "away-notify"), \
+	_CAP(CHGHOST, FEAT_CAP_CHGHOST, 0, 0, "chghost"), \
+	_CAP(ECHOMESSAGE, FEAT_CAP_ECHOMESSAGE, 0, 0, "echo-message"), \
+	_CAP(EXTJOIN, FEAT_CAP_EXTJOIN, 0, 0, "extended-join"), \
+	_CAP(INVITENOTIFY, FEAT_CAP_INVITENOTIFY, 0, 0, "invite-notify"), \
+	_CAP(UHNAMES, FEAT_CAP_UHNAMES, 0, 0, "userhost-in-names"), \
+	_CAP(MESSAGE_TAGS, FEAT_CAP_MESSAGE_TAGS, 0, 0, "message-tags"), \
+	_CAP(SERVER_TIME, FEAT_CAP_SERVER_TIME, 0, 0, "server-time"), \
+	_CAP(ACCOUNT_TAG, FEAT_CAP_ACCOUNT_TAG, 0, 0, "account-tag"), \
+	_CAP(BATCH, FEAT_CAP_BATCH, 0, 0, "batch"), \
+	_CAP(LABELED_RESPONSE, FEAT_CAP_LABELED_RESPONSE, 0, CAP_BATCH, "labeled-response"), \
+	_CAP(CAPNOTIFY, 0, CAPFL_HIDDEN_302 | CAPFL_STICKY_302, 0, "cap-notify"), \
+	_CAP(SASL, FEAT_CAP_SASL, CAPFL_UNAVAILABLE, 0, "sasl")
 
 /** Client capabilities, counting by index. */
 enum Capab {
-#define _CAP(cap, config, flags, name)	E_CAP_ ## cap
+#define _CAP(cap, config, flags, dependencies, name)	E_CAP_ ## cap
   CAPLIST,
 #undef _CAP
   _E_CAP_LAST_CAP
@@ -63,7 +65,7 @@ enum Capab {
 
 /** Client capabilities, bit mask version. */
 enum CapabBits {
-#define _CAP(cap, config, flags, name) CAP_ ## cap = 1u << E_CAP_ ## cap
+#define _CAP(cap, config, flags, dependencies, name) CAP_ ## cap = 1u << E_CAP_ ## cap
   CAPLIST,
 #undef _CAP
   _CAP_LAST_CAP = 1u << _E_CAP_LAST_CAP

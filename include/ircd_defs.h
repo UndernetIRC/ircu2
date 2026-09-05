@@ -111,6 +111,10 @@
  * protocol message body (BUFSIZE).
  */
 #define READBUFSIZE     (TAGSLEN + BUFSIZE)
+/** Maximum accepted label= tag value length, in bytes (IRCv3
+ * labeled-response: "The value MUST NOT exceed 64 bytes").
+ */
+#define LABEL_VALUE_MAX 64
 /** Maximum length of a formatted OUTBOUND message-tags prefix (from the
  * leading '@' through the separating space).  An outbound prefix can never
  * exceed the largest tag data a client is allowed to send inbound

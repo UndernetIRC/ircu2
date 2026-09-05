@@ -20,7 +20,8 @@ from p10_server import P10Server
 # docker-compose.yml and Dockerfile live in the repo root (parent of tests/)
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-HUB = {"host": "127.0.0.1", "port": 6667, "server_port": 4400, "name": "hub.test.net"}
+HUB = {"host": "127.0.0.1", "port": 6667, "server_port": 4400, "name": "hub.test.net",
+       "tiny_sendq_port": 6695}
 LEAF1 = {"host": "127.0.0.1", "port": 6668, "server_port": 4401, "name": "leaf1.test.net", "exempt_port": 6690}
 LEAF2 = {"host": "127.0.0.1", "port": 6669, "server_port": 4402, "name": "leaf2.test.net"}
 

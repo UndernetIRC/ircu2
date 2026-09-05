@@ -398,6 +398,8 @@ static struct FeatureDesc {
   F_B(CAP_MESSAGE_TAGS, 0, 1, 0),
   F_B(CAP_SERVER_TIME, 0, 1, 0),
   F_B(CAP_ACCOUNT_TAG, 0, 1, 0),
+  F_B(CAP_BATCH, 0, 1, 0),
+  F_B(CAP_LABELED_RESPONSE, 0, 1, 0),
   F_B(CAP_SASL, 0, 1, 0),
 
   /* IRCv3 CLIENTTAGDENY: deny-list / allow-list for client-only (+) tags.

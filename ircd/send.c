@@ -28,10 +28,12 @@
 #include "class.h"
 #include "client.h"
 #include "ircd.h"
+#include "ircd_alloc.h"
 #include "ircd_features.h"
 #include "ircd_log.h"
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
+#include "label.h"
 #include "list.h"
 #include "match.h"
 #include "msg.h"
@@ -259,16 +261,6 @@ send_raw_buffer(struct Client *to, struct MsgBuf *mb, int prio)
   send_queued(to);
 }
 
-/** Immutable per-message tag context.  Small enough to stack on any send
- * path (single-recipient sends carry only this, not the full cache). */
-struct MsgTagCtx {
-  struct MsgTag *tags;        /**< Tags parsed from the current input line. */
-  time_t         local_time;  /**< Delivery time for server-time / @time=. */
-  const char    *tok;         /**< Command token for S2S policy (or NULL). */
-  int            client_relay;   /**< Has relayable client-only (+) tags. */
-  int            s2s_needs_time; /**< Invent/forward @time= on S2S for this command. */
-};
-
 /** Per-fan-out prefix cache: amortizes prefix formatting across many local
  * recipients.  Embeds the message context and adds the (large) scratch
  * buffer, so it is only worth stacking on paths that actually fan out to
@@ -282,7 +274,7 @@ struct TagSendCache {
 
 /** Populate a per-message tag context.  \a tok is the command token (for
  * S2S @time= / TAGMSG policy), or NULL when no command context applies. */
-static void
+void
 msgtagctx_init(struct MsgTagCtx *ctx, const char *tok)
 {
   ctx->tags = parse_tags();
@@ -307,6 +299,7 @@ tagsendcache_init_cmd(struct TagSendCache *cache, const char *tok)
   cache->profile = (unsigned int)-1;
   cache->prefix_len = 0;
 }
+
 static struct MsgBuf *
 make_wire_msgbuf(struct Client *to, struct MsgBuf *body,
                  const char *prefix, unsigned int prefix_len)
@@ -350,26 +343,38 @@ void send_buffer(struct Client* to, struct Client* from, struct MsgBuf* buf, int
   time_t local_time = tctx ? tctx->local_time : CurrentTime;
   struct MsgTag *tags = tctx ? tctx->tags : parse_tags();
 
+  struct Client *dest;
+
   assert(0 != to);
   assert(0 != buf);
 
-  if (cli_from(to))
-    to = cli_from(to);
+  /* \a to is the intended recipient; \a dest is the socket it travels
+   * over (the S2S link, for a remote user). Callers may pass either --
+   * a genuine local client is both -- but single-recipient sends
+   * (sendcmdto_one() and friends) pass the unresolved recipient so the
+   * labeled-response intercept below can tell "a reply addressed to the
+   * requester" from "something else headed down the same link". */
+  dest = cli_from(to) ? cli_from(to) : to;
 
-  if (!can_send(to))
+  if (!can_send(dest))
     /*
      * This socket has already been marked as dead
      */
     return;
 
-  if (MsgQLength(&(cli_sendQ(to))) > get_sendq(to)) {
-    if (IsServer(to))
+  if (MsgQLength(&(cli_sendQ(dest))) > get_sendq(dest)) {
+    if (IsServer(dest))
       sendto_opmask_butone(0, SNO_OLDSNO, "Max SendQ limit exceeded for %C: "
-			   "%zu > %zu", to, MsgQLength(&(cli_sendQ(to))),
-			   get_sendq(to));
-    dead_link(to, "Max sendQ exceeded");
+			   "%zu > %zu", dest, MsgQLength(&(cli_sendQ(dest))),
+			   get_sendq(dest));
+    dead_link(dest, "Max sendQ exceeded");
     return;
   }
+
+  if (label_capture_intercept(to, from, buf, prio, tctx))
+    return;
+
+  to = dest;
 
   if (IsServer(to)) {
     /* Older peers cannot parse @tags or TAGMSG (TM); gate on NETWORK_FEATURES.
@@ -517,19 +522,95 @@ void sendcmdto_one(struct Client *from, const char *cmd, const char *tok,
   struct VarData vd;
   struct MsgBuf *mb;
   struct MsgTagCtx mctx;
-
-  to = cli_from(to);
+  struct Client *dest = cli_from(to); /* wire form depends on the link */
 
   vd.vd_format = pattern; /* set up the struct VarData for %v */
   va_start(vd.vd_args, pattern);
 
-  mb = msgq_make(to, "%:#C %s %v", from, IsServer(to) || IsMe(to) ? tok : cmd,
-		 &vd);
+  mb = msgq_make(dest, "%:#C %s %v", from,
+		 IsServer(dest) || IsMe(dest) ? tok : cmd, &vd);
 
   va_end(vd.vd_args);
 
   msgtagctx_init(&mctx, tok);
+  /* Pass the recipient, not the link: see send_buffer(). */
   send_buffer(to, from, mb, 0, &mctx, NULL);
+
+  msgq_clean(mb);
+}
+
+/** Like sendcmdto_one(), but for hunt_server_cmd()-style forwarding: when
+ * \a from has an active labeled-response capture (only possible with
+ * FEAT_NETWORK_FEATURES on -- see msg_tag_key_federated()), propagate it
+ * as @label= on the forwarded line and silently hand the local capture
+ * off instead of leaving it to close as a premature, empty ACK the
+ * moment the caller's handler returns with no local output.
+ *
+ * The remote server -- if it also runs labeled-response and recognizes
+ * the inbound label (parse_server()'s wrapper) -- answers *for* this
+ * label instead, relayed back through ms_batch()/ms_ack() (m_batch.c).
+ * If NETWORK_FEATURES is off, or there is no active capture (an
+ * unlabeled command), this is exactly sendcmdto_one(). If the capture
+ * already has some locally-produced output buffered (none of today's
+ * hunt_server_cmd() callers do this before forwarding, but this helper
+ * doesn't get to assume that forever), that output is flushed unlabeled
+ * -- via label_capture_abort(), the same "can't honestly call this
+ * labeled anymore" release used elsewhere -- rather than silently
+ * discarded.
+ *
+ * @param[in] from Client sending the command (the original requester).
+ * @param[in] cmd Long name of command (used if \a to is a user).
+ * @param[in] tok Short name of command (used if \a to is a server).
+ * @param[in] to Destination of command.
+ * @param[in] pattern Format string for command arguments.
+ */
+void sendcmdto_one_hunted(struct Client *from, const char *cmd, const char *tok,
+			  struct Client *to, const char *pattern, ...)
+{
+  struct VarData vd;
+  struct MsgBuf *mb;
+  struct MsgTagCtx ctx;
+  struct MsgTag labeltag;
+  char label[LABEL_VALUE_MAX + 1];
+  int labeled = 0;
+  struct LabelCapture *lc;
+
+  if (feature_bool(FEAT_NETWORK_FEATURES)
+      && (lc = label_capture_active_for(from)) != NULL) {
+    ircd_strncpy(label, lc->value, sizeof(label) - 1);
+    label[sizeof(label) - 1] = '\0';
+
+    /* label_capture_abort() closes the active window, unlinks this
+     * capture, flushes anything buffered on it unlabeled (a no-op if
+     * nothing was), and frees the node -- exactly the release this
+     * handoff needs. */
+    label_capture_abort(from, lc->ref);
+
+    labeled = 1;
+  }
+
+  to = cli_from(to);
+
+  vd.vd_format = pattern;
+  va_start(vd.vd_args, pattern);
+  mb = msgq_make(to, "%:#C %s %v", from, IsServer(to) || IsMe(to) ? tok : cmd,
+		 &vd);
+  va_end(vd.vd_args);
+
+  if (labeled) {
+    labeltag.next = NULL;
+    labeltag.key = "label";
+    labeltag.value = label;
+
+    memset(&ctx, 0, sizeof(ctx));
+    ctx.tags = &labeltag;
+    ctx.local_time = CurrentTime;
+    ctx.tok = tok;
+    ctx.s2s_needs_time = tok ? msg_tag_s2s_needs_time(tok) : 0;
+  } else
+    msgtagctx_init(&ctx, tok);
+
+  send_buffer(to, from, mb, 0, &ctx, NULL);
 
   msgq_clean(mb);
 }
@@ -548,14 +629,13 @@ void sendcmdto_prio_one(struct Client *from, const char *cmd, const char *tok,
   struct VarData vd;
   struct MsgBuf *mb;
   struct MsgTagCtx mctx;
-
-  to = cli_from(to);
+  struct Client *dest = cli_from(to); /* wire form depends on the link */
 
   vd.vd_format = pattern; /* set up the struct VarData for %v */
   va_start(vd.vd_args, pattern);
 
-  mb = msgq_make(to, "%:#C %s %v", from, IsServer(to) || IsMe(to) ? tok : cmd,
-		 &vd);
+  mb = msgq_make(dest, "%:#C %s %v", from,
+		 IsServer(dest) || IsMe(dest) ? tok : cmd, &vd);
 
   va_end(vd.vd_args);
 

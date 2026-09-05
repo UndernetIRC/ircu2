@@ -230,8 +230,8 @@ int hunt_server_cmd(struct Client *from, const char *cmd, const char *tok,
 
   parv[server] = (char *) acptr; /* HACK! HACK! HACK! ARGH! */
 
-  sendcmdto_one(from, cmd, tok, acptr, pattern, parv[1], parv[2], parv[3],
-                parv[4], parv[5], parv[6], parv[7], parv[8]);
+  sendcmdto_one_hunted(from, cmd, tok, acptr, pattern, parv[1], parv[2], parv[3],
+                       parv[4], parv[5], parv[6], parv[7], parv[8]);
 
   return (HUNTED_PASS);
 }
