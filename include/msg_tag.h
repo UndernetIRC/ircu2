@@ -90,7 +90,8 @@ unsigned int msg_tag_format_s2s(char *buf, size_t buflen, struct MsgTag *tags,
  * @param[in] to Recipient (for capability checks).
  * @param[in] from Message source (for account-tag; may be NULL).
  * @param[in] tags Upstream tag list from parse (may be NULL).
- * @param[in] local_time Time to use when no upstream \a time tag is present.
+ * @param[in] local_time Time to use when no upstream \a time tag is present
+ *                       (network time, TStime()).
  * @return Length of formatted prefix excluding trailing space, or 0 if no tags.
  *         On success \a buf begins with '@' and ends with a separating space.
  */
