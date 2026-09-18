@@ -364,6 +364,21 @@ static struct subcmd {
   { "REQ",   cap_req   }
 };
 
+/** Check whether a local connection should be told about NEW/DEL.
+ * cap-notify takes effect when it is negotiated (implicitly by CAP LS
+ * 302), not at registration: a client still registering must hear that a
+ * capability appeared, or it registers without ever learning of it.
+ * @param[in] acptr Local connection to test.
+ * @return Non-zero if \a acptr is a (possibly unregistered) user with
+ * cap-notify active.
+ */
+static int cap_notify_target(struct Client *acptr)
+{
+  return MyConnect(acptr)
+    && (IsUser(acptr) || IsUserPort(acptr) || IsWebsocketPort(acptr))
+    && CapHas(cli_active(acptr), CAP_CAPNOTIFY);
+}
+
 /** Send CAP NEW to all clients with cap-notify capability
  * @param[in] cap Capability enum value
  */
@@ -400,8 +415,7 @@ void cap_new(enum Capab cap)
     if (!(acptr = LocalClientArray[i]))
       continue;
       
-    /* Only send to registered users with cap-notify capability */
-    if (!IsUser(acptr) || !MyConnect(acptr) || !CapHas(cli_active(acptr), CAP_CAPNOTIFY))
+    if (!cap_notify_target(acptr))
       continue;
       
     /* Send CAP NEW message */
@@ -442,8 +456,7 @@ void cap_del(enum Capab cap)
     if (!(acptr = LocalClientArray[i]))
       continue;
       
-    /* Only send to registered users with cap-notify capability */
-    if (!IsUser(acptr) || !MyConnect(acptr) || !CapHas(cli_active(acptr), CAP_CAPNOTIFY))
+    if (!cap_notify_target(acptr))
       continue;
       
     /* Send CAP DEL message */
