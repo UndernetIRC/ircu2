@@ -626,7 +626,11 @@ void add_connection(struct Listener* listener, int fd) {
     if (ipcheck == IPCHECK_REFUSED)
     {
       ++ServerStats->is_throttled;
-      write(fd, throttle_message, strlen(throttle_message));
+      /* No handshake has happened on a TLS port, so there is no way to
+       * tell the peer why: anything written now is plaintext that a TLS
+       * client cannot read.  Just close. */
+      if (!tls)
+        write(fd, throttle_message, strlen(throttle_message));
       close(fd);
       if (tls)
         ircd_tls_close(tls, NULL);
