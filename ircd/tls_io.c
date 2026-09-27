@@ -214,12 +214,24 @@ IOResult tls_io_recv(struct Client *cptr, char *buf, unsigned int length,
   return io;
 }
 
+/** Whether the TLS peer certificate on \a cptr belongs to the user.
+ * On a Cloudflare websocket port the TLS peer is Cloudflare's edge, and on a
+ * WEBIRC port it is the gateway; storing either certificate would attribute
+ * the intermediary's identity to every user behind it (OPER and Client block
+ * fingerprint pins, SASL, the +z/NICK burst, iauth Z).  Only a direct client
+ * connection has a certificate worth keeping.
+ */
+static int tls_io_fingerprint_is_users(const struct Client *cptr)
+{
+  return !IsCloudflarePort(cptr) && !IsWebircPort(cptr);
+}
+
 void tls_io_store_fingerprint(struct Client *cptr, const unsigned char *digest,
                               unsigned int len)
 {
   char *p = cli_tls_fingerprint(cptr);
 
-  if (len == 32 && !IsCloudflarePort(cptr))
+  if (len == 32 && tls_io_fingerprint_is_users(cptr))
   {
     unsigned int i;
     for (i = 0; i < len; ++i)
@@ -234,7 +246,7 @@ void tls_io_store_fingerprint_hex(struct Client *cptr, const char *hex)
 {
   char *p = cli_tls_fingerprint(cptr);
 
-  if (hex && hex[0] && strlen(hex) <= 64 && !IsCloudflarePort(cptr))
+  if (hex && hex[0] && strlen(hex) <= 64 && tls_io_fingerprint_is_users(cptr))
     ircd_strncpy(p, hex, 64);
   else
     memset(p, 0, 65);

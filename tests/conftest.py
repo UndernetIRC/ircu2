@@ -32,6 +32,7 @@ TLS_HUB = {
     "tls_port_ca": 16699,
     "wss_port": 16700,
     "wss_cf_port": 16701,
+    "webirc_tls_port": 16703,
     "server_port": 14440,
     "server_tls_ca_port": 14441,
     "name": "tls-hub.test.net",
