@@ -8,7 +8,7 @@
  *     jumps the queue, the zero-credit success (a rexmit drain that excised
  *     the last queued message is progress, not a block), and fatal teardown;
  *   - tls_io_recv() blocked-direction recording and fatal teardown;
- *   - fingerprint storage edge cases (length, hex form, Cloudflare ports);
+ *   - fingerprint storage edge cases (length, hex form, Cloudflare/WEBIRC ports);
  *   - the ircd_tls_negotiate() trust policy matrix over scripted tls_peer
  *     material (cert-required, verifypeer, fingerprint hand-off).
  *
@@ -531,6 +531,17 @@ static void test_fingerprint_storage(void)
   assert(!memcmp(cli_tls_fingerprint(c), zeros, 65));
   con_listener(&conn) = NULL;
   FlagClr(&lst.flags, LISTEN_CLOUDFLARE);
+
+  /* WEBIRC ports likewise: the TLS peer is the gateway, not the user */
+  {
+    unsigned int saved = cli_status(c);
+    cli_status(c) = STAT_WEBIRC;
+    tls_io_store_fingerprint(c, digest, 32);
+    assert(!memcmp(cli_tls_fingerprint(c), zeros, 65));
+    tls_io_store_fingerprint_hex(c, "abc123");
+    assert(!memcmp(cli_tls_fingerprint(c), zeros, 65));
+    cli_status(c) = saved;
+  }
 
   /* pre-formatted hex: copied; NULL / empty / over-long cleared */
   tls_io_store_fingerprint_hex(c, "abc123");
