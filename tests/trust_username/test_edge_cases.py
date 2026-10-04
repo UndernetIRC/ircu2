@@ -393,6 +393,11 @@ async def test_remote_leaf_user_hidden_via_services(ircd_network, services):
     await observer.register("tu71lw", "testuser", "Test User")
 
     try:
+        # Precondition: the leaf must tilde unverified users, else the
+        # untilded check below passes without TRUST_USERNAME doing anything.
+        before, _ = await whois_userline(observer, "tu71lv")
+        assert before == "~testuser", f"Expected tilded leaf user, got {before!r}"
+
         await hide_via_services(services, "tu71lv", account)
 
         username, host = await whois_userline(observer, "tu71lv")

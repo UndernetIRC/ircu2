@@ -112,8 +112,9 @@ RUN chown ircu:ircu /opt/ircu/lib/iauth-dns-stub.pl
 # Create empty motd file
 RUN touch /opt/ircu/lib/ircd.motd && chown ircu:ircu /opt/ircu/lib/ircd.motd
 
-COPY tests/docker/iauth-tilded.pl /opt/ircu/bin/iauth-tilded.pl
-RUN chmod +x /opt/ircu/bin/iauth-tilded.pl && chown ircu:ircu /opt/ircu/bin/iauth-tilded.pl
+# IAuth stub for CF/websocket trusted-username tests (not in shared hub conf).
+COPY tests/docker/iauth-trust-username.pl /opt/ircu/bin/iauth-trust-username.pl
+RUN chmod +x /opt/ircu/bin/iauth-trust-username.pl && chown ircu:ircu /opt/ircu/bin/iauth-trust-username.pl
 
 COPY tests/docker/ircd-entrypoint.sh /opt/ircu/lib/ircd-entrypoint.sh
 RUN chmod 755 /opt/ircu/lib/ircd-entrypoint.sh
