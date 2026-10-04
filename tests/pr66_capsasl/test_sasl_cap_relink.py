@@ -77,29 +77,18 @@ async def _collect_cap(client: IRCClient, timeout: float) -> list[tuple[str, str
         seen.append((msg.params[1], msg.params[-1]))
 
 
-async def _run(ircd_network, *, leaf_initiates: bool, nick: str) -> None:
-    hub, leaf1 = ircd_network["hub"], ircd_network["leaf1"]
-    hub_op = await _oper(hub, f"{nick}ho")
-    leaf_op = await _oper(leaf1, f"{nick}lo")
-    srv = None
-    client = None
-    try:
-        # 1. Isolate the leaf.
+async def _isolated_leaf_client(hub_op, leaf_op, leaf1, nick: str) -> IRCClient:
+    """Split leaf1 off and register a cap-notify client on it while alone.
+
+    leaf1 has autoconnect, so it may relink on its own at any point; if it
+    did by the time the client is registered, start over.
+    """
+    for _ in range(3):
         if await links_contains(hub_op, LEAF1_NAME):
             await hub_op.send(f"SQUIT {LEAF1_NAME} :test")
         await _wait_links(hub_op, LEAF1_NAME, False)
         await _wait_links(leaf_op, HUB_NAME, False)
 
-        # 2. SASL server fully linked on the network side.
-        srv = P10Server(name=SASL_SERVER, numeric=4, password="testpass")
-        await srv.connect(hub["host"], hub["server_port"])
-        await srv.begin_handshake()
-        await srv.send_config("sasl.server", SASL_SERVER)
-        await srv.send_config("sasl.mechanisms", MECHANISMS)
-        await srv.send_end_of_burst()
-        await srv.complete_handshake()
-
-        # 3. cap-notify client on the lone leaf: no sasl on offer.
         client = IRCClient()
         await client.connect(leaf1["host"], leaf1["port"])
         await client.send("CAP LS 302")
@@ -109,7 +98,39 @@ async def _run(ircd_network, *, leaf_initiates: bool, nick: str) -> None:
         await client.register(nick, "testuser", "Test User")
         await drain(client, 1.0)
 
-        # 4. Link the leaf to the SASL side.
+        if not await links_contains(leaf_op, HUB_NAME):
+            return client
+        await client.disconnect()
+    raise RuntimeError("leaf1 kept autoconnecting to the hub; could not isolate it")
+
+
+async def _restore_link(hub_op, leaf1) -> None:
+    """Leave hub and leaf1 linked for the tests that follow, whatever happened."""
+    if not await links_contains(hub_op, LEAF1_NAME):
+        await hub_op.send(f"CONNECT {LEAF1_NAME} {leaf1['server_port']}")
+    await _wait_links(hub_op, LEAF1_NAME, True)
+
+
+async def _run(ircd_network, *, leaf_initiates: bool, nick: str) -> None:
+    hub, leaf1 = ircd_network["hub"], ircd_network["leaf1"]
+    hub_op = await _oper(hub, f"{nick}ho")
+    leaf_op = await _oper(leaf1, f"{nick}lo")
+    srv = None
+    client = None
+    try:
+        # 1. SASL server fully linked on the network side.
+        srv = P10Server(name=SASL_SERVER, numeric=4, password="testpass")
+        await srv.connect(hub["host"], hub["server_port"])
+        await srv.begin_handshake()
+        await srv.send_config("sasl.server", SASL_SERVER)
+        await srv.send_config("sasl.mechanisms", MECHANISMS)
+        await srv.send_end_of_burst()
+        await srv.complete_handshake()
+
+        # 2. cap-notify client on the lone leaf: no sasl on offer.
+        client = await _isolated_leaf_client(hub_op, leaf_op, leaf1, nick)
+
+        # 3. Link the leaf to the SASL side.
         if leaf_initiates:
             await leaf_op.send(f"CONNECT {HUB_NAME}")
         else:
@@ -119,11 +140,14 @@ async def _run(ircd_network, *, leaf_initiates: bool, nick: str) -> None:
         caps = await _collect_cap(client, 5.0)
         assert caps == [("NEW", f"sasl={MECHANISMS}")], caps
     finally:
-        for c in (client, hub_op, leaf_op):
-            if c is not None:
-                await c.disconnect()
-        if srv is not None:
-            await srv.disconnect()
+        try:
+            await _restore_link(hub_op, leaf1)
+        finally:
+            for c in (client, hub_op, leaf_op):
+                if c is not None:
+                    await c.disconnect()
+            if srv is not None:
+                await srv.disconnect()
 
 
 @pytest.mark.timeout(300)
