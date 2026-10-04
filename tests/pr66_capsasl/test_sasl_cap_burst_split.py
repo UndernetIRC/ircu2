@@ -395,3 +395,36 @@ async def test_cap_del_aborts_sasl_exchange_in_progress(ircd_hub):
         assert "disconnected" in msg.params[-1], msg.params
     finally:
         await client.disconnect()
+
+
+async def test_cap_new_and_del_reach_client_on_highest_fd(ircd_hub):
+    """The local client holding HighestFd gets NEW and DEL too.
+
+    cap_new()/cap_del() used to loop ``i < HighestFd`` and skip it.  The
+    kernel hands out the lowest free fd, so fillers plug any holes below
+    the newest fd before the cap-notify client connects; closing them
+    afterwards leaves the client as HighestFd (close_connection() shrinks
+    it to the highest occupied slot).
+    """
+    srv, _ = await _half_link_with_sasl_server(ircd_hub, downstreams=())
+    await srv.send_end_of_burst()
+    await srv.complete_handshake()
+
+    fillers = []
+    for _ in range(20):
+        fillers.append(await asyncio.open_connection(ircd_hub["host"], ircd_hub["port"]))
+    client = await _capnotify_client(ircd_hub, "capsplit9")
+    try:
+        for _, writer in fillers:
+            writer.close()
+        await asyncio.sleep(1.0)
+
+        await srv.send_downstream_server(SASL_SERVER, 5, flags="s", bursting=False)
+        await _expect_cap_new(client)
+
+        await srv.disconnect()
+        caps = await _collect_cap(client, 2.0)
+        assert caps == [("DEL", "sasl")], caps
+    finally:
+        await client.send("QUIT :done")
+        await client.disconnect()
