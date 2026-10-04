@@ -449,6 +449,11 @@ void cap_del(enum Capab cap)
     return;
   }
   
+  /* A capability disabled by its feature was never advertised (see
+   * cap_new() and send_caplist()), so there is nothing to withdraw. */
+  if (capab_list[cap_index].config != 0 && !feature_bool(capab_list[cap_index].config))
+    return;
+  
   /* Iterate through all local clients */
   for (i = 0; i <= HighestFd; i++) {
     if (!(acptr = LocalClientArray[i]))
