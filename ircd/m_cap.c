@@ -388,7 +388,6 @@ void cap_new(enum Capab cap)
   struct Client* acptr;
   int i;
   int cap_index = -1;
-  unsigned long flags;
   const char* cap_name = NULL;
   const char* cap_value = "";
   
@@ -398,7 +397,6 @@ void cap_new(enum Capab cap)
       cap_index = i;
       cap_name = capab_list[i].name;
       cap_value = capab_list[i].value;
-      flags = capab_list[i].flags;
       break;
     }
   }
@@ -436,7 +434,6 @@ void cap_del(enum Capab cap)
   struct Client* acptr;
   int i;
   int cap_index = -1;
-  unsigned long flags;
   const char* cap_name = NULL;
   
   /* Find the capability in the list */
