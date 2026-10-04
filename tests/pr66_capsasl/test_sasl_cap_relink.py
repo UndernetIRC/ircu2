@@ -21,7 +21,11 @@ from irc_client import IRCClient
 from p10_server import P10Server
 from tls.helpers import links_contains, oper_up
 
-pytestmark = [pytest.mark.multi_server, pytest.mark.asyncio]
+pytestmark = [
+    pytest.mark.multi_server,
+    pytest.mark.asyncio,
+    pytest.mark.usefixtures("reset_sasl_netconf"),
+]
 
 HUB_NAME = "hub.test.net"
 LEAF1_NAME = "leaf1.test.net"

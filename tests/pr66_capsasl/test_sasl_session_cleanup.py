@@ -15,12 +15,15 @@ from irc_client import IRCClient
 from p10_server import P10Server
 
 
-pytestmark = pytest.mark.single_server
+pytestmark = [
+    pytest.mark.single_server,
+    pytest.mark.usefixtures("reset_sasl_netconf"),
+]
 
 
 @pytest.fixture
 async def services(ircd_hub):
-    """Fake services server on the hub with SASL enabled (and reset after)."""
+    """Fake services server on the hub with SASL enabled."""
     srv = P10Server(name="services.test.net", numeric=4, password="testpass")
     await srv.connect(ircd_hub["host"], ircd_hub["server_port"])
     await srv.handshake()
@@ -28,8 +31,6 @@ async def services(ircd_hub):
     await srv.send_config("sasl.mechanisms", "PLAIN")
     await asyncio.sleep(0.5)
     yield srv
-    for key in ("sasl.server", "sasl.mechanisms", "sasl.timeout"):
-        await srv.send_config(key, "")
     await srv.disconnect()
 
 

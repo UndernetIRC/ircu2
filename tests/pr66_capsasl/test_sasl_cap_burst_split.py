@@ -36,7 +36,10 @@ from irc_client import IRCClient
 from p10_server import P10Server
 
 
-pytestmark = pytest.mark.single_server
+pytestmark = [
+    pytest.mark.single_server,
+    pytest.mark.usefixtures("reset_sasl_netconf"),
+]
 
 SASL_SERVER = "channels.test.net"
 MECHANISMS = "PLAIN"
