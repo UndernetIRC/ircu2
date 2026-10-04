@@ -428,3 +428,28 @@ async def test_cap_new_and_del_reach_client_on_highest_fd(ircd_hub):
     finally:
         await client.send("QUIT :done")
         await client.disconnect()
+
+
+async def test_sasl_server_mask_longer_than_hostlen_is_not_truncated(ircd_hub):
+    """A sasl.server mask over HOSTLEN (63) characters is matched in full.
+
+    It used to be cut to 63 characters before matching: 60 stars plus
+    ``services.test.net`` became ``*serv`` after collapse(), which matches
+    nothing, so SASL silently never became available.
+    """
+    long_mask = "*" * 60 + "services.test.net"
+    client = await _capnotify_client(ircd_hub, "capsplit10")
+    try:
+        srv, _ = await _half_link_with_sasl_server(
+            ircd_hub, sasl_server=long_mask, downstreams=()
+        )
+        await srv.send_end_of_burst()
+        await _expect_cap_new(client)
+
+        await srv.complete_handshake()
+        await srv.disconnect()
+        caps = await _collect_cap(client, 2.0)
+        assert caps == [("DEL", "sasl")], caps
+    finally:
+        await client.send("QUIT :done")
+        await client.disconnect()

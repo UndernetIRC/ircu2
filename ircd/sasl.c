@@ -87,17 +87,23 @@ static int sasl_path_bursting(struct Client* acptr)
 
 /** Get the collapse()d SASL server mask.
  * Works on a copy: collapse() would modify the netconf value in place.
- * @param[out] mask Buffer of HOSTLEN + 1 bytes.
+ * A mask that does not fit is treated as unset rather than truncated,
+ * which would silently match different servers than configured;
+ * sasl_config_callback() tells the opers.  With a BUFSIZE buffer that
+ * cannot happen for a value that arrived in a protocol line.
+ * @param[out] mask Buffer for the mask.
+ * @param[in] size Size of \a mask.
  * @return Non-zero if SASL is configured (server mask and mechanisms).
  */
-static int sasl_server_mask(char* mask)
+static int sasl_server_mask(char* mask, size_t size)
 {
-  if (!*netconf_str(NETCONF_SASL_SERVER)
-      || !*netconf_str(NETCONF_SASL_MECHANISMS))
+  const char* conf = netconf_str(NETCONF_SASL_SERVER);
+
+  if (!*conf || !*netconf_str(NETCONF_SASL_MECHANISMS)
+      || strlen(conf) >= size)
     return 0;
 
-  ircd_strncpy(mask, netconf_str(NETCONF_SASL_SERVER), HOSTLEN);
-  mask[HOSTLEN] = '\0';
+  ircd_strncpy(mask, conf, size - 1);
   collapse(mask);
   return 1;
 }
@@ -120,11 +126,11 @@ static struct Client* sasl_server_cache;
  */
 static struct Client* sasl_find_server(void)
 {
-  char mask[HOSTLEN + 1];
+  char mask[BUFSIZE];
   struct Client* acptr;
   unsigned int iter = 0;
 
-  if (!sasl_server_mask(mask))
+  if (!sasl_server_mask(mask, sizeof(mask)))
     return NULL;
 
   while ((acptr = find_match_server_next(mask, &iter))) {
@@ -167,9 +173,9 @@ void sasl_server_exiting(struct Client* acptr)
  */
 void sasl_server_introduced(struct Client* acptr)
 {
-  char mask[HOSTLEN + 1];
+  char mask[BUFSIZE];
 
-  if (sasl_server_mask(mask) && !match(mask, cli_name(acptr)))
+  if (sasl_server_mask(mask, sizeof(mask)) && !match(mask, cli_name(acptr)))
     sasl_check_capability();
 }
 
@@ -247,6 +253,11 @@ static void sasl_config_callback(const char *key, const char *old_value, const c
   Debug((DEBUG_DEBUG, "SASL config changed: %s = %s (was: %s)", 
          key, new_value, old_value ? old_value : "(unset)"));
   
+  if (ircd_strcmp(key, "sasl.server") == 0 && new_value
+      && strlen(new_value) >= BUFSIZE)
+    sendto_opmask_butone(0, SNO_OLDSNO, "sasl.server is longer than %d "
+                         "characters; SASL disabled", BUFSIZE - 1);
+
   /* Update SASL capability value if mechanisms changed */
   if (ircd_strcmp(key, "sasl.mechanisms") == 0) {
     cap_set_value(E_CAP_SASL, new_value);
