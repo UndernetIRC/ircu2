@@ -653,7 +653,7 @@ bump_sentalong(struct Client *one)
   if (!++sentalong_marker)
   {
     int ii;
-    for (ii = 0; ii < HighestFd; ++ii)
+    for (ii = 0; ii <= HighestFd; ++ii)
       if (LocalClientArray[ii])
         cli_sentalong(LocalClientArray[ii]) = 0;
     ++sentalong_marker;
