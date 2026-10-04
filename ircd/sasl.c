@@ -85,7 +85,10 @@ static int sasl_path_bursting(struct Client* acptr)
   return 0;
 }
 
-/** Find the SASL server to use.
+/** SASL server chosen by the last sasl_check_capability(), or NULL. */
+static struct Client* sasl_server_cache;
+
+/** Search the server list for the SASL server to use.
  *
  * A usable SASL server exists when a SASL server mask and a mechanism
  * list are configured and some linked server matches the mask with no
@@ -96,12 +99,9 @@ static int sasl_path_bursting(struct Client* acptr)
  * and the first (lowest numnick) fully linked one wins, so a matching
  * server that is re-linking does not mask an established one.
  *
- * This is the single source of truth: sasl_available() and the
- * AUTHENTICATE routing in m_sasl() both use it, so the server validated
- * here is the one requests are sent to.
  * @return The SASL server, or NULL if none is usable.
  */
-struct Client* sasl_server(void)
+static struct Client* sasl_find_server(void)
 {
   char mask[HOSTLEN + 1];
   struct Client* acptr;
@@ -124,13 +124,39 @@ struct Client* sasl_server(void)
   return NULL;
 }
 
+/** Get the SASL server to send AUTHENTICATE requests to.
+ *
+ * Returns the server sasl_check_capability() last validated, so
+ * advertising and routing always agree, without a server list scan per
+ * AUTHENTICATE line.  sasl_check_capability() runs on every event that
+ * can change the answer: a server introduced, a burst completed, a
+ * server tree removed, and a sasl.* config change.
+ * @return The SASL server, or NULL if none is usable.
+ */
+struct Client* sasl_server(void)
+{
+  return sasl_server_cache;
+}
+
+/** Forget the SASL server if it is being removed.
+ * Called for each server torn down, so the cached pointer never outlives
+ * the server; exit_client() re-runs sasl_check_capability() afterwards
+ * to pick a replacement and send CAP DEL if there is none.
+ * @param[in] acptr Server being removed.
+ */
+void sasl_server_exiting(struct Client* acptr)
+{
+  if (acptr == sasl_server_cache)
+    sasl_server_cache = NULL;
+}
+
 /** Check if SASL is available
  * @return 1 if a usable SASL server is linked, 0 otherwise
  * @see sasl_server()
  */
 int sasl_available(void)
 {
-  return sasl_server() != NULL;
+  return sasl_server_cache != NULL;
 }
 
 /** Check if a mechanism exists in a mechanism list
@@ -184,7 +210,8 @@ int sasl_mechanism_supported(const char* mechanism)
  */
 void sasl_check_capability(void)
 {
-  cap_update_availability(E_CAP_SASL, sasl_available());
+  sasl_server_cache = sasl_find_server();
+  cap_update_availability(E_CAP_SASL, sasl_server_cache != NULL);
 }
 
 /** Config change callback for SASL-related configuration

@@ -261,6 +261,7 @@ static void exit_one_client(struct Client* bcptr, const char* comment)
     /* Remove downlink list node of uplink */
     remove_dlink(&(cli_serv(cli_serv(bcptr)->up))->down, cli_serv(bcptr)->updown);
     cli_serv(bcptr)->updown = 0;
+    sasl_server_exiting(bcptr);
 
     if (MyConnect(bcptr))
       Count_serverdisconnects(UserStats);
