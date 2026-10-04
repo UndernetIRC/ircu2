@@ -32,6 +32,7 @@ import asyncio
 
 import pytest
 
+from cap_helpers import cap_ls_302
 from irc_client import IRCClient
 from p10_server import P10Server
 
@@ -60,8 +61,7 @@ async def _capnotify_client(ircd_hub, nick: str) -> IRCClient:
     """
     client = IRCClient()
     await client.connect(ircd_hub["host"], ircd_hub["port"])
-    await client.send("CAP LS 302")
-    await client.wait_for("CAP", timeout=5.0)
+    await cap_ls_302(client)
     await client.send("CAP END")
     await client.register(nick, "testuser", "Test User")
     return client
@@ -121,9 +121,7 @@ async def _authenticate_target(ircd_hub, srv: P10Server, nick: str) -> str:
     client = IRCClient()
     await client.connect(ircd_hub["host"], ircd_hub["port"])
     try:
-        await client.send("CAP LS 302")
-        msg = await client.wait_for("CAP", timeout=5.0)
-        assert "sasl" in msg.params[-1], "hub does not advertise sasl"
+        assert "sasl" in await cap_ls_302(client), "hub does not advertise sasl"
         await client.send("CAP REQ :sasl")
         msg = await client.wait_for("CAP", timeout=5.0)
         assert msg.params[1] == "ACK", f"expected CAP ACK, got {msg.params}"
@@ -337,9 +335,8 @@ async def test_cap_new_reaches_client_still_registering(ircd_hub):
     client = IRCClient()
     await client.connect(ircd_hub["host"], ircd_hub["port"])
     try:
-        await client.send("CAP LS 302")
-        msg = await client.wait_for("CAP", timeout=5.0)
-        assert "sasl" not in msg.params[-1], msg.params
+        caps = await cap_ls_302(client)
+        assert "sasl" not in caps, caps
         # Registration stays suspended: no CAP END yet.
         await client.send("NICK capsplit7")
         await client.send("USER testuser 0 * :Test User")
@@ -372,8 +369,7 @@ async def test_cap_del_aborts_sasl_exchange_in_progress(ircd_hub):
     client = IRCClient()
     await client.connect(ircd_hub["host"], ircd_hub["port"])
     try:
-        await client.send("CAP LS 302")
-        await client.wait_for("CAP", timeout=5.0)
+        await cap_ls_302(client)
 
         srv, _ = await _half_link_with_sasl_server(
             ircd_hub, sasl_server="services.test.net", downstreams=()

@@ -32,6 +32,24 @@ async def make_cap_client(
     return client
 
 
+async def cap_ls_302(client: IRCClient, timeout: float = 5.0) -> set[str]:
+    """Send CAP LS 302 and read the whole reply, however many lines it spans.
+
+    Continuation lines carry a ``*`` before the trailing list
+    (``CAP <nick> LS * :...``).  Reading only the first line would leave
+    the rest queued for the next ``wait_for("CAP")``.  Returns the
+    capability names without their ``=value``.
+    """
+    await client.send("CAP LS 302")
+    names = set()
+    while True:
+        msg = await client.wait_for("CAP", timeout=timeout)
+        assert msg.params[1] == "LS", f"expected CAP LS, got {msg.params}"
+        names.update(tok.split("=", 1)[0] for tok in msg.params[-1].split())
+        if len(msg.params) < 4 or msg.params[2] != "*":
+            return names
+
+
 async def oper_up(client: IRCClient, name: str = "testoper", password: str = "operpass"):
     await client.send(f"OPER {name} {password}")
     while True:

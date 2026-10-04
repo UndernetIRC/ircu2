@@ -17,6 +17,7 @@ import asyncio
 
 import pytest
 
+from cap_helpers import cap_ls_302
 from irc_client import IRCClient
 from p10_server import P10Server
 from tls.helpers import links_contains, oper_up
@@ -95,9 +96,8 @@ async def _isolated_leaf_client(hub_op, leaf_op, leaf1, nick: str) -> IRCClient:
 
         client = IRCClient()
         await client.connect(leaf1["host"], leaf1["port"])
-        await client.send("CAP LS 302")
-        msg = await client.wait_for("CAP", timeout=5.0)
-        assert "sasl" not in msg.params[-1], f"lone leaf advertises sasl: {msg.params}"
+        caps = await cap_ls_302(client)
+        assert "sasl" not in caps, f"lone leaf advertises sasl: {caps}"
         await client.send("CAP END")
         await client.register(nick, "testuser", "Test User")
         await drain(client, 1.0)

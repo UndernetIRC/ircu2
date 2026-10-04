@@ -11,6 +11,7 @@ import asyncio
 
 import pytest
 
+from cap_helpers import cap_ls_302
 from irc_client import IRCClient
 from p10_server import P10Server
 
@@ -36,9 +37,7 @@ async def services(ircd_hub):
 
 async def _start_sasl(client: IRCClient, services: P10Server) -> tuple[str, str]:
     """Negotiate sasl and send AUTHENTICATE PLAIN; return (hub numeric, routing)."""
-    await client.send("CAP LS 302")
-    msg = await client.wait_for("CAP", timeout=5.0)
-    assert "sasl" in msg.params[-1], "hub does not advertise sasl"
+    assert "sasl" in await cap_ls_302(client), "hub does not advertise sasl"
     await client.send("CAP REQ :sasl")
     msg = await client.wait_for("CAP", timeout=5.0)
     assert msg.params[1] == "ACK", msg.params
