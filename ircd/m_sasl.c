@@ -123,8 +123,7 @@ static void sasl_timeout_callback(struct Event* ev)
     send_reply(cptr, ERR_SASLFAIL, "Authentication timed out");
     
     /* Clear SASL session */
-    sasl_stop_timeout(cptr);
-    cli_sasl(cptr) = 0;
+    sasl_end_session(cptr);
   }
 }
 
@@ -174,10 +173,7 @@ int m_sasl(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
  
   if (strcmp(parv[1], "*") == 0) {
     /* SASL abort - stop timeout and clear session */
-    if (cli_sasl(cptr)) {
-      sasl_stop_timeout(cptr);
-      cli_sasl(cptr) = 0;
-    }
+    sasl_end_session(cptr);
     send_reply(cptr, ERR_SASLABORTED);
     return 0;
   }

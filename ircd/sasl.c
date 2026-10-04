@@ -264,6 +264,20 @@ struct Client* find_sasl_client(unsigned long cookie) {
   return NULL;
 }
 
+/** End a local client's SASL session, if one is in progress.
+ * Stops the timeout and drops the cookie from the session table, so a
+ * reply the SASL server sends for it later cannot reach the client.
+ * @param[in] cptr Local client whose session to end.
+ */
+void sasl_end_session(struct Client* cptr)
+{
+  if (!cli_sasl(cptr))
+    return;
+  sasl_stop_timeout(cptr);
+  sasl_session_remove(cli_sasl(cptr));
+  cli_sasl(cptr) = 0;
+}
+
 /** Handle SASL extension reply from authentication server
  * @param[in] sptr Server that sent the reply
  * @param[in] routing Routing information (should be SASL cookie)
