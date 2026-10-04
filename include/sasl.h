@@ -31,6 +31,7 @@ struct StatDesc;
 extern void sasl_init(void);
 extern int sasl_available(void);
 extern struct Client* sasl_server(void);
+extern void sasl_server_introduced(struct Client* acptr);
 extern void sasl_server_exiting(struct Client* acptr);
 extern int sasl_mechanism_supported(const char* mechanism);
 extern void sasl_check_capability(void);

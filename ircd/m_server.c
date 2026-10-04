@@ -814,7 +814,7 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * the only chance to notice it.  For a server introduced as bursting
    * (J), or behind a bursting hop, sasl_server() still reports it
    * unusable and the END_OF_BURST handler picks it up later. */
-  sasl_check_capability();
+  sasl_server_introduced(acptr);
 
   return 0;
 }

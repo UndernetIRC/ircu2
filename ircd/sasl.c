@@ -85,6 +85,23 @@ static int sasl_path_bursting(struct Client* acptr)
   return 0;
 }
 
+/** Get the collapse()d SASL server mask.
+ * Works on a copy: collapse() would modify the netconf value in place.
+ * @param[out] mask Buffer of HOSTLEN + 1 bytes.
+ * @return Non-zero if SASL is configured (server mask and mechanisms).
+ */
+static int sasl_server_mask(char* mask)
+{
+  if (!*netconf_str(NETCONF_SASL_SERVER)
+      || !*netconf_str(NETCONF_SASL_MECHANISMS))
+    return 0;
+
+  ircd_strncpy(mask, netconf_str(NETCONF_SASL_SERVER), HOSTLEN);
+  mask[HOSTLEN] = '\0';
+  collapse(mask);
+  return 1;
+}
+
 /** SASL server chosen by the last sasl_check_capability(), or NULL. */
 static struct Client* sasl_server_cache;
 
@@ -107,15 +124,8 @@ static struct Client* sasl_find_server(void)
   struct Client* acptr;
   unsigned int iter = 0;
 
-  if (!*netconf_str(NETCONF_SASL_SERVER)
-      || !*netconf_str(NETCONF_SASL_MECHANISMS))
+  if (!sasl_server_mask(mask))
     return NULL;
-
-  /* Work on a copy: find_match_server() would collapse() the netconf
-   * value in place. */
-  ircd_strncpy(mask, netconf_str(NETCONF_SASL_SERVER), HOSTLEN);
-  mask[HOSTLEN] = '\0';
-  collapse(mask);
 
   while ((acptr = find_match_server_next(mask, &iter))) {
     if (!sasl_path_bursting(acptr))
@@ -148,6 +158,19 @@ void sasl_server_exiting(struct Client* acptr)
 {
   if (acptr == sasl_server_cache)
     sasl_server_cache = NULL;
+}
+
+/** Re-check SASL availability for a newly introduced server.
+ * Only a server matching the SASL server mask can change the answer, so
+ * the server list scan is skipped for every other server in a netburst.
+ * @param[in] acptr Server just introduced.
+ */
+void sasl_server_introduced(struct Client* acptr)
+{
+  char mask[HOSTLEN + 1];
+
+  if (sasl_server_mask(mask) && !match(mask, cli_name(acptr)))
+    sasl_check_capability();
 }
 
 /** Check if SASL is available
