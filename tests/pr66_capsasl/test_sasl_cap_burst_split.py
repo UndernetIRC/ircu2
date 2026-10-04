@@ -357,3 +357,38 @@ async def test_cap_new_reaches_client_still_registering(ircd_hub):
         assert caps == [("DEL", "sasl")], caps
     finally:
         await client.disconnect()
+
+
+async def test_cap_del_aborts_sasl_exchange_in_progress(ircd_hub):
+    """A client mid-AUTHENTICATE hears 904 with the DEL, not at the timeout.
+
+    Once sasl is DEL'd, m_sasl() drops every AUTHENTICATE because the
+    client no longer holds the capability, so the session must be ended
+    and the client told right away instead of after sasl.timeout (30s).
+    """
+    client = IRCClient()
+    await client.connect(ircd_hub["host"], ircd_hub["port"])
+    try:
+        await client.send("CAP LS 302")
+        await client.wait_for("CAP", timeout=5.0)
+
+        srv, _ = await _half_link_with_sasl_server(
+            ircd_hub, sasl_server="services.test.net", downstreams=()
+        )
+        await srv.send_end_of_burst()
+        await _expect_cap_new(client)
+        await srv.complete_handshake()
+
+        await client.send("CAP REQ :sasl")
+        msg = await client.wait_for("CAP", timeout=5.0)
+        assert msg.params[1] == "ACK", msg.params
+        await client.send(f"AUTHENTICATE {MECHANISMS}")
+        await srv.wait_for_token("XQ", timeout=5.0)
+
+        await srv.disconnect()
+        caps = await _collect_cap(client, 2.0)
+        assert caps == [("DEL", "sasl")], caps
+        msg = await client.wait_for("904", timeout=3.0)
+        assert "disconnected" in msg.params[-1], msg.params
+    finally:
+        await client.disconnect()

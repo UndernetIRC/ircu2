@@ -39,6 +39,7 @@
 #include "s_auth.h"
 #include "s_user.h"
 #include "s_bsd.h"
+#include "sasl.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -464,6 +465,13 @@ void cap_del(enum Capab cap)
 
     /* Disable the capability for this client. */
     CapClr(cli_active(acptr), capab_list[cap_index].cap);
+
+    /* m_sasl() ignores AUTHENTICATE once the capability is gone, so a
+     * client caught mid-exchange would only hear of it at the timeout. */
+    if (cap == E_CAP_SASL && cli_sasl(acptr)) {
+      sasl_end_session(acptr);
+      send_reply(acptr, ERR_SASLFAIL, "The login server is currently disconnected.  Please excuse the inconvenience.");
+    }
   }
 }
 
