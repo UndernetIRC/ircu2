@@ -8,6 +8,10 @@ use strict;
 use warnings;
 use FileHandle;
 
+# Reported via "V"; tests poll STATS iauthconf for it to know the policy
+# line below has been processed (both arrive in order on the same pipe).
+my $VERSION = "iauth-trust-username";
+
 my %pending;
 
 sub reply {
@@ -27,9 +31,17 @@ sub trust_user {
     return $user;
 }
 
+# Approve only once both USER (trusted reply sent) and NICK are seen, so the
+# "U" reply always reaches ircu before "D" regardless of NICK/USER order.
+sub maybe_done {
+    my ($client) = @_;
+    reply("D", $client) if $client->{user} and $client->{nick};
+}
+
 autoflush STDOUT 1;
 # A: get USER (U) from the client; R: require approval; U: Undernet n/u/H.
 print "O ARU\n";
+print "V $VERSION\n";
 
 while (<>) {
     s/\r?\n?\r?$//;
@@ -39,10 +51,14 @@ while (<>) {
         $pending{$id} = { id => $id, ip => $1, port => $2 };
     } elsif (/^([DT])/ and $client) {
         delete $pending{$id};
-    } elsif (/^[Uu] (\S+)/ and $client) {
-        # Trusted Username (capital U): GotId, no tilde on registration.
+    } elsif (/^U (\S+)/ and $client) {
+        # USER notification: reply with a trusted Username (capital U),
+        # which sets GotId so registration keeps it without a tilde.
         reply("U " . trust_user($1), $client);
+        $client->{user} = 1;
+        maybe_done($client);
     } elsif (/^n (.+)$/ and $client) {
-        reply("D", $client);
+        $client->{nick} = 1;
+        maybe_done($client);
     }
 }

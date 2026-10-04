@@ -31,7 +31,7 @@ async def _try_register(host, port, nick, username) -> tuple[bool, str]:
             try:
                 msg = await client.recv(timeout=remaining)
             except (asyncio.TimeoutError, ConnectionError) as exc:
-                return False, f"disconnect:{exc!s}"
+                return False, f"disconnect:{exc}"
             if msg.command in ("376", "422"):
                 return True, "registered"
             if (

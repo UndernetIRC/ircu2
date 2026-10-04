@@ -199,7 +199,7 @@ async def test_ambiguous_mask_blocks_reconnect(ircd_hub, oper):
     try:
         await victim.send("NICK vict5c")
         await victim.send("USER victim 0 * :Test Victim")
-        # Ident lookup must time out before find_kill runs; allow headroom.
+        # Registration waits on ident (up to AUTH_TIMEOUT) before find_kill; allow headroom.
         deadline = asyncio.get_running_loop().time() + 20.0
         while True:
             remaining = deadline - asyncio.get_running_loop().time()
