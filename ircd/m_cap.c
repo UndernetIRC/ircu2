@@ -39,6 +39,7 @@
 #include "s_auth.h"
 #include "s_user.h"
 #include "s_bsd.h"
+#include "sasl.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -364,6 +365,21 @@ static struct subcmd {
   { "REQ",   cap_req   }
 };
 
+/** Check whether a local connection should be told about NEW/DEL.
+ * cap-notify takes effect when it is negotiated (implicitly by CAP LS
+ * 302), not at registration: a client still registering must hear that a
+ * capability appeared, or it registers without ever learning of it.
+ * @param[in] acptr Local connection to test.
+ * @return Non-zero if \a acptr is a (possibly unregistered) user with
+ * cap-notify active.
+ */
+static int cap_notify_target(struct Client *acptr)
+{
+  return MyConnect(acptr)
+    && (IsUser(acptr) || IsUserPort(acptr) || IsWebsocketPort(acptr))
+    && CapHas(cli_active(acptr), CAP_CAPNOTIFY);
+}
+
 /** Send CAP NEW to all clients with cap-notify capability
  * @param[in] cap Capability enum value
  */
@@ -372,7 +388,6 @@ void cap_new(enum Capab cap)
   struct Client* acptr;
   int i;
   int cap_index = -1;
-  unsigned long flags;
   const char* cap_name = NULL;
   const char* cap_value = "";
   
@@ -382,7 +397,6 @@ void cap_new(enum Capab cap)
       cap_index = i;
       cap_name = capab_list[i].name;
       cap_value = capab_list[i].value;
-      flags = capab_list[i].flags;
       break;
     }
   }
@@ -396,19 +410,18 @@ void cap_new(enum Capab cap)
     return;
   
   /* Iterate through all local clients */
-  for (i = 0; i < HighestFd; i++) {
+  for (i = 0; i <= HighestFd; i++) {
     if (!(acptr = LocalClientArray[i]))
       continue;
       
-    /* Only send to registered users with cap-notify capability */
-    if (!IsUser(acptr) || !MyConnect(acptr) || !CapHas(cli_active(acptr), CAP_CAPNOTIFY))
+    if (!cap_notify_target(acptr))
       continue;
       
     /* Send CAP NEW message */
     if (cap_value && *cap_value && HasFlag(acptr, FLAG_CAP302)) {
-      sendcmdto_one(&me, CMD_CAP, acptr, "%C NEW %s=%s", acptr, cap_name, cap_value);
+      sendcmdto_one(&me, CMD_CAP, acptr, "%C NEW :%s=%s", acptr, cap_name, cap_value);
     } else {
-      sendcmdto_one(&me, CMD_CAP, acptr, "%C NEW %s", acptr, cap_name);
+      sendcmdto_one(&me, CMD_CAP, acptr, "%C NEW :%s", acptr, cap_name);
     }
   }
 }
@@ -421,7 +434,6 @@ void cap_del(enum Capab cap)
   struct Client* acptr;
   int i;
   int cap_index = -1;
-  unsigned long flags;
   const char* cap_name = NULL;
   
   /* Find the capability in the list */
@@ -437,13 +449,17 @@ void cap_del(enum Capab cap)
     return;
   }
   
+  /* A capability disabled by its feature was never advertised (see
+   * cap_new() and send_caplist()), so there is nothing to withdraw. */
+  if (capab_list[cap_index].config != 0 && !feature_bool(capab_list[cap_index].config))
+    return;
+  
   /* Iterate through all local clients */
-  for (i = 0; i < HighestFd; i++) {
+  for (i = 0; i <= HighestFd; i++) {
     if (!(acptr = LocalClientArray[i]))
       continue;
       
-    /* Only send to registered users with cap-notify capability */
-    if (!IsUser(acptr) || !MyConnect(acptr) || !CapHas(cli_active(acptr), CAP_CAPNOTIFY))
+    if (!cap_notify_target(acptr))
       continue;
       
     /* Send CAP DEL message */
@@ -451,6 +467,13 @@ void cap_del(enum Capab cap)
 
     /* Disable the capability for this client. */
     CapClr(cli_active(acptr), capab_list[cap_index].cap);
+
+    /* m_sasl() ignores AUTHENTICATE once the capability is gone, so a
+     * client caught mid-exchange would only hear of it at the timeout. */
+    if (cap == E_CAP_SASL && cli_sasl(acptr)) {
+      sasl_end_session(acptr);
+      send_reply(acptr, ERR_SASLFAIL, "The login server is currently disconnected.  Please excuse the inconvenience.");
+    }
   }
 }
 

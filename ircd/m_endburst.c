@@ -125,6 +125,10 @@ int ms_end_of_burst(struct Client* cptr, struct Client* sptr, int parc, char* pa
   if (MyConnect(sptr))
     sendcmdto_one(&me, CMD_END_OF_BURST_ACK, sptr, "");
 
+  /* The SASL server may have become reachable now that this link (or a
+   * link on the path to it) has completed its burst. */
+  sasl_check_capability();
+
   /* Count through channels... */
   for (chan = GlobalChannelList; chan; chan = next_chan) {
     next_chan = chan->next;
@@ -156,7 +160,6 @@ int ms_end_of_burst_ack(struct Client *cptr, struct Client *sptr, int parc, char
 		       sptr);
   sendcmdto_serv_butone(sptr, CMD_END_OF_BURST_ACK, cptr, "");
   ClearBurstAck(sptr);
-  sasl_check_capability();
 
   return 0;
 }

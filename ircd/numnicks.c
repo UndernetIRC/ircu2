@@ -415,15 +415,33 @@ int markMatchexServer(const char *cmask, int minlen)
  */
 struct Client* find_match_server(char *mask)
 {
-  struct Client *acptr;
-  int i;
+  unsigned int iter = 0;
 
-  if (!(BadPtr(mask))) {
-    collapse(mask);
-    for (i = 0; i < lastNNServer; i++) {
-      if ((acptr = server_list[i]) && (!match(mask, cli_name(acptr))))
-        return acptr;
-    }
+  if (BadPtr(mask))
+    return 0;
+  collapse(mask);
+  return find_match_server_next(mask, &iter);
+}
+
+/** Find the next server whose name matches the given mask.
+ * Scans server_list[] in numnick order starting at *iter, which is
+ * advanced past the returned server so repeated calls enumerate every
+ * match.  Unlike find_match_server(), the mask is not collapse()d and
+ * not modified.
+ * @param[in] mask %Server name mask (already collapse()d).
+ * @param[in,out] iter Scan position; start at 0.
+ * @return Next matching server, or NULL when exhausted.
+ */
+struct Client* find_match_server_next(const char *mask, unsigned int *iter)
+{
+  struct Client *acptr;
+
+  if (BadPtr(mask))
+    return 0;
+  while (*iter < lastNNServer) {
+    acptr = server_list[(*iter)++];
+    if (acptr && !match(mask, cli_name(acptr)))
+      return acptr;
   }
   return 0;
 }

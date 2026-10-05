@@ -123,8 +123,7 @@ static void sasl_timeout_callback(struct Event* ev)
     send_reply(cptr, ERR_SASLFAIL, "Authentication timed out");
     
     /* Clear SASL session */
-    sasl_stop_timeout(cptr);
-    cli_sasl(cptr) = 0;
+    sasl_end_session(cptr);
   }
 }
 
@@ -166,8 +165,7 @@ int m_sasl(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (HasFlag(sptr, FLAG_SASL) || HasFlag(sptr, FLAG_ACCOUNT))
     return send_reply(cptr, ERR_SASLALREADY);
 
-  acptr = find_match_server((char*)netconf_str(NETCONF_SASL_SERVER));
-  if (!sasl_available() || !acptr)
+  if (!(acptr = sasl_server()))
     return send_reply(cptr, ERR_SASLFAIL, "The login server is currently disconnected.  Please excuse the inconvenience.");
 
   if (strlen(parv[1]) > 400)
@@ -175,10 +173,7 @@ int m_sasl(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
  
   if (strcmp(parv[1], "*") == 0) {
     /* SASL abort - stop timeout and clear session */
-    if (cli_sasl(cptr)) {
-      sasl_stop_timeout(cptr);
-      cli_sasl(cptr) = 0;
-    }
+    sasl_end_session(cptr);
     send_reply(cptr, ERR_SASLABORTED);
     return 0;
   }

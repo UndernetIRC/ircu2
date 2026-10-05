@@ -49,6 +49,7 @@
 #include "s_serv.h"
 #include "send.h"
 #include "userload.h"
+#include "sasl.h"
 
 /* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <stdlib.h>
@@ -811,6 +812,13 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
   
   compute_secure_path_groups();
+
+  /* A server matching sasl.server introduced as already past its burst
+   * (P) over an established link never sends END_OF_BURST, so this is
+   * the only chance to notice it.  For a server introduced as bursting
+   * (J), or behind a bursting hop, sasl_server() still reports it
+   * unusable and the END_OF_BURST handler picks it up later. */
+  sasl_server_introduced(acptr);
 
   return 0;
 }

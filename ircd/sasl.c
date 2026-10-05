@@ -29,6 +29,7 @@
 #include "ircd_events.h"
 #include "ircd_log.h"
 #include "ircd_string.h"
+#include "match.h"
 #include "ircd_reply.h"
 #include "ircd_netconf.h"
 #include "send.h"
@@ -71,17 +72,120 @@ static struct SaslSessionEntry* sasl_session_table[SASL_HASH_SIZE];
 /** Global SASL statistics */
 static struct SaslStats sasl_statistics = { 0, 0 };
 
+/** Check whether any server on the path from us to \a acptr is bursting.
+ * @param[in] acptr Server to test.
+ * @return 1 if \a acptr or one of its uplinks is still bursting.
+ */
+static int sasl_path_bursting(struct Client* acptr)
+{
+  for (; acptr && !IsMe(acptr); acptr = cli_serv(acptr)->up) {
+    if (IsBurst(acptr))
+      return 1;
+  }
+  return 0;
+}
+
+/** Get the collapse()d SASL server mask.
+ * Works on a copy: collapse() would modify the netconf value in place.
+ * A mask that does not fit is treated as unset rather than truncated,
+ * which would silently match different servers than configured;
+ * sasl_config_callback() tells the opers.  With a BUFSIZE buffer that
+ * cannot happen for a value that arrived in a protocol line.
+ * @param[out] mask Buffer for the mask.
+ * @param[in] size Size of \a mask.
+ * @return Non-zero if SASL is configured (server mask and mechanisms).
+ */
+static int sasl_server_mask(char* mask, size_t size)
+{
+  const char* conf = netconf_str(NETCONF_SASL_SERVER);
+
+  if (!*conf || !*netconf_str(NETCONF_SASL_MECHANISMS)
+      || strlen(conf) >= size)
+    return 0;
+
+  ircd_strncpy(mask, conf, size - 1);
+  collapse(mask);
+  return 1;
+}
+
+/** SASL server chosen by the last sasl_check_capability(), or NULL. */
+static struct Client* sasl_server_cache;
+
+/** Search the server list for the SASL server to use.
+ *
+ * A usable SASL server exists when a SASL server mask and a mechanism
+ * list are configured and some linked server matches the mask with no
+ * bursting server on the path between us and it.  A half-completed link
+ * may already have introduced a matching server, but it is neither
+ * advertised nor routed to until END_OF_BURST has been received from
+ * every hop on the way.  With a wildcard mask, every match is considered
+ * and the first (lowest numnick) fully linked one wins, so a matching
+ * server that is re-linking does not mask an established one.
+ *
+ * @return The SASL server, or NULL if none is usable.
+ */
+static struct Client* sasl_find_server(void)
+{
+  char mask[BUFSIZE];
+  struct Client* acptr;
+  unsigned int iter = 0;
+
+  if (!sasl_server_mask(mask, sizeof(mask)))
+    return NULL;
+
+  while ((acptr = find_match_server_next(mask, &iter))) {
+    if (!sasl_path_bursting(acptr))
+      return acptr;
+  }
+  return NULL;
+}
+
+/** Get the SASL server to send AUTHENTICATE requests to.
+ *
+ * Returns the server sasl_check_capability() last validated, so
+ * advertising and routing always agree, without a server list scan per
+ * AUTHENTICATE line.  sasl_check_capability() runs on every event that
+ * can change the answer: a server introduced, a burst completed, a
+ * server tree removed, and a sasl.* config change.
+ * @return The SASL server, or NULL if none is usable.
+ */
+struct Client* sasl_server(void)
+{
+  return sasl_server_cache;
+}
+
+/** Forget the SASL server if it is being removed.
+ * Called for each server torn down, so the cached pointer never outlives
+ * the server; exit_client() re-runs sasl_check_capability() afterwards
+ * to pick a replacement and send CAP DEL if there is none.
+ * @param[in] acptr Server being removed.
+ */
+void sasl_server_exiting(struct Client* acptr)
+{
+  if (acptr == sasl_server_cache)
+    sasl_server_cache = NULL;
+}
+
+/** Re-check SASL availability for a newly introduced server.
+ * Only a server matching the SASL server mask can change the answer, so
+ * the server list scan is skipped for every other server in a netburst.
+ * @param[in] acptr Server just introduced.
+ */
+void sasl_server_introduced(struct Client* acptr)
+{
+  char mask[BUFSIZE];
+
+  if (sasl_server_mask(mask, sizeof(mask)) && !match(mask, cli_name(acptr)))
+    sasl_check_capability();
+}
+
 /** Check if SASL is available
- * @return 1 if SASL server is configured, 0 otherwise
+ * @return 1 if a usable SASL server is linked, 0 otherwise
+ * @see sasl_server()
  */
 int sasl_available(void)
 {
-  if (!*netconf_str(NETCONF_SASL_SERVER)
-      || !*netconf_str(NETCONF_SASL_MECHANISMS)
-      || !find_match_server((char*)netconf_str(NETCONF_SASL_SERVER)))
-    return 0;
-
-  return 1;
+  return sasl_server_cache != NULL;
 }
 
 /** Check if a mechanism exists in a mechanism list
@@ -135,7 +239,8 @@ int sasl_mechanism_supported(const char* mechanism)
  */
 void sasl_check_capability(void)
 {
-  cap_update_availability(E_CAP_SASL, sasl_available());
+  sasl_server_cache = sasl_find_server();
+  cap_update_availability(E_CAP_SASL, sasl_server_cache != NULL);
 }
 
 /** Config change callback for SASL-related configuration
@@ -148,6 +253,11 @@ static void sasl_config_callback(const char *key, const char *old_value, const c
   Debug((DEBUG_DEBUG, "SASL config changed: %s = %s (was: %s)", 
          key, new_value, old_value ? old_value : "(unset)"));
   
+  if (ircd_strcmp(key, "sasl.server") == 0 && new_value
+      && strlen(new_value) >= BUFSIZE)
+    sendto_opmask_butone(0, SNO_OLDSNO, "sasl.server is longer than %d "
+                         "characters; SASL disabled", BUFSIZE - 1);
+
   /* Update SASL capability value if mechanisms changed */
   if (ircd_strcmp(key, "sasl.mechanisms") == 0) {
     cap_set_value(E_CAP_SASL, new_value);
@@ -213,6 +323,20 @@ struct Client* find_sasl_client(unsigned long cookie) {
     entry = entry->next;
   }
   return NULL;
+}
+
+/** End a local client's SASL session, if one is in progress.
+ * Stops the timeout and drops the cookie from the session table, so a
+ * reply the SASL server sends for it later cannot reach the client.
+ * @param[in] cptr Local client whose session to end.
+ */
+void sasl_end_session(struct Client* cptr)
+{
+  if (!cli_sasl(cptr))
+    return;
+  sasl_stop_timeout(cptr);
+  sasl_session_remove(cli_sasl(cptr));
+  cli_sasl(cptr) = 0;
 }
 
 /** Handle SASL extension reply from authentication server

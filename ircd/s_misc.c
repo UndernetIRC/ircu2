@@ -261,13 +261,12 @@ static void exit_one_client(struct Client* bcptr, const char* comment)
     /* Remove downlink list node of uplink */
     remove_dlink(&(cli_serv(cli_serv(bcptr)->up))->down, cli_serv(bcptr)->updown);
     cli_serv(bcptr)->updown = 0;
+    sasl_server_exiting(bcptr);
 
     if (MyConnect(bcptr))
       Count_serverdisconnects(UserStats);
     else
       Count_remoteserverquits(UserStats);
-
-    sasl_check_capability();
   }
   else if (IsMe(bcptr))
   {
@@ -517,8 +516,14 @@ int exit_client(struct Client *cptr,
     exit_downlinks(victim, killer, comment1);
   exit_one_client(victim, comment);
 
-  if (was_server)
+  if (was_server) {
     compute_secure_path_groups();
+    /* Re-evaluate SASL availability once, now that the whole subtree is
+     * gone.  Doing it per server inside exit_one_client() could see the
+     * SASL server still linked while a sibling was being removed and emit
+     * a spurious CAP NEW right before the CAP DEL. */
+    sasl_check_capability();
+  }
 
   /*
    *  cptr can only have been killed if it was cptr itself that got killed here,
