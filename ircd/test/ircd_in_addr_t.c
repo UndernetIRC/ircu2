@@ -162,6 +162,112 @@ test_ipmask(struct ipmask_test *mask)
     printf("Passed: %s (%s/%u)\n", mask->text, ircd_ntoa(&parsed), bits);
 }
 
+/** Guarded destination for base64toip(): the 16-byte address is
+ * followed by a canary region so that any write past the end of the
+ * structure is detected rather than silently corrupting memory. */
+struct guarded_addr {
+    struct irc_in_addr addr;      /**< The real 16-byte destination. */
+    unsigned short canary[16];    /**< Trailing guard words. */
+};
+
+/** Decode @a input into a guarded address and confirm nothing was
+ * written past the 16-byte structure.
+ * @param[in] label Human-readable description of the case.
+ * @param[in] input base64 IP field to decode.
+ * @param[out] out Receives the decoded address (may be NULL).
+ */
+static void
+decode_guarded(const char *label, const char *input, struct irc_in_addr *out)
+{
+    struct guarded_addr g;
+    unsigned int ii;
+
+    for (ii = 0; ii < 16; ++ii)
+        g.canary[ii] = 0xdead;
+
+    /* If base64toip() runs off the end of g.addr it will either trip a
+     * canary here or walk into unmapped memory and crash; either way the
+     * test fails rather than passing silently. */
+    base64toip(input, &g.addr);
+
+    for (ii = 0; ii < 16; ++ii)
+        assert(g.canary[ii] == 0xdead);
+
+    if (out)
+        *out = g.addr;
+    printf("Passed: robustness [%s]\n", label);
+}
+
+/** Exercise base64toip() with malformed and boundary input. */
+static void
+test_base64_robustness(void)
+{
+    struct irc_in_addr addr;
+    struct irc_in_addr zero;
+    char buf[64];
+    unsigned int ii;
+
+    memset(&zero, 0, sizeof(zero));
+
+    /* Case 1: overlong field beginning with '_'. On unpatched code the
+     * unsigned subtraction (25 - strlen) underflows and the loop tries to
+     * write ~1.4 billion words. Must not crash, must leave the address
+     * zeroed. */
+    memset(buf, 'A', sizeof(buf));
+    buf[0] = '_';
+    buf[31] = '\0';                 /* remainder length 31 (>= 26) */
+    decode_guarded("underflow: '_' + long tail", buf, &addr);
+    assert(!memcmp(&addr, &zero, sizeof(addr)));
+
+    /* Case 2: valid groups first, so pos > 0 when the '_' underflow is
+     * computed, then an overlong compressed tail. */
+    memset(buf, 'A', sizeof(buf));
+    buf[2] = 'B';                   /* "AAB" -> one decoded word */
+    buf[3] = '_';
+    buf[31] = '\0';                 /* remainder at '_' length 28 */
+    decode_guarded("underflow: groups then long '_' tail", buf, &addr);
+
+    /* Case 3: two-character field. Unpatched code reads past the NUL and
+     * assembles adjacent bytes into the address (information leak). The
+     * poison bytes after the terminator must not influence the result. */
+    memset(buf, 'B', sizeof(buf));  /* 'B' decodes to a non-zero nibble */
+    buf[0] = 'A';
+    buf[1] = 'B';
+    buf[2] = '\0';                  /* real input is just "AB" */
+    decode_guarded("short field: 'AB' + poison", buf, &addr);
+    assert(!memcmp(&addr, &zero, sizeof(addr)));
+
+    /* Case 4: round-trip every address iptobase64() can emit, including
+     * '_' compression at the start, middle and end, must decode back
+     * identically through the hardened function. A 6-character encoding is
+     * the IPv4 form, which by design normalises to a ::ffff: mapped address,
+     * so for that form compare only the low 32 bits, exactly as the address
+     * parsing tests above do. */
+    for (ii = 0; test_addrs[ii].text; ++ii) {
+        struct irc_in_addr parsed, rt;
+        ircd_aton(&parsed, test_addrs[ii].text);
+        iptobase64(buf, &parsed, sizeof(buf), 1);
+        decode_guarded(test_addrs[ii].text, buf, &rt);
+        if (strlen(buf) == 6)
+            assert(!memcmp(rt.in6_16 + 6, parsed.in6_16 + 6, 4));
+        else
+            assert(!memcmp(&rt, &parsed, sizeof(rt)));
+    }
+
+    /* Case 5: a 24-character encoding with no '_' is the maximum legal
+     * length and must still decode. */
+    {
+        struct irc_in_addr parsed, rt;
+        ircd_aton(&parsed, "1:2:3:4:5:6:7:8");
+        iptobase64(buf, &parsed, sizeof(buf), 1);
+        assert(strlen(buf) == 24);
+        decode_guarded("max-length 24-char encoding", buf, &rt);
+        assert(!memcmp(&rt, &parsed, sizeof(rt)));
+    }
+
+    printf("Robustness tests completed.\n");
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -174,6 +280,9 @@ main(int argc, char *argv[])
     printf("\nTesting ipmask parsing..\n");
     for (ii = 0; test_masks[ii].text; ++ii)
         test_ipmask(&test_masks[ii]);
+
+    printf("\nTesting base64toip robustness..\n");
+    test_base64_robustness();
 
     return 0;
 }

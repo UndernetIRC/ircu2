@@ -517,8 +517,12 @@ const char* iptobase64(char* buf, const struct irc_in_addr* addr, unsigned int c
  */
 void base64toip(const char* input, struct irc_in_addr* addr)
 {
+  size_t len = strlen(input);
+  unsigned int pos = 0;
+
   memset(addr, 0, sizeof(*addr));
-  if (strlen(input) == 6) {
+
+  if (len == 6) {
     unsigned int in = base64toint(input);
     /* An all-zero address should stay that way. */
     if (in) {
@@ -526,20 +530,40 @@ void base64toip(const char* input, struct irc_in_addr* addr)
       addr->in6_16[6] = htons(in >> 16);
       addr->in6_16[7] = htons(in & 65535);
     }
-  } else {
-    unsigned int pos = 0;
-    do {
-      if (*input == '_') {
-        unsigned int left;
-        for (left = (25 - strlen(input)) / 3 - pos; left; left--)
-          addr->in6_16[pos++] = 0;
-        input++;
-      } else {
-        unsigned short accum = convert2n[(unsigned char)*input++];
-        accum = (accum << NUMNICKLOG) | convert2n[(unsigned char)*input++];
-        accum = (accum << NUMNICKLOG) | convert2n[(unsigned char)*input++];
-        addr->in6_16[pos++] = ntohs(accum);
-      }
-    } while (pos < 8);
+    return;
+  }
+
+  /* Eight words of three characters each is the longest legal encoding.
+   * Reject anything longer up front: this makes the unsigned subtraction
+   * below (25 - remainder) impossible to underflow. */
+  if (len > 24)
+    return;                     /* malformed: leave the address zeroed */
+
+  while (pos < 8) {
+    if (*input == '_') {
+      /* '_' compresses the remaining words to zero. The remainder from
+       * here (including the '_') encodes (rest - 1) / 3 words. */
+      size_t rest = strlen(input);
+      unsigned int words;
+
+      if (((rest - 1) % 3) != 0)
+        return;                 /* malformed: not a whole number of words */
+      words = (rest - 1) / 3;
+      if (words + pos > 8)
+        return;                 /* malformed: would overflow the address */
+      pos = 8 - words;          /* the skipped words are already zeroed */
+      input++;
+    } else {
+      unsigned short accum;
+
+      /* Each group needs three readable characters; stop before running
+       * past the terminating NUL. */
+      if (!input[0] || !input[1] || !input[2])
+        return;                 /* malformed: truncated group */
+      accum = convert2n[(unsigned char)*input++];
+      accum = (accum << NUMNICKLOG) | convert2n[(unsigned char)*input++];
+      accum = (accum << NUMNICKLOG) | convert2n[(unsigned char)*input++];
+      addr->in6_16[pos++] = ntohs(accum);
+    }
   }
 }
