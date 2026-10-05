@@ -151,9 +151,11 @@ async def test_clone_limit_throttles_and_recovers(ipcheck_env):
 
 
 async def test_refused_attempt_restarts_period(ipcheck_env):
-    """A throttled attempt is itself an attempt: reconnecting just inside
-    the period after a refusal is refused again."""
+    """A throttled attempt is itself an attempt: it restarts the period, so
+    an address that keeps retrying stays refused even once the last
+    *accepted* connect is more than a period in the past."""
     srv, _ = ipcheck_env
+    half = CLONE_PERIOD / 2 + 0.5
     await _idle_out_period()
     clients = []
     try:
@@ -161,7 +163,11 @@ async def test_refused_attempt_restarts_period(ipcheck_env):
             c, _ = await register_with_notice(srv["host"], srv["port"], f"ipcref{i}")
             clients.append(c)
         await register_expect_throttled(srv["host"], srv["port"])
-        await asyncio.sleep(CLONE_PERIOD - 1)
+        await asyncio.sleep(half)
+        await register_expect_throttled(srv["host"], srv["port"])
+        await asyncio.sleep(half)
+        # More than CLONE_PERIOD since the last accepted connect, but only
+        # half a period since the last refusal: still refused.
         await register_expect_throttled(srv["host"], srv["port"])
         await _idle_out_period()
         c, _ = await register_with_notice(srv["host"], srv["port"], "ipcrefok")
