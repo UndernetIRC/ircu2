@@ -488,7 +488,7 @@ static int ip_registry_check_local(const struct irc_in_addr *addr, time_t* next_
     ip_registry_canonicalize(&entry->addr, addr);
     ip_registry_add(entry);
     Debug((DEBUG_DNS, "IPcheck added new registry for local connection from %s.", ircd_ntoa(&entry->addr)));
-    return 1;
+    return IPCHECK_COUNTED;
   }
   /* Note that this also counts server connects.
    * It is hard and not interesting, to change that.
@@ -498,7 +498,7 @@ static int ip_registry_check_local(const struct irc_in_addr *addr, time_t* next_
   {
     entry->connected--;
     Debug((DEBUG_DNS, "IPcheck refusing local connection from %s: counter overflow.", ircd_ntoa(&entry->addr)));
-    return 0;
+    return IPCHECK_REFUSED;
   }
 
   if (CONNECTED_SINCE(entry->last_connect) > IPCHECK_CLONE_PERIOD)
@@ -528,11 +528,11 @@ reject:
       --entry->connected;
     }
     Debug((DEBUG_DNS, "IPcheck refusing local connection from %s: too fast.", ircd_ntoa(addr)));
-    return 0;
+    return IPCHECK_REFUSED;
   }
 #endif
   Debug((DEBUG_DNS, "IPcheck accepting local connection from %s.", ircd_ntoa(&entry->addr)));
-  return 1;
+  return IPCHECK_COUNTED;
 }
 
 /** Check whether a connection from a remote client should be allowed.
