@@ -263,7 +263,9 @@ send_raw_buffer(struct Client *to, struct MsgBuf *mb, int prio)
  * path (single-recipient sends carry only this, not the full cache). */
 struct MsgTagCtx {
   struct MsgTag *tags;        /**< Tags parsed from the current input line. */
-  time_t         local_time;  /**< Delivery time for server-time / @time=. */
+  time_t         local_time;  /**< Delivery time for server-time / @time=
+                                 (network time, TStime(), so stamps share
+                                 the base of every P10 epoch). */
   const char    *tok;         /**< Command token for S2S policy (or NULL). */
   int            client_relay;   /**< Has relayable client-only (+) tags. */
   int            s2s_needs_time; /**< Invent/forward @time= on S2S for this command. */
@@ -286,7 +288,7 @@ static void
 msgtagctx_init(struct MsgTagCtx *ctx, const char *tok)
 {
   ctx->tags = parse_tags();
-  ctx->local_time = CurrentTime;
+  ctx->local_time = TStime();
   ctx->tok = tok;
   ctx->client_relay = msg_tag_have_client_relay(ctx->tags);
   ctx->s2s_needs_time = tok ? msg_tag_s2s_needs_time(tok) : 0;
@@ -347,7 +349,7 @@ void send_buffer(struct Client* to, struct Client* from, struct MsgBuf* buf, int
   const char *prefix = 0;
   unsigned int taglen = 0;
   const struct MsgTagCtx *tctx = cache ? &cache->ctx : ctx;
-  time_t local_time = tctx ? tctx->local_time : CurrentTime;
+  time_t local_time = tctx ? tctx->local_time : TStime();
   struct MsgTag *tags = tctx ? tctx->tags : parse_tags();
 
   assert(0 != to);

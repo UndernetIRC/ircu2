@@ -1017,8 +1017,9 @@ NETWORK_TIME
 When TRUE, this server invents and forwards @time= on P10 for
 client-visible events (subject to NETWORK_FEATURES).  When FALSE, time
 is not sent on S2S; clients that negotiated server-time or message-tags
-receive a stamp based on CurrentTime at local delivery instead of any
-upstream time tag.
+receive a stamp based on the local delivery time instead of any
+upstream time tag.  Time stamps use network time (the system clock
+adjusted by SETTIME), the same base as every P10 timestamp.
 
 TLS_CIPHERS
  * Type: string

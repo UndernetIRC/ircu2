@@ -441,9 +441,16 @@ msg_tag_format_s2s(char *buf, size_t buflen, struct MsgTag *tags,
   for (tag = tags; tag; tag = tag->next) {
     if (!ircd_strcmp(tag->key, "time") || !ircd_strcmp(tag->key, "account"))
       continue;
-    if (msg_tag_key_client_only(tag->key))
-      continue;
-    if (!msg_tag_key_federated(tag->key))
+    if (msg_tag_key_client_only(tag->key)) {
+      /* Client-only (+) tags travel with the message so clients on other
+       * servers receive them too.  Our CLIENTTAGDENY applies here as well:
+       * tags from a local client were already filtered at parse time, and
+       * tags relayed from another server are subject to this server's
+       * policy before they leave it.  The receiving server filters again
+       * on delivery. */
+      if (!msg_tag_client_allowed(tag->key))
+        continue;
+    } else if (!msg_tag_key_federated(tag->key))
       continue;
     pos = msg_tag_append(pos, end, &wrote, tag->key, tag->value);
     if (!pos)

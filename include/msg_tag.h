@@ -76,8 +76,9 @@ int msg_tag_s2s_needs_time(const char *tok);
 /** Format federated tags for a server-server wire line.
  * When \a invent_time is non-zero, include \a time (from \a tags or
  * \a local_time).  Otherwise never invent or forward \a time.
- * Also forwards other federated keys present in \a tags (e.g. \a batch).
- * Never includes \a account or client-only tags.
+ * Also forwards other federated keys present in \a tags (e.g. \a batch)
+ * and client-only (+) tags permitted by CLIENTTAGDENY, so they reach
+ * clients on other servers.  Never includes \a account.
  * @return Length of prefix beginning with '@' and ending with a space, or 0.
  */
 unsigned int msg_tag_format_s2s(char *buf, size_t buflen, struct MsgTag *tags,
@@ -89,7 +90,8 @@ unsigned int msg_tag_format_s2s(char *buf, size_t buflen, struct MsgTag *tags,
  * @param[in] to Recipient (for capability checks).
  * @param[in] from Message source (for account-tag; may be NULL).
  * @param[in] tags Upstream tag list from parse (may be NULL).
- * @param[in] local_time Time to use when no upstream \a time tag is present.
+ * @param[in] local_time Time to use when no upstream \a time tag is present
+ *                       (network time, TStime()).
  * @return Length of formatted prefix excluding trailing space, or 0 if no tags.
  *         On success \a buf begins with '@' and ends with a separating space.
  */
