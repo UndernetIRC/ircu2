@@ -28,6 +28,7 @@
 
 time_t CurrentTime;
 extern struct Client me;
+extern int test_debug_quiet;   /* test_stub.c */
 
 static int f_clone_limit  = 4;
 static int f_clone_period = 40;
@@ -699,8 +700,10 @@ static void test_connected_overflow(void)
   begin("connected_overflow");
   cli_since(&me) = CurrentTime;   /* grace: nothing refused for rate */
 
+  test_debug_quiet = 1;           /* 65535 Debug() lines otherwise */
   for (i = 0; i < 65535; i++)
     CHECK(IPcheck_local_connect(&a, &nt) != 0);
+  test_debug_quiet = 0;
   CHECK_EQ(nr("10.13.0.1"), 65535);
   CHECK(IPcheck_local_connect(&a, &nt) == 0);
   CHECK_EQ(nr("10.13.0.1"), 65535);
