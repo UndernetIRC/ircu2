@@ -132,6 +132,7 @@ static void move_marker(void)
  *            and %flags to specify what fields to output
  *            plus a ,querytype if the t flag is specified
  *            so the final thing will be like o%tnchu,777
+ *            Special flags before %: o, d, x, e (e = exact/real user@host)
  *  parv[3] = _optional_ parameter that overrides parv[1]
  *            This can be used as "/quote who foo % :The Black Hacker
  *            to find me, parv[3] _can_ contain spaces !.
@@ -187,6 +188,15 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         case 'X':
           if (HasPriv(sptr, PRIV_WHOX) && IsAnOper(sptr)) {
               bitsel |= WHOSELECT_EXTRA;
+              log_write(LS_WHO, L_INFO, LOG_NOSNOTICE, "%#C WHO %s %s", sptr,
+                        (BadPtr(parv[3]) ? parv[1] : parv[3]), parv[2]);
+          }
+          continue;
+        case 'e':
+        case 'E':
+          /* Show exact/real username and host (opers only). */
+          if (IsAnOper(sptr)) {
+              bitsel |= WHOSELECT_REAL;
               log_write(LS_WHO, L_INFO, LOG_NOSNOTICE, "%#C WHO %s %s", sptr,
                         (BadPtr(parv[3]) ? parv[1] : parv[3]), parv[2]);
           }
@@ -344,7 +354,7 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
               continue;
             if (!(isthere || (SHOW_MORE(sptr, counter))))
               break;
-            do_who(sptr, acptr, chptr, fields, qrt);
+            do_who(sptr, acptr, chptr, fields, qrt, bitsel);
           }
         }
       }
@@ -354,7 +364,7 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
             ((!(bitsel & WHOSELECT_OPER)) || SeeOper(sptr,acptr)) &&
             Process(acptr) && SHOW_MORE(sptr, counter))
         {
-          do_who(sptr, acptr, 0, fields, qrt);
+          do_who(sptr, acptr, 0, fields, qrt, bitsel);
         }
       }
     }
@@ -428,7 +438,7 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
             continue;
           if (!SHOW_MORE(sptr, counter))
             break;
-          do_who(sptr, acptr, chptr, fields, qrt);
+          do_who(sptr, acptr, chptr, fields, qrt, bitsel);
         }
       }
     }
@@ -470,7 +480,7 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
           continue;
         if (!SHOW_MORE(sptr, counter))
           break;
-        do_who(sptr, acptr, 0, fields, qrt);
+        do_who(sptr, acptr, 0, fields, qrt, bitsel);
       }
   }
 

@@ -67,9 +67,10 @@
  * @param[in] repchan Shared channel that provides visibility.
  * @param[in] fields Bitmask of WHO_FIELD_* values, indicating what to show.
  * @param[in] qrt Query type string (ignored unless \a fields & WHO_FIELD_QTY).
+ * @param[in] bitsel Bitmask of WHOSELECT_* values (e.g. WHOSELECT_REAL).
  */
 void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
-            int fields, char* qrt)
+            int fields, char* qrt, int bitsel)
 {
   char *p1;
   struct Membership *chan = 0;
@@ -122,7 +123,8 @@ void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
 
   if (!fields || (fields & WHO_FIELD_UID))
   {
-    const char *p2 = visible_username(acptr);
+    const char *p2 = (bitsel & WHOSELECT_REAL) ?
+      cli_user(acptr)->username : visible_username(acptr);
     *(p1++) = ' ';
     while ((*p2) && (*(p1++) = *(p2++)));
   }
@@ -138,7 +140,8 @@ void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
 
   if (!fields || (fields & WHO_FIELD_HOS))
   {
-    char *p2 = cli_user(acptr)->host;
+    char *p2 = (bitsel & WHOSELECT_REAL) ?
+      cli_user(acptr)->realhost : cli_user(acptr)->host;
     *(p1++) = ' ';
     while ((*p2) && (*(p1++) = *(p2++)));
   }

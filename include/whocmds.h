@@ -24,6 +24,7 @@ struct Channel;
 #define WHOSELECT_OPER 1   /**< Flag for /WHO: Show IRC operators. */
 #define WHOSELECT_EXTRA 2  /**< Flag for /WHO: Pull rank to see users. */
 #define WHOSELECT_DELAY 4  /**< Flag for /WHO: Show join-delayed users. */
+#define WHOSELECT_REAL 8   /**< Flag for /WHO: Show real username and host. */
 
 #define WHO_FIELD_QTY 1    /**< Display query type. */
 #define WHO_FIELD_CHA 2    /**< Show common channel name. */
@@ -87,6 +88,6 @@ struct Channel;
  * Prototypes
  */
 extern void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
-                   int fields, char* qrt);
+                   int fields, char* qrt, int bitsel);
 
 #endif /* INCLUDED_whocmds_h */

@@ -84,6 +84,11 @@ in which:
        means that the query is almost certainly logged and the admin might
        (rightfully) ask you an explanation on why you did.
 
+   e   If this is specified, operators see the real username and real
+       hostname in the user and host output fields instead of the visible
+       forms.  Non-operators specifying e are ignored.  As with 'x', the
+       query is logged.
+
    The rest, what follows the %, that is [%[fields[,<querytype>]]], is as it
    has always been since the first who.patch, the <fields> part specifies
    wich fields to include in the output as:
