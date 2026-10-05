@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import pytest
 
-from ipcheck.helpers import disconnect_all, register_with_notice, userip
+from pr102_ipcheck.helpers import disconnect_all, register_with_notice, userip
 from irc_client import IRCClient
 from p10_server import P10Server
 from tls.helpers import oper_up

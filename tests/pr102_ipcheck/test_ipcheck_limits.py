@@ -29,7 +29,7 @@ import pytest
 import pytest_asyncio
 
 from class_limits.helpers import rehash_config, restore_config
-from ipcheck.helpers import (
+from pr102_ipcheck.helpers import (
     disconnect_all,
     raw_connect_first_line,
     register_expect_no_notice,
