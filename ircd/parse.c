@@ -704,6 +704,19 @@ parse_tags(void)
   return current_tags;
 }
 
+/** Forget the current line's tags.
+ * The parsed tags point into the sending client's connection buffer, so
+ * they are only valid while that line's handler runs.  A send made from
+ * anywhere else (a socket error, a timer) must not see them: it would tag
+ * an unrelated message with them, or read them from a connection that has
+ * since been freed.
+ */
+void
+parse_tags_clear(void)
+{
+  current_tags = NULL;
+}
+
 /** Parse optional IRCv3 tags at the start of a line.
  * @param[in,out] ch Current parse position.
  * @param[in] bufend End of line.

@@ -17,6 +17,7 @@ extern int parse_client(struct Client *cptr, char *buffer, char *bufend);
 extern int parse_server(struct Client *cptr, char *buffer, char *bufend);
 /** Tags parsed from the current input line (valid only during handler). */
 extern struct MsgTag *parse_tags(void);
+extern void parse_tags_clear(void);
 extern void initmsgtree(void);
 
 extern int register_mapping(struct s_map *map);

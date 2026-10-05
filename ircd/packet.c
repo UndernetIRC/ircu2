@@ -71,6 +71,7 @@ int server_dopacket(struct Client* cptr, const char* buffer, int length)
   char*       client_buffer;
   char*       body;                 /* Start of body after tags, or NULL
                                        while still reading the tag section. */
+  int         rc;
 
   assert(0 != cptr);
 
@@ -116,7 +117,9 @@ int server_dopacket(struct Client* cptr, const char* buffer, int length)
 
       update_messages_received(cptr);
 
-      if (parse_server(cptr, cli_buffer(cptr), endp) == CPTR_KILLED)
+      rc = parse_server(cptr, cli_buffer(cptr), endp);
+      parse_tags_clear();
+      if (rc == CPTR_KILLED)
         return CPTR_KILLED;
       /*
        *  Socket is dead so exit
@@ -176,6 +179,7 @@ int connect_dopacket(struct Client *cptr, const char *buffer, int length)
   char*       endp;
   char*       client_buffer;
   char*       body;
+  int         rc;
 
   assert(0 != cptr);
 
@@ -219,7 +223,9 @@ int connect_dopacket(struct Client *cptr, const char *buffer, int length)
 
       update_messages_received(cptr);
 
-      if (parse_client(cptr, cli_buffer(cptr), endp) == CPTR_KILLED)
+      rc = parse_client(cptr, cli_buffer(cptr), endp);
+      parse_tags_clear();
+      if (rc == CPTR_KILLED)
         return CPTR_KILLED;
       /* Socket is dead so exit */
       if (IsDead(cptr))
@@ -272,12 +278,16 @@ int connect_dopacket(struct Client *cptr, const char *buffer, int length)
  */
 int client_dopacket(struct Client *cptr, unsigned int length)
 {
+  int rc;
+
   assert(0 != cptr);
 
   update_bytes_received(cptr, length);
   update_messages_received(cptr);
 
-  if (CPTR_KILLED == parse_client(cptr, cli_buffer(cptr), cli_buffer(cptr) + length))
+  rc = parse_client(cptr, cli_buffer(cptr), cli_buffer(cptr) + length);
+  parse_tags_clear();
+  if (CPTR_KILLED == rc)
     return CPTR_KILLED;
   else if (IsDead(cptr))
     return exit_client(cptr, cptr, &me, cli_info(cptr));
