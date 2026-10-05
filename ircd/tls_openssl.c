@@ -28,6 +28,7 @@
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
 #include "ircd_tls.h"
+#include "tls_io.h"
 #include "ircd.h"
 #include "listener.h"
 #include "s_conf.h"
@@ -228,6 +229,20 @@ static void openssl_apply_verify_policy(SSL *tls, ircd_tls_trust_policy policy)
   SSL_set_verify(tls, mode, verify_ca ? NULL : openssl_fingerprint_verify_callback);
 }
 
+/** Apply the I/O mode and hardening options every ircd SSL_CTX needs.
+ * SSL_OP_NO_RENEGOTIATION removes the only way a peer can drive a post-
+ * handshake SSL_write into SSL_ERROR_WANT_READ on TLS 1.2 (a CPU-spin
+ * trigger); SSL_OP_NO_COMPRESSION disables CRIME-style record compression. */
+static void openssl_harden_ctx(SSL_CTX *ctx)
+{
+  SSL_CTX_set_mode(ctx, SSL_MODE_ENABLE_PARTIAL_WRITE
+                   | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
+#ifdef SSL_OP_NO_RENEGOTIATION
+  SSL_CTX_set_options(ctx, SSL_OP_NO_RENEGOTIATION);
+#endif
+  SSL_CTX_set_options(ctx, SSL_OP_NO_COMPRESSION);
+}
+
 static int openssl_configure_server_ctx(SSL_CTX *ctx, const char *ciphers,
                                         const char *cacertfile,
                                         const char *cacertdir,
@@ -259,8 +274,7 @@ static int openssl_configure_server_ctx(SSL_CTX *ctx, const char *ciphers,
 
   SSL_CTX_set_min_proto_version(ctx, TLS1_2_VERSION);
   openssl_set_verify_policy(ctx, policy);
-  SSL_CTX_set_mode(ctx, SSL_MODE_ENABLE_PARTIAL_WRITE
-                   | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
+  openssl_harden_ctx(ctx);
 
   str = ciphers;
   if (EmptyString(str))
@@ -301,8 +315,7 @@ static int openssl_configure_client_ctx(SSL_CTX *ctx, const char *ciphers,
 
   SSL_CTX_set_min_proto_version(ctx, TLS1_2_VERSION);
   openssl_set_verify_policy(ctx, policy);
-  SSL_CTX_set_mode(ctx, SSL_MODE_ENABLE_PARTIAL_WRITE
-                   | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
+  openssl_harden_ctx(ctx);
 
   str = ciphers;
   if (EmptyString(str))
@@ -465,8 +478,8 @@ int ircd_tls_init(void)
   /* Default connect context: outbound S2S without verifypeer (REQUIRE_SOFT). */
   openssl_set_verify_policy(new_client_ctx, TLS_TRUST_REQUIRE_SOFT);
 
-  SSL_CTX_set_mode(new_server_ctx, SSL_MODE_ENABLE_PARTIAL_WRITE | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
-  SSL_CTX_set_mode(new_client_ctx, SSL_MODE_ENABLE_PARTIAL_WRITE | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
+  openssl_harden_ctx(new_server_ctx);
+  openssl_harden_ctx(new_client_ctx);
 
   /* Configure ciphers */
   str = feature_str(FEAT_TLS_CIPHERS);
@@ -687,312 +700,192 @@ void ircd_tls_listen_free(struct Listener *listener)
   }
 }
 
-static IOResult ssl_handle_error(struct Client *cptr, SSL *tls, int res, int orig_errno)
-{
-  int err = SSL_get_error(tls, res);
-
-  Debug((DEBUG_DEBUG, "ssl_handle_error: SSL_get_error=%d, res=%d, orig_errno=%d for %C",
-         err, res, orig_errno, cptr));
-
-  switch (err)
-  {
-  case SSL_ERROR_WANT_READ:
-    return IO_BLOCKED;
-
-  case SSL_ERROR_WANT_WRITE:
-    return IO_BLOCKED;
-
-  case SSL_ERROR_SYSCALL:
-    if (orig_errno == EINTR || orig_errno == EAGAIN || orig_errno == EWOULDBLOCK)
-      return IO_BLOCKED;
-    break;
-  case SSL_ERROR_ZERO_RETURN:
-    Debug((DEBUG_DEBUG, "SSL_ERROR_ZERO_RETURN: peer closed connection for %C", cptr));
-    if (SSL_shutdown(tls) == 0)
-      SSL_shutdown(tls);
-    break;
-
-  default:
-    /* Fatal SSL error */
-    Debug((DEBUG_ERROR, "SSL fatal error %d for %C", err, cptr));
-    unsigned long e;
-    while ((e = ERR_get_error()) != 0) {
-        Debug((DEBUG_ERROR, "SSL ERROR: %s", ERR_error_string(e, NULL)));
-    }
-    break;
-  }
-
-  /* Fatal error - clean up SSL context */
-  if (tls && s_tls(&cli_socket(cptr)) == tls) {
-    Debug((DEBUG_ERROR, "SSL fall-through fatal error %d for %C", err, cptr));
-    s_tls(&cli_socket(cptr)) = NULL;
-    /* Do not call SSL_shutdown() after fatal errors */
-    SSL_free(tls);
-  }
-
-  return IO_FAILURE;
-}
-
-int ircd_tls_negotiate(struct Client *cptr, char *reason, size_t reasonlen)
+/** Classify a failed SSL_write() from the send path and record the socket
+ * direction it is blocked on.  A write blocked on SSL_ERROR_WANT_READ must NOT
+ * keep writable interest asserted (update_write() drops it), or the level-
+ * triggered writable event spins; the always-on readable event drives the
+ * retry.  Any other block is an ordinary "wants write". */
+IOResult tls_backend_handshake(struct Client *cptr, struct tls_peer *peer,
+                               char *reason, size_t reasonlen,
+                               enum ircd_tls_want *want)
 {
   SSL *tls;
   X509 *cert;
-  unsigned int len;
-  int res;
-  unsigned char buf[EVP_MAX_MD_SIZE];
-  const char* const err_certreq   = "ERROR :TLS certificate required\r\n";
-  const char* const err_certrej   = "ERROR :TLS certificate rejected\r\n";
-  const char* const err_handshake = "ERROR :TLS handshake failed\r\n";
-
-  if (reason && reasonlen)
-    reason[0] = '\0';
+  int res, orig_errno, sslerr;
+  long vr;
+  unsigned long queued;
 
   tls = s_tls(&cli_socket(cptr));
-  if (!tls) {
-    /* No session left to negotiate; do not report success or start_auth
-     * will be invoked on every subsequent ET_WRITE while FLAG_NEGOTIATING_TLS
-     * remains set. */
-    tls_reason(reason, reasonlen, "TLS setup failed (no session)");
-    ClearNegotiatingTLS(cptr);
-    return -1;
-  }
+  if (!tls)
+    return IO_FAILURE;
 
-  /* Check for handshake timeout */
-  if (CurrentTime - cli_firsttime(cptr) > TLS_HANDSHAKE_TIMEOUT) {
-    Debug((DEBUG_DEBUG, "SSL handshake timeout for fd=%d", cli_fd(cptr)));
-    /* No peer write: a stalled handshake must close with a plain EOF, not a
-     * plaintext line (which would corrupt a mid-handshake peer's TLS stream). */
-    tls_reason(reason, reasonlen, "TLS handshake timed out");
-    return -1;
-  }
-
-  /* For client connections, use SSL_connect; for server, SSL_accept. */
-  if (SSL_is_server(tls))
-    res = SSL_accept(tls);
-  else
-    res = SSL_connect(tls);
+  ERR_clear_error();
+  res = SSL_is_server(tls) ? SSL_accept(tls) : SSL_connect(tls);
 
   if (res == 1)
   {
     cert = SSL_get_peer_certificate(tls);
-    if (ircd_tls_peer_cert_required(cptr) && !cert)
-    {
-      Debug((DEBUG_DEBUG, "TLS peer certificate required but not presented for %C",
-             cptr));
-      tls_reason(reason, reasonlen,
-                 "no peer certificate presented (certificate required)");
-      write(cli_fd(cptr), err_certreq, strlen(err_certreq));
-      return -1;
-    }
-
-    if (ircd_tls_verifypeer_enabled(cptr))
-    {
-      long vr = SSL_get_verify_result(tls);
-
-      if (vr != X509_V_OK)
-      {
-        Debug((DEBUG_DEBUG,
-               "TLS peer certificate verification failed for %C: %ld",
-               cptr, vr));
-        tls_reason(reason, reasonlen, "certificate verification failed: %s",
-                   X509_verify_cert_error_string(vr));
-        if (cert)
-          X509_free(cert);
-        write(cli_fd(cptr), err_certrej, strlen(err_certrej));
-        return -1;
-      }
-    }
-
-    Debug((DEBUG_DEBUG, "SSL handshake success for fd=%d", cli_fd(cptr)));
+    peer->have_cert = (cert != NULL);
+    peer->verified = (SSL_get_verify_result(tls) == X509_V_OK);
+    if (!peer->verified)
+      tls_reason(peer->verify_err, sizeof(peer->verify_err),
+                 "certificate verification failed: %s",
+                 X509_verify_cert_error_string(SSL_get_verify_result(tls)));
     if (cert)
     {
-      Debug((DEBUG_DEBUG, "SSL_get_peer_certificate success for fd=%d", cli_fd(cptr)));
-      len = sizeof(buf);
-      res = X509_digest(cert, fp_digest, buf, &len);
-      X509_free(cert);
-      if (res != 1)
+      unsigned char buf[EVP_MAX_MD_SIZE];
+      unsigned int len = sizeof(buf);
+      if (X509_digest(cert, fp_digest, buf, &len) == 1
+          && len <= sizeof(peer->digest))
       {
-        log_write(LS_SYSTEM, L_ERROR, 0, "X509_digest failed for %C: %d",
-          cptr, res);
+        memcpy(peer->digest, buf, len);
+        peer->digest_len = len;
       }
-      else if (len == 32 && !IsCloudflarePort(cptr)) {
-        /* Convert fingerprint to lowercase hex */
-        char *p = cli_tls_fingerprint(cptr);
-        for (unsigned int i = 0; i < len; i++) {
-          sprintf(p + (i * 2), "%02x", buf[i]);
-        }
-        p[len * 2] = '\0';
-        Debug((DEBUG_DEBUG, "Fingerprint for %C: %s", cptr, cli_tls_fingerprint(cptr)));
-      }
-      else {
-        memset(cli_tls_fingerprint(cptr), 0, 65);
-        if (len == 32 && IsCloudflarePort(cptr))
-          Debug((DEBUG_DEBUG, "Skipping TLS fingerprint for Cloudflare port %C", cptr));
-        else
-          Debug((DEBUG_DEBUG, "Invalid fingerprint length: %u", len));
-      }
+      else
+        log_write(LS_SYSTEM, L_ERROR, 0, "X509_digest failed for %C", cptr);
+      X509_free(cert);
     }
-    ClearNegotiatingTLS(cptr);
-    /* X509_digest may have overwritten res; handshake itself succeeded. */
-    return 1;
+    return IO_SUCCESS;
   }
 
+  orig_errno = errno;
+  sslerr = SSL_get_error(tls, res);
+  vr = SSL_get_verify_result(tls);
+  queued = ERR_peek_last_error();
+
+  if (sslerr == SSL_ERROR_WANT_READ)
   {
-    int orig_errno = errno;
-    int sslerr = SSL_get_error(tls, res);
-    long vr = SSL_get_verify_result(tls);
-    unsigned long queued = ERR_peek_last_error(); /* before ssl_handle_error drains */
-    /* Handshake in progress. */
-    IOResult ssl_result = ssl_handle_error(cptr, tls, res, orig_errno);
-    if (ssl_result == IO_FAILURE) {
-      Debug((DEBUG_DEBUG, "SSL handshake failed for fd=%d", cli_fd(cptr)));
-      if (vr != X509_V_OK)
-        /* Handshake aborted on certificate verification: report the exact
-         * X509 error.  SSL_get_verify_result() is set during verification,
-         * so it is available even though SSL_accept()/SSL_connect() failed. */
-        tls_reason(reason, reasonlen, "%s", X509_verify_cert_error_string(vr));
-      else if (queued)
-        tls_reason(reason, reasonlen, "%s", ERR_reason_error_string(queued));
-      else if (sslerr == SSL_ERROR_ZERO_RETURN)
-        tls_reason(reason, reasonlen, "peer closed connection");
-      else if (sslerr == SSL_ERROR_SYSCALL && orig_errno)
-        tls_reason(reason, reasonlen, "%s", strerror(orig_errno));
-      else
-        tls_reason(reason, reasonlen, "handshake error");
-      write(cli_fd(cptr), err_handshake, strlen(err_handshake));
-      return -1;
-    }
-    /* ssl_result == IO_BLOCKED - handshake still in progress */
-    return 0;
+    *want = IRCD_TLS_WANT_READ;
+    return IO_BLOCKED;
+  }
+  if (sslerr == SSL_ERROR_WANT_WRITE
+      || (sslerr == SSL_ERROR_SYSCALL
+          && (orig_errno == EINTR || orig_errno == EAGAIN
+              || orig_errno == EWOULDBLOCK)))
+  {
+    /* Anything other than WANT_READ is reported as a write: a wrong "write"
+     * costs one loop pass, a wrong "read" would cost the whole deadline. */
+    *want = IRCD_TLS_WANT_WRITE;
+    return IO_BLOCKED;
+  }
+
+  /* Fatal.  Report the most specific reason available; the caller drops the
+   * session. */
+  if (vr != X509_V_OK)
+    tls_reason(reason, reasonlen, "%s", X509_verify_cert_error_string(vr));
+  else if (queued)
+    tls_reason(reason, reasonlen, "%s", ERR_reason_error_string(queued));
+  else if (sslerr == SSL_ERROR_ZERO_RETURN)
+    tls_reason(reason, reasonlen, "peer closed connection");
+  else if (sslerr == SSL_ERROR_SYSCALL && orig_errno)
+    tls_reason(reason, reasonlen, "%s", strerror(orig_errno));
+  else
+    tls_reason(reason, reasonlen, "handshake error");
+  return IO_FAILURE;
+}
+
+void tls_backend_drop(struct Client *cptr)
+{
+  SSL *tls = s_tls(&cli_socket(cptr));
+
+  if (tls)
+  {
+    s_tls(&cli_socket(cptr)) = NULL;
+    /* Do not SSL_shutdown() after a fatal error. */
+    SSL_free(tls);
   }
 }
 
-IOResult ircd_tls_recv(struct Client *cptr, char *buf,
-                       unsigned int length, unsigned int *count_out)
+/** Classify a non-WANT SSL error for the read/write paths, without tearing the
+ * session down (the core owns teardown via tls_io_fatal()/tls_backend_drop()).
+ * SYSCALL EINTR/EAGAIN is a normal block; ZERO_RETURN and everything else are
+ * fatal. */
+static IOResult ssl_io_result(SSL *tls, int err, int orig_errno)
+{
+  if (err == SSL_ERROR_SYSCALL &&
+      (orig_errno == EINTR || orig_errno == EAGAIN || orig_errno == EWOULDBLOCK))
+    return IO_BLOCKED;
+  if (err == SSL_ERROR_ZERO_RETURN)
+  {
+    if (SSL_shutdown(tls) == 0)
+      SSL_shutdown(tls);
+  }
+  return IO_FAILURE;
+}
+
+IOResult tls_backend_read(struct Client *cptr, char *buf, unsigned int length,
+                          unsigned int *count_out, enum ircd_tls_want *want)
 {
   SSL *tls;
-  int res, orig_errno;
+  int res, orig_errno, err;
+
+  *count_out = 0;
+  *want = IRCD_TLS_WANT_NONE;
 
   tls = s_tls(&cli_socket(cptr));
   if (!tls)
     return IO_FAILURE;
 
+  ERR_clear_error();
   res = SSL_read(tls, buf, length);
   if (res > 0)
   {
-    *count_out = res;
+    *count_out = (unsigned int)res;
     return IO_SUCCESS;
   }
 
   orig_errno = errno;
-  *count_out = 0;
-
-  return ssl_handle_error(cptr, tls, res, orig_errno);
+  err = SSL_get_error(tls, res);
+  if (err == SSL_ERROR_WANT_WRITE)
+  {
+    *want = IRCD_TLS_WANT_WRITE;
+    return IO_BLOCKED;
+  }
+  if (err == SSL_ERROR_WANT_READ)
+  {
+    *want = IRCD_TLS_WANT_READ;
+    return IO_BLOCKED;
+  }
+  return ssl_io_result(tls, err, orig_errno);
 }
 
-IOResult ircd_tls_sendv(struct Client *cptr, struct MsgQ *buf,
-                        unsigned int *count_in,
-                        unsigned int *count_out)
+IOResult tls_backend_write(struct Client *cptr, const char *buf,
+                           unsigned int len, unsigned int *written,
+                           enum ircd_tls_want *want)
 {
-  struct iovec iov[512];
   SSL *tls;
-  struct Connection *con;
-  int ii, count, res, orig_errno;
-  int made_progress = 0;
-  IOResult io;
+  int res, orig_errno, err;
 
-  con = cli_connect(cptr);
-  tls = s_tls(&con_socket(con));
+  *written = 0;
+  *want = IRCD_TLS_WANT_NONE;
+
+  tls = s_tls(&cli_socket(cptr));
   if (!tls)
     return IO_FAILURE;
-  *count_in = 0;
-  *count_out = 0;
-  if (con->con_rexmit)
-  {
-    /* con_rexmit is a raw pointer into the head queued message left
-     * unfinished by a prior partial SSL_write.  Drain it to completion (a
-     * short SSL_write does not mean the socket is full under
-     * SSL_MODE_ENABLE_PARTIAL_WRITE), then remove that exact message from the
-     * queue by identity with msgq_excise().  These bytes are deliberately NOT
-     * added to *count_out: msgq_delete() deletes in (partial-normal, prio,
-     * normal) order, so crediting a whole normal message here would instead
-     * delete a priority message that jumped ahead while we were blocked. */
-    const char *rexmit_base = con->con_rexmit;
 
-    while (con->con_rexmit)
-    {
-      ERR_clear_error();
-      res = SSL_write(tls, con->con_rexmit, (int)con->con_rexmit_len);
-      if (res <= 0) {
-        orig_errno = errno;
-        io = ssl_handle_error(cptr, tls, res, orig_errno);
-        if (io == IO_FAILURE)
-          *count_out = 0;
-        return io;
-      }
-      if (res == (int)con->con_rexmit_len) {
-        con->con_rexmit_len = 0;
-        con->con_rexmit = NULL;
-      } else {
-        con->con_rexmit = (char *)con->con_rexmit + res;
-        con->con_rexmit_len -= (size_t)res;
-      }
-    }
-    msgq_excise(buf, rexmit_base);
-    made_progress = 1;
-    /* fall through to send more from the now-shorter queue */
+  ERR_clear_error();
+  res = SSL_write(tls, buf, (int)len);
+  if (res > 0)
+  {
+    *written = (unsigned int)res;
+    return IO_SUCCESS;
   }
 
-  /* Process remaining messages in the queue. */
-  count = msgq_mapiov(buf, iov, sizeof(iov) / sizeof(iov[0]), count_in);
-  for (ii = 0; ii < count; ++ii)
+  orig_errno = errno;
+  err = SSL_get_error(tls, res);
+  if (err == SSL_ERROR_WANT_READ)
   {
-    ERR_clear_error();
-    res = SSL_write(tls, iov[ii].iov_base, iov[ii].iov_len);
-    if (res > 0)
-    {
-      *count_out += res;
-      if (res < (int)iov[ii].iov_len) {
-        con->con_rexmit = (char *)iov[ii].iov_base + res;
-        con->con_rexmit_len = iov[ii].iov_len - (size_t)res;
-        /* Finish this message or stop on real TLS block.  These bytes are
-         * in mapiov order, so they are safe to credit to *count_out. */
-        while (con->con_rexmit)
-        {
-          ERR_clear_error();
-          res = SSL_write(tls, con->con_rexmit, (int)con->con_rexmit_len);
-          if (res <= 0) {
-            orig_errno = errno;
-            io = ssl_handle_error(cptr, tls, res, orig_errno);
-            if (io == IO_FAILURE)
-              *count_out = 0;
-            return io;
-          }
-          *count_out += (unsigned int)res;
-          if (res == (int)con->con_rexmit_len) {
-            con->con_rexmit_len = 0;
-            con->con_rexmit = NULL;
-          } else {
-            con->con_rexmit = (char *)con->con_rexmit + res;
-            con->con_rexmit_len -= (size_t)res;
-          }
-        }
-      }
-      continue;
-    }
-
-    /* SSL_write failed before any bytes of this iov were accepted. */
-    orig_errno = errno;
-    con->con_rexmit = iov[ii].iov_base;
-    con->con_rexmit_len = iov[ii].iov_len;
-    io = ssl_handle_error(cptr, tls, res, orig_errno);
-    if (io == IO_FAILURE)
-      *count_out = 0;
-    return io;
+    *want = IRCD_TLS_WANT_READ;
+    return IO_BLOCKED;
   }
-
-  return (*count_out || made_progress) ? IO_SUCCESS : IO_BLOCKED;
+  if (err == SSL_ERROR_WANT_WRITE)
+  {
+    *want = IRCD_TLS_WANT_WRITE;
+    return IO_BLOCKED;
+  }
+  return ssl_io_result(tls, err, orig_errno);
 }
+
 
 int ircd_tls_sha1_base64(const void *data, size_t len, char *out, size_t outlen)
 {
