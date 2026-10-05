@@ -394,7 +394,8 @@ int register_user(struct Client *cptr, struct Client *sptr)
                            cli_sock_ip(sptr), get_client_class(sptr),
                            cli_info(sptr), NumNick(cptr) /* two %s's */);
 
-    IPcheck_connect_succeeded(sptr);
+    if (IsIPChecked(sptr))
+      IPcheck_connect_succeeded(sptr);
   }
   else {
     struct Client *acptr = user->server;

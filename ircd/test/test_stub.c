@@ -21,11 +21,16 @@ log_write(enum LogSys subsys, enum LogLevel severity, unsigned int flags,
     va_end(args);
 }
 
+/** When non-zero, debug() output is discarded (for bulk loops). */
+int test_debug_quiet;
+
 void
 debug(int level, const char *form, ...)
 {
     va_list args;
 
+    if (test_debug_quiet)
+        return;
     va_start(args, form);
     vfprintf(stdout, form, args);
     fputc('\n', stdout);

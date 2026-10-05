@@ -248,7 +248,8 @@ int m_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    */
   if (IsUnknown(acptr) && MyConnect(acptr)) {
     ++ServerStats->is_reg_collided;
-    IPcheck_connect_fail(acptr, 0);
+    if (IsIPChecked(acptr))
+      IPcheck_connect_fail(acptr, 0);
     exit_client(cptr, acptr, &me, "Overridden by other sign on");
     return set_nick_name(cptr, sptr, nick, parc, parv);
   }
@@ -381,7 +382,8 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (IsUnknown(acptr) && MyConnect(acptr))
   {
     ++ServerStats->is_reg_collided;
-    IPcheck_connect_fail(acptr, 0);
+    if (IsIPChecked(acptr))
+      IPcheck_connect_fail(acptr, 0);
     exit_client(cptr, acptr, &me, "Overridden by other sign on");
     return set_nick_name(cptr, sptr, nick, parc, parv);
   }

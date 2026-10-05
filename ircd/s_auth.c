@@ -747,7 +747,8 @@ static int preregister_user(struct Client *cptr)
     /* Can this ever happen? */
   case ACR_BAD_SOCKET:
     ++ServerStats->is_bad_socket;
-    IPcheck_connect_fail(cptr, 0);
+    if (IsIPChecked(cptr))
+      IPcheck_connect_fail(cptr, 0);
     return exit_client(cptr, cptr, &me, "Unknown error -- Try again");
   }
   return 0;
@@ -1544,11 +1545,17 @@ int auth_spoof_user(struct AuthRequest *auth, const char *username, const char *
     return 1;
   if (!ipmask_parse(ip, &cli_ip(sptr), NULL))
     return 2;
-  if (!IPcheck_local_connect(&cli_ip(sptr), &next_target)) {
+  switch (IPcheck_local_connect(&cli_ip(sptr), &next_target)) {
+  case IPCHECK_REFUSED:
     ++ServerStats->is_throttled;
     return exit_client(sptr, sptr, &me, "Your host is trying to (re)connect too fast -- throttled");
+  case IPCHECK_COUNTED:
+    SetIPChecked(sptr);
+    break;
+  default: /* IPCHECK_EXEMPT: accepted, not recorded */
+    ClearIPChecked(sptr);
+    break;
   }
-  SetIPChecked(sptr);
 
   if (next_target)
     cli_nexttarget(sptr) = next_target;
@@ -2218,9 +2225,11 @@ static int iauth_cmd_ip_address(struct IAuth *iauth, struct Client *cli,
   if (!irc_in_addr_valid(&auth->original))
     memcpy(&auth->original, &cli_ip(cli), sizeof(auth->original));
 
-  /* Undo original IP connection in IPcheck. */
-  IPcheck_connect_fail(cli, 1);
-  ClearIPChecked(cli);
+  /* Undo original IP connection in IPcheck (unless it was exempt). */
+  if (IsIPChecked(cli)) {
+    IPcheck_connect_fail(cli, 1);
+    ClearIPChecked(cli);
+  }
 
   /* Update the IP and charge them as a remote connect. */
   memcpy(&cli_ip(cli), &addr, sizeof(cli_ip(cli)));

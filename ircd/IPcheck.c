@@ -52,7 +52,7 @@ struct IPRegistryEntry {
   struct IPRegistryEntry*  next;   /**< Next entry in the hash chain. */
   struct IPTargetEntry*    target; /**< Recent targets, if any. */
   struct irc_in_addr       addr;   /**< IP address for this user. */
-  int		           last_connect; /**< Last connection attempt timestamp. */
+  unsigned int             last_connect; /**< Last connection attempt timestamp. */
   unsigned short           connected; /**< Number of currently connected clients. */
   unsigned char            attempts; /**< Number of recent connection attempts. */
 };
@@ -60,17 +60,23 @@ struct IPRegistryEntry {
 /** Stores information about an IPv6/48 block's recent connections. */
 struct IPRegistry48 {
   struct IPRegistry48* next;     /**< Next entry in the hash chain. */
-  int              last_connect; /**< Last connection attempt timestamp. */
+  unsigned int     last_connect; /**< Last connection attempt timestamp. */
   uint16_t             addr[3];  /**< 48 MSBs of IP address. */
   unsigned short       attempts; /**< Number of recent connection attempts. */
 };
 
 /** Size of hash table (must be a power of two). */
 #define IP_REGISTRY_TABLE_SIZE 0x10000
-/** Report current time for tracking in IPRegistryEntry::last_connect. */
-#define NOW ((unsigned short)(CurrentTime & 0xffff))
-/** Time from \a x until now, in seconds. */
-#define CONNECTED_SINCE(x) (NOW - (x))
+/** Report current time for tracking in IPRegistryEntry::last_connect.
+ * Truncated to 32 bits to fit the field (which costs no more than the
+ * old 16-bit stamp, thanks to padding). */
+#define NOW ((unsigned int)CurrentTime)
+/** Time from \a x until now, in seconds.  The subtraction is done modulo
+ * 2^32 so it stays correct when CurrentTime crosses a multiple of 2^32;
+ * a 16-bit stamp would alias any idle time of 18.2 hours or more to a
+ * short one.  The result is widened to time_t so comparisons against
+ * (signed) feature values behave as before. */
+#define CONNECTED_SINCE(x) ((time_t)(unsigned int)(NOW - (x)))
 
 /** Macro for easy access to configured IPcheck clone limit. */
 #define IPCHECK_CLONE_LIMIT feature_int(FEAT_IPCHECK_CLONE_LIMIT)
@@ -366,14 +372,14 @@ void IPcheck_clear_config(void)
   while (exceptIPv4) {
     except = exceptIPv4;
     exceptIPv4 = except->next;
-    free(except);
+    MyFree(except);
   }
 
   /* Free any existing IPv6 exceptions. */
   while (exceptIPv6) {
     except = exceptIPv6;
     exceptIPv6 = exceptIPv6->next;
-    free(except);
+    MyFree(except);
   }
 }
 
@@ -433,7 +439,11 @@ static int ip_registry_is_exempt(const struct irc_in_addr *addr)
  * separated by no more than IPCHECK_CLONE_PERIOD seconds.
  * @param[in] addr Address of client.
  * @param[out] next_target_out Receives time to grant another free target.
- * @return Non-zero if the connection is permitted, zero if denied.
+ * @return IPCHECK_REFUSED if denied, IPCHECK_COUNTED if permitted and
+ *   recorded in the registry, IPCHECK_EXEMPT if permitted because the
+ *   address is exempt (nothing recorded; the caller must not mark the
+ *   client IPChecked, or its disconnect would decrement a count it never
+ *   incremented).
  */
 static int ip_registry_check_local(const struct irc_in_addr *addr, time_t* next_target_out)
 {
@@ -441,7 +451,7 @@ static int ip_registry_check_local(const struct irc_in_addr *addr, time_t* next_
   unsigned int free_targets = STARTTARGETS;
 
   if (ip_registry_is_exempt(addr)) {
-    return 1;
+    return IPCHECK_EXEMPT;
   }
 
   entry = ip_registry_find(addr);
@@ -478,7 +488,7 @@ static int ip_registry_check_local(const struct irc_in_addr *addr, time_t* next_
     ip_registry_canonicalize(&entry->addr, addr);
     ip_registry_add(entry);
     Debug((DEBUG_DNS, "IPcheck added new registry for local connection from %s.", ircd_ntoa(&entry->addr)));
-    return 1;
+    return IPCHECK_COUNTED;
   }
   /* Note that this also counts server connects.
    * It is hard and not interesting, to change that.
@@ -488,7 +498,7 @@ static int ip_registry_check_local(const struct irc_in_addr *addr, time_t* next_
   {
     entry->connected--;
     Debug((DEBUG_DNS, "IPcheck refusing local connection from %s: counter overflow.", ircd_ntoa(&entry->addr)));
-    return 0;
+    return IPCHECK_REFUSED;
   }
 
   if (CONNECTED_SINCE(entry->last_connect) > IPCHECK_CLONE_PERIOD)
@@ -502,7 +512,9 @@ static int ip_registry_check_local(const struct irc_in_addr *addr, time_t* next_
 
   if (entry->attempts < IPCHECK_CLONE_LIMIT) {
     if (next_target_out)
-      *next_target_out = CurrentTime - (TARGET_DELAY * free_targets - 1);
+      /* free_targets is unsigned: with none left, TARGET_DELAY * 0 - 1
+       * must be -1 (next target in one second), not UINT_MAX. */
+      *next_target_out = CurrentTime - ((time_t)TARGET_DELAY * free_targets - 1);
   }
 #ifndef NOTHROTTLE
   else if ((CurrentTime - cli_since(&me)) > IPCHECK_CLONE_DELAY) {
@@ -516,11 +528,11 @@ reject:
       --entry->connected;
     }
     Debug((DEBUG_DNS, "IPcheck refusing local connection from %s: too fast.", ircd_ntoa(addr)));
-    return 0;
+    return IPCHECK_REFUSED;
   }
 #endif
   Debug((DEBUG_DNS, "IPcheck accepting local connection from %s.", ircd_ntoa(&entry->addr)));
-  return 1;
+  return IPCHECK_COUNTED;
 }
 
 /** Check whether a connection from a remote client should be allowed.
@@ -535,10 +547,6 @@ static int ip_registry_check_remote(struct Client* cptr, int is_burst)
 {
   struct IPRegistryEntry* entry;
 
-  /*
-   * Mark that we did add/update an IPregistry entry
-   */
-  SetIPChecked(cptr);
   if (!irc_in_addr_valid(&cli_ip(cptr))) {
     Debug((DEBUG_DNS, "IPcheck accepting remote connection from invalid %s.", ircd_ntoa(&cli_ip(cptr))));
     return 1;
@@ -547,6 +555,13 @@ static int ip_registry_check_remote(struct Client* cptr, int is_burst)
   if (ip_registry_is_exempt(&cli_ip(cptr))) {
     return 1;
   }
+
+  /*
+   * Mark that we did add/update an IPregistry entry.  Only now: an exempt
+   * or unroutable address is not counted, and IPcheck_disconnect() must not
+   * decrement a count that was never incremented.
+   */
+  SetIPChecked(cptr);
 
   if (!irc_in_addr_is_ipv4(&cli_ip(cptr))) {
     struct IPRegistry48* entry_48 = ip_48_find(&cli_ip(cptr));
@@ -569,6 +584,10 @@ static int ip_registry_check_remote(struct Client* cptr, int is_burst)
   }
   /* Avoid overflowing the connection counter. */
   if (0 == ++entry->connected) {
+    entry->connected--;
+    /* Not counted after all: the caller kills the client, and exit_client()
+     * must not hand IPcheck_disconnect() a slot it never took. */
+    ClearIPChecked(cptr);
     Debug((DEBUG_DNS, "IPcheck refusing remote connection from %s: counter overflow.", ircd_ntoa(&entry->addr)));
     return 0;
   }
@@ -732,7 +751,9 @@ static int ip_registry_count(const struct irc_in_addr *addr)
 /** Check whether a client is allowed to connect locally.
  * @param[in] a Address of client.
  * @param[out] next_target_out Receives time to grant another free target.
- * @return Non-zero if the connection is permitted, zero if denied.
+ * @return IPCHECK_REFUSED (zero) if denied; IPCHECK_COUNTED if permitted
+ *   and recorded (the caller marks the client IPChecked); IPCHECK_EXEMPT
+ *   if permitted without being recorded (do not mark it).
  */
 int IPcheck_local_connect(const struct irc_in_addr *a, time_t* next_target_out)
 {

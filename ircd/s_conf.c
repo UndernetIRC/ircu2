@@ -1013,6 +1013,10 @@ int read_configuration_file(void)
   clear_nameservers(); /* clear previous list of DNS servers */
   if (!init_lexer())
     return 0;
+  /* Only once the file is open, so a failed rehash keeps the old
+   * exemptions; and here rather than per block, so exemptions vanish when
+   * the IPCheck block is removed and several blocks add up. */
+  IPcheck_clear_config();
   yyparse();
   deinit_lexer();
   feature_mark(); /* reset unmarked features */

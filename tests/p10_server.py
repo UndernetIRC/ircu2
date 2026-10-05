@@ -6,6 +6,7 @@ messages like OPMODE and ACCOUNT.
 """
 
 import asyncio
+import ipaddress
 import logging
 import ssl
 import time
@@ -465,12 +466,14 @@ class P10Server:
         host: str = "fake.test.net",
         modes: str = "+i",
         realname: str = "Fake User",
+        ip: str = "127.0.0.1",
     ) -> str:
         """Introduce a user originating from this server via a P10 N message.
 
         Format: <our_num> N <nick> <hops> <ts> <user> <host> <+modes> <b64ip> <numnick> :<realname>
 
         ``modes`` may include a following account token for +r, e.g. ``+ir AcctName``.
+        ``ip`` is the user's IPv4 address as the hub should record it.
 
         Returns the new user's numnick.
         """
@@ -478,7 +481,7 @@ class P10Server:
         self._next_client_num += 1
         numnick = self._num + int_to_b64(client_num, 3)
         ts = int(time.time())
-        ip64 = int_to_b64(0x7F000001, 6)  # 127.0.0.1
+        ip64 = int_to_b64(int(ipaddress.IPv4Address(ip)), 6)
         await self._send(
             f"{self._num} N {nick} 1 {ts} {username} {host} {modes} "
             f"{ip64} {numnick} :{realname}"

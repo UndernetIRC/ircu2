@@ -13,6 +13,11 @@
 struct Client;
 struct irc_in_addr;
 
+/** Results of IPcheck_local_connect(). */
+#define IPCHECK_REFUSED 0 /**< Too many recent connections: refuse. */
+#define IPCHECK_COUNTED 1 /**< Accepted and recorded; mark client IPChecked. */
+#define IPCHECK_EXEMPT  2 /**< Accepted, address exempt; not recorded. */
+
 /*
  * Prototypes
  */

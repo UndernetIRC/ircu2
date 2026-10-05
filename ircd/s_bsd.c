@@ -549,6 +549,7 @@ void add_connection(struct Listener* listener, int fd) {
   struct irc_sockaddr addr;
   struct Client      *new_client;
   time_t             next_target = 0;
+  int                ipcheck;
   void               *tls;
 
   const char* const throttle_message =
@@ -612,14 +613,16 @@ void add_connection(struct Listener* listener, int fd) {
      * known at handshake; the socket peer is a Cloudflare edge node.
      */
     if (!(listener_websocket(listener) && listener_cloudflare(listener))) {
-      if (!IPcheck_local_connect(&addr.addr, &next_target))
+      ipcheck = IPcheck_local_connect(&addr.addr, &next_target);
+      if (ipcheck == IPCHECK_REFUSED)
       {
         ++ServerStats->is_throttled;
         write(fd, throttle_message, strlen(throttle_message));
         close(fd);
         return;
       }
-      SetIPChecked(new_client);
+      if (ipcheck == IPCHECK_COUNTED)
+        SetIPChecked(new_client);
     }
   }
 

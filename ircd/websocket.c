@@ -174,11 +174,17 @@ static int websocket_apply_client_ip(struct Client *cptr, const char *ip)
   if (IsIPChecked(cptr))
     IPcheck_connect_fail(cptr, 0);
 
-  if (!IPcheck_local_connect(&addr, &next_target)) {
+  switch (IPcheck_local_connect(&addr, &next_target)) {
+  case IPCHECK_REFUSED:
     ++ServerStats->is_throttled;
     return 0;
+  case IPCHECK_COUNTED:
+    SetIPChecked(cptr);
+    break;
+  default: /* IPCHECK_EXEMPT: accepted, not recorded */
+    ClearIPChecked(cptr);
+    break;
   }
-  SetIPChecked(cptr);
 
   memcpy(&cli_ip(cptr), &addr, sizeof(cli_ip(cptr)));
   ircd_ntoa_r(cli_sock_ip(cptr), &cli_ip(cptr));
