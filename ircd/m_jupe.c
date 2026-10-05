@@ -210,6 +210,8 @@ int mo_jupe(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return send_reply(sptr, ERR_DISABLED, "JUPE");
 
   if (parc == 4) {
+    if (!HasPriv(sptr, PRIV_LOCAL_JUPE))
+      return send_reply(sptr, ERR_NOPRIVILEGES);
     expire_off = atoi(parv[2]);
     reason = parv[3];
     flags |= JUPE_LOCAL;
