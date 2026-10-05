@@ -372,14 +372,14 @@ void IPcheck_clear_config(void)
   while (exceptIPv4) {
     except = exceptIPv4;
     exceptIPv4 = except->next;
-    free(except);
+    MyFree(except);
   }
 
   /* Free any existing IPv6 exceptions. */
   while (exceptIPv6) {
     except = exceptIPv6;
     exceptIPv6 = exceptIPv6->next;
-    free(except);
+    MyFree(except);
   }
 }
 
