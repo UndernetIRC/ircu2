@@ -573,6 +573,13 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
     /*
      * Client changing its nick
      *
+     * Unregistered local clients may not change nick once one is set:
+     * the chosen nick is what iauth sees (and may force via "f"). Allowing
+     * a second NICK before registration would bypass those checks.
+     */
+    if (MyConnect(sptr) && !IsUser(sptr))
+      return 0; /* nick locked for iauth until registration */
+    /*
      * If the client belongs to me, then check to see
      * if client is on any channels where it is currently
      * banned.  If so, do not allow the nick change to occur.

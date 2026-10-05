@@ -42,6 +42,7 @@
 #include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_chattr.h"
+#include "hash.h"
 #include "ircd_events.h"
 #include "ircd_features.h"
 #include "ircd_log.h"
@@ -86,6 +87,7 @@ enum AuthRequestFlag {
     AR_NEEDS_NICK,      /**< user must send NICK command */
     AR_LAST_SCAN = AR_NEEDS_NICK, /**< maximum flag to scan through */
     AR_IAUTH_PENDING,   /**< iauth request sent, waiting for response */
+    AR_IAUTH_NEEDS_NICK,/**< iauth f failed; wait for a valid forced nick */
     AR_IAUTH_HURRY,     /**< we told iauth to hurry up */
     AR_IAUTH_USERNAME,  /**< iauth sent a username (preferred or forced) */
     AR_IAUTH_FUSERNAME, /**< iauth sent a forced username */
@@ -383,7 +385,8 @@ badid:
 int auth_set_account(struct AuthRequest *auth, const char *account_info)
 {
   struct Client *sptr;
-  char *account_copy = NULL, *account = NULL, *id_str = NULL, *flags_str = NULL, *extra = NULL;
+  char *account_copy = NULL, *account = NULL, *id_str = NULL, *flags_str = NULL;
+  char *first_word, *rest, *extra = NULL, *p;
 
   assert(auth != NULL);
 
@@ -391,15 +394,38 @@ int auth_set_account(struct AuthRequest *auth, const char *account_info)
   if (!cli_user(sptr) || EmptyString(account_info))
     return 1;
 
-  /* Parse account information: username:id:flags */
+  /*
+   * Payload shape (whitespace-separated):
+   *   <account>[:<id>[:<flags>[:...]]] [+x [...]]
+   *
+   * Only the first three colon fields of the first word are used locally
+   * (account / id / flags). Further colon fields and further words after
+   * the first extra token are ignored for local parsing but the original
+   * string is still forwarded to iauth in full.
+   */
   DupString(account_copy, account_info);
   if (!account_copy)
     return 1;
 
-  account = strtok(account_copy, ":");
+  first_word = account_copy;
+  rest = strchr(account_copy, ' ');
+  if (rest) {
+    *rest++ = '\0';
+    while (*rest == ' ')
+      rest++;
+    if (*rest) {
+      /* First extra token only (e.g. "+x"); ignore friends. */
+      extra = rest;
+      p = strchr(extra, ' ');
+      if (p)
+        *p = '\0';
+    }
+  }
+
+  account = strtok(first_word, ":");
   id_str = strtok(NULL, ":");
-  flags_str = strtok(NULL, " ");
-  extra = strtok(NULL, "");
+  flags_str = strtok(NULL, ":");
+  /* strtok(NULL, ":") would be ":something"; intentionally unused. */
 
   /* A malformed reply may contain no account name at all. */
   if (EmptyString(account)) {
@@ -421,12 +447,15 @@ int auth_set_account(struct AuthRequest *auth, const char *account_info)
 
   SetAccount(sptr);
 
-  /* Check for +x flag (host hiding) */
-  if (extra && strstr(extra, "+x") && feature_bool(FEAT_HOST_HIDING)) {
+  /*
+   * Second word is umode-like if it starts with '+'.  Presence of 'x'
+   * requests host hiding (e.g. "+x", "+xo").
+   */
+  if (extra && *extra == '+' && strchr(extra, 'x')
+      && feature_bool(FEAT_HOST_HIDING))
     SetHiddenHost(sptr);
-  }
 
-  sendto_iauth(sptr, "A %s", cli_user(sptr)->account);
+  sendto_iauth(sptr, "A %s", account_info);
   MyFree(account_copy);
   return 0;
 }
@@ -605,6 +634,15 @@ static int check_auth_finished(struct AuthRequest *auth, int bitclr)
   }
   else
     FlagSet(&auth->flags, AR_IAUTH_HURRY);
+
+  /* A failed iauth "f" must be followed by a valid forced nick before
+   * registration can complete (even if iauth already sent D). */
+  if (FlagHas(&auth->flags, AR_IAUTH_NEEDS_NICK))
+  {
+    Debug((DEBUG_INFO, "Auth %p [%d] waiting for iauth forced nick", auth,
+           cli_fd(auth->client)));
+    return 0;
+  }
 
   res = 0;
   if (IsUserPort(auth->client) || IsWebsocketPort(auth->client))
@@ -2143,6 +2181,66 @@ static int iauth_cmd_username_bad(struct IAuth *iauth, struct Client *cli,
   return AR_AUTH_PENDING;
 }
 
+/** Set client's nickname from iauth.
+ * @param[in] iauth Active IAuth session.
+ * @param[in] cli Client referenced by command.
+ * @param[in] parc Number of parameters (1).
+ * @param[in] params New nickname for client.
+ * @return Zero (auth_set_nick() handles registration progress).
+ */
+static int iauth_cmd_nick_forced(struct IAuth *iauth, struct Client *cli,
+				 int parc, char **params)
+{
+  struct AuthRequest *auth;
+  struct Client *acptr;
+  char nick[NICKLEN + 2];
+  char *tilde;
+
+  auth = cli_auth(cli);
+  assert(auth != NULL);
+
+  if (EmptyString(params[0])) {
+    FlagSet(&auth->flags, AR_IAUTH_NEEDS_NICK);
+    sendto_iauth(cli, "E Missing :Missing nickname parameter");
+    return 0;
+  }
+
+  ircd_strncpy(nick, params[0], NICKLEN);
+  if ((tilde = strchr(nick, '~')))
+    *tilde = '\0';
+  if (!do_nick_name(nick)) {
+    FlagSet(&auth->flags, AR_IAUTH_NEEDS_NICK);
+    sendto_iauth(cli, "E Invalid :Invalid nickname [%s]", params[0]);
+    return 0;
+  }
+
+  if (isNickJuped(nick)) {
+    FlagSet(&auth->flags, AR_IAUTH_NEEDS_NICK);
+    sendto_iauth(cli, "E Invalid :Nickname is juped [%s]", nick);
+    return 0;
+  }
+
+  acptr = FindClient(nick);
+  if (acptr && acptr != cli) {
+    FlagSet(&auth->flags, AR_IAUTH_NEEDS_NICK);
+    sendto_iauth(cli, "E InUse :Nickname in use [%s]", nick);
+    return 0;
+  }
+
+  /* Tell the client about the assignment before renaming locally. */
+  if (cli_name(cli)[0] && 0 != ircd_strcmp(cli_name(cli), nick))
+    sendcmdto_one(cli, CMD_NICK, cli, ":%s", nick);
+
+  if (cli_name(cli)[0])
+    hRemClient(cli);
+  strcpy(cli_name(cli), nick);
+  hAddClient(cli);
+
+  FlagClr(&auth->flags, AR_IAUTH_NEEDS_NICK);
+  auth_set_nick(auth, nick);
+  return 0;
+}
+
 /** Set client's hostname.
  * @param[in] iauth Active IAuth session.
  * @param[in] cli Client referenced by command.
@@ -2506,6 +2604,7 @@ static void iauth_parse(struct IAuth *iauth, char *message)
   case 'o': handler = iauth_cmd_username_forced; has_cli = 1; break;
   case 'U': handler = iauth_cmd_username_good; has_cli = 1; break;
   case 'u': handler = iauth_cmd_username_bad; has_cli = 1; break;
+  case 'f': handler = iauth_cmd_nick_forced; has_cli = 1; break;
   case 'N': handler = iauth_cmd_hostname; has_cli = 1; break;
   case 'I': handler = iauth_cmd_ip_address; has_cli = 1; break;
   case 'M': handler = iauth_cmd_usermode; has_cli = 1; break;
@@ -2559,9 +2658,11 @@ static void iauth_parse(struct IAuth *iauth, char *message)
       sendto_iauth(NULL, "E Gone :[%s %s %s]", params[0], params[1],
 		   params[2]);
     else if ((!(auth = cli_auth(cli)) ||
-	      !FlagHas(&auth->flags, AR_IAUTH_PENDING)) &&
+	      (!FlagHas(&auth->flags, AR_IAUTH_PENDING) &&
+	       !(handler == iauth_cmd_nick_forced &&
+		 FlagHas(&auth->flags, AR_IAUTH_NEEDS_NICK)))) &&
 	     has_cli == 1)
-      /* Client is done with IAuth checks. */
+      /* Client is done with IAuth checks (unless waiting for a valid f). */
       sendto_iauth(cli, "E Done :[%s %s %s]", params[0], params[1], params[2]);
     else {
       struct irc_sockaddr addr;

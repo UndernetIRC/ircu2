@@ -117,7 +117,7 @@
 *  The '~'-character should be allowed, but a change should be global,
 *  some confusion would result if only few servers allowed it...
 */
-static int do_nick_name(char* nick)
+int do_nick_name(char* nick)
 {
   char* ch  = nick;
   char* end = ch + NICKLEN;
