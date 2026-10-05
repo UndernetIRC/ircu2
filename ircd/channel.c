@@ -3520,7 +3520,7 @@ mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
 	if (!(state.flags & MODE_PARSE_SET))	  /* don't set earlier TS if */
 	  break;		     /* we're then going to bounce the mode! */
 
-	recv_ts = atoi(modestr);
+	recv_ts = atotime(modestr);
 
 	if (recv_ts && recv_ts < state.chptr->creationtime)
 	  state.chptr->creationtime = recv_ts; /* respect earlier TS */

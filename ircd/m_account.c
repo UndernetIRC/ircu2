@@ -132,10 +132,10 @@ int ms_account(struct Client* cptr, struct Client* sptr, int parc,
     return 0; /* Ignore ACCOUNT for a user that QUIT; probably crossed */
 
   if (parc > 3)
-    acc_id = atoi(parv[3]);
+    acc_id = strtoull(parv[3], NULL, 10);
 
   if (parc > 4)
-    acc_flags = atoi(parv[4]);
+    acc_flags = strtoull(parv[4], NULL, 10);
 
   already_account = IsAccount(acptr);
 

@@ -225,7 +225,7 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   if (!(chptr = get_channel(sptr, parv[1], CGT_CREATE)))
     return 0; /* can't create the channel? */
 
-  timestamp = atoi(parv[2]);
+  timestamp = atotime(parv[2]);
 
   if (chptr->creationtime)	/* 0 for new (empty) channels,
                                    i.e. when this server just restarted. */

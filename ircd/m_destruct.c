@@ -99,7 +99,7 @@ int ms_destruct(struct Client* cptr, struct Client* sptr, int parc, char* parv[]
   if (parc < 3 || EmptyString(parv[2]))
     return need_more_params(sptr,"DESTRUCT");
 
-  chanTS = atoi(parv[2]);
+  chanTS = atotime(parv[2]);
 
   /* Ignore DESTRUCT messages for non-existing channels. */
   if (!(chptr = FindChannel(parv[1])))

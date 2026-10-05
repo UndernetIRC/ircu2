@@ -307,13 +307,13 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (IsServer(sptr))
   {
-    lastnick = atoi(parv[3]);
+    lastnick = atotime(parv[3]);
     if (lastnick > OLDEST_TS && !IsBurstOrBurstAck(sptr)) 
       cli_serv(sptr)->lag = TStime() - lastnick;
   }
   else
   {
-    lastnick = atoi(parv[2]); 
+    lastnick = atotime(parv[2]); 
     if (lastnick > OLDEST_TS && !IsBurstOrBurstAck(sptr))
       cli_serv(cli_user(sptr)->server)->lag = TStime() - lastnick;
   }

@@ -121,7 +121,7 @@ int ms_create(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (parc < 3 || *parv[2] == '\0')
     return need_more_params(sptr,"CREATE");
 
-  chanTS = atoi(parv[2]);
+  chanTS = atotime(parv[2]);
 
   /* A create that didn't appear during a burst has that servers idea of
    * the current time.  Use it for lag calculations.

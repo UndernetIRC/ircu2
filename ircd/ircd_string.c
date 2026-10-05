@@ -33,6 +33,7 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <stdio.h> /* snprintf */
+#include <stdlib.h> /* strtoll */
 
 /*
  * include the character attribute tables here
@@ -94,6 +95,18 @@ char* ircd_strtok(char **save, char *str, char *fs)
 
   *save = pos;
   return (tmp);
+}
+
+/** Convert a decimal string to a time_t.
+ * Unlike atoi(), which returns an int and therefore truncates any
+ * value past INT_MAX (2038-01-19 for a Unix timestamp), this parses
+ * the full width of a time_t, so wire timestamps survive past 2038.
+ * @param[in] s Decimal string to convert.
+ * @return Parsed value as a time_t (0 if \a s is not a number).
+ */
+time_t atotime(const char* s)
+{
+  return (time_t)strtoll(s, NULL, 10);
 }
 
 /** Rewrite a comma-delimited list of items to remove duplicates.

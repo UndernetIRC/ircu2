@@ -200,11 +200,11 @@ int ms_topic(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     }
 
     /* If existing channel is older or has newer topic, ignore */
-    if (parc > 3 && (ts = atoi(parv[2])) && chptr->creationtime < ts)
+    if (parc > 3 && (ts = atotime(parv[2])) && chptr->creationtime < ts)
       continue;
 
     ts = 0; /* Default to the current time if no topic_time is passed. */
-    if (parc > 4 && (ts = atoi(parv[3])) && chptr->topic_time > ts)
+    if (parc > 4 && (ts = atotime(parv[3])) && chptr->topic_time > ts)
       continue;
 
     /* Information about who set the topic */

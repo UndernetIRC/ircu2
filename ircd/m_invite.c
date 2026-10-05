@@ -273,7 +273,7 @@ int ms_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
 
   if (parc > 3) {
-    invite_ts = atoi(parv[3]);
+    invite_ts = atotime(parv[3]);
     if (invite_ts > chptr->creationtime)
       return 0;
   } else if (IsBurstOrBurstAck(cptr))

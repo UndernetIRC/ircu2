@@ -340,7 +340,7 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     return need_more_params(sptr, "JOIN");
 
   if (parc > 2 && parv[2])
-    creation = atoi(parv[2]);
+    creation = atotime(parv[2]);
 
   joinbuf_init(&join, sptr, cptr, JOINBUF_TYPE_JOIN, 0, 0);
 

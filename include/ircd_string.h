@@ -6,6 +6,7 @@
 #define INCLUDED_ircd_string_h
 
 #include <string.h> /* for DupString()'s strcpy, strlen */
+#include <sys/types.h> /* for time_t */
 
 #ifndef INCLUDED_ircd_chattr_h
 #include "ircd_chattr.h"
@@ -35,6 +36,7 @@ extern const char* ircd_ntocidrmask(const struct irc_in_addr* in, const unsigned
 extern int ipmask_parse(const char *in, struct irc_in_addr *mask, unsigned char *bits_ptr);
 extern char*       host_from_uh(char* buf, const char* userhost, size_t len);
 extern char*       ircd_strtok(char** save, char* str, char* fs);
+extern time_t      atotime(const char* s);
 
 extern char*       canonize(char* buf);
 

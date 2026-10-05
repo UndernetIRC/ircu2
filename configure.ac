@@ -128,6 +128,34 @@ int getpeername (int $arg2 *, $t *);]], [[$t len;
 dnl Checks for library functions.
 AC_CHECK_FUNCS([kqueue setrlimit getrusage times])
 
+dnl Year 2038 safety: timestamps carried on server links are parsed into
+dnl time_t, so a 32-bit time_t mishandles any time past 2038-01-19.  Prefer
+dnl a 64-bit time_t; on glibc a 32-bit one can be widened with _TIME_BITS.
+AC_ARG_ENABLE([y2038-strict],
+[  --enable-y2038-strict   Fail configure (instead of warning) if a 64-bit time_t cannot be obtained],
+[unet_cv_enable_y2038_strict=$enable_y2038_strict],
+[AC_CACHE_VAL(unet_cv_enable_y2038_strict,
+[unet_cv_enable_y2038_strict=no])])
+
+AC_CHECK_SIZEOF([time_t], [], [[#include <time.h>]])
+if test "$ac_cv_sizeof_time_t" -lt 8; then
+    dnl Try the glibc remedy before giving up.
+    unet_save_CPPFLAGS="$CPPFLAGS"
+    CPPFLAGS="$CPPFLAGS -D_TIME_BITS=64 -D_FILE_OFFSET_BITS=64"
+    AC_MSG_CHECKING([whether -D_TIME_BITS=64 yields a 64-bit time_t])
+    AC_COMPILE_IFELSE(
+      [AC_LANG_PROGRAM([[#include <time.h>]],
+        [[int probe[sizeof(time_t) >= 8 ? 1 : -1]; (void)probe;]])],
+      [AC_MSG_RESULT([yes])],
+      [AC_MSG_RESULT([no])
+       CPPFLAGS="$unet_save_CPPFLAGS"
+       if test x"$unet_cv_enable_y2038_strict" = xyes; then
+           AC_MSG_ERROR([time_t is 32-bit; this build will mishandle timestamps after 2038-01-19. Use a 64-bit platform or a C library with a 64-bit time_t.])
+       else
+           AC_MSG_WARN([time_t is 32-bit; this build will mishandle timestamps after 2038-01-19. Use a 64-bit platform or a C library with a 64-bit time_t, or pass --enable-y2038-strict to make this fatal.])
+       fi])
+fi
+
 dnl Check for required features for admins?
 AC_MSG_CHECKING([for donuts])
 AC_MSG_RESULT([yes])

@@ -87,7 +87,7 @@ int ms_squit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     acptr = cptr; /* Bugfix by Prefect */
 
   if (parc > 2)
-    timestamp = atoi(parv[2]);
+    timestamp = atotime(parv[2]);
   else
     protocol_violation(cptr, "SQUIT with no timestamp/reason");
 
