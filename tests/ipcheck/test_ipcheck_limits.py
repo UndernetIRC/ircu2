@@ -248,6 +248,35 @@ async def test_except_block_exempts_address(ipcheck_env, limits_oper, limits_con
         await disconnect_all(*clients)
 
 
+async def test_except_blocks_accumulate(ipcheck_env, limits_oper, limits_config_snapshot):
+    """Several IPCheck blocks add up: a later block must not discard the
+    exemptions of an earlier one."""
+    srv, setoper = ipcheck_env
+    ip = await userip(setoper, "ipcsetop")
+
+    text = (
+        _grant_set(limits_config_snapshot)
+        + f'\nIPCheck {{ except "{ip}"; }};\n'
+        + '\nIPCheck { except "192.0.2.0/24"; };\n'
+    )
+    restore_config(text)
+    await rehash_config(limits_oper)
+    await _apply(
+        setoper,
+        IPCHECK_CLONE_DELAY=0,
+        IPCHECK_CLONE_LIMIT=CLONE_LIMIT,
+        IPCHECK_CLONE_PERIOD=CLONE_PERIOD,
+    )
+    clients = []
+    try:
+        for i in range(2 * CLONE_LIMIT):
+            clients.append(
+                await register_expect_no_notice(srv["host"], srv["port"], f"ipcacc{i}")
+            )
+    finally:
+        await disconnect_all(*clients)
+
+
 async def test_client_block_maxlinks_uses_ip_registry(ipcheck_env, limits_oper, limits_config_snapshot):
     """Client { maxlinks = N } refuses the N+1th client from one address,
     counted from the IPcheck registry (IPcheck_nr), and admits again once a

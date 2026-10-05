@@ -1468,7 +1468,6 @@ webirchidden: HIDDEN '=' YES ';' { flags = flags | 1; }
 ipcheckblock: IPCHECK
 {
   if (!permitted(BLOCK_IPCHECK)) YYERROR;
-  IPcheck_clear_config();
 }
 '{' ipcheckitems '}' ';';
 
