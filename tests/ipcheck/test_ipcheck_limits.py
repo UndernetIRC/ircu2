@@ -300,7 +300,7 @@ async def test_client_block_maxlinks_uses_ip_registry(ipcheck_env, limits_oper, 
             'Client { ip = "*"; class = "Local"; };',
             f'Client {{ ip = "*"; class = "Local"; maxlinks = {limit}; }};',
         )
-        assert text != limits_config_snapshot
+        assert f"maxlinks = {limit};" in text, "Client block pattern not found"
         restore_config(text)
         await rehash_config(limits_oper)
         await _apply(setoper, IPCHECK_CLONE_LIMIT=1000)   # REHASH reset it
