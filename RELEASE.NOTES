@@ -37,7 +37,7 @@ from ircd-hybrid) that avoids some of the complications from using
 the full libresolv or adns libraries.
 
 The server can query an IAUTH external authorization server.  The
-protocol is described in doc/readme.iauth.  This allows an external
+protocol is described in doc/readme.iauth.md.  This allows an external
 program to accept or reject any client that connects to the server
 and allows that external program to assign an account stamp to the
 incoming user.

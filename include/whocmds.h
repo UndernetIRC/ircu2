@@ -16,7 +16,7 @@ struct Channel;
  * - Several bug fixes
  * - Strong performance improvement
  * - Added possibility to have specific fields in the output
- * See readme.who for further details.
+ * See readme.who.md for further details.
  */
 
 /* Macros used only in here by m_who and its support functions */

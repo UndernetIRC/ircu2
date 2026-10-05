@@ -122,7 +122,7 @@
  * parv[1] = Target: server numeric
  * parv[2] = (+|-)<G-line mask>
  *
- * For other parameters, see doc/readme.gline.
+ * For other parameters, see doc/readme.gline.md.
  */
 int
 ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
@@ -373,7 +373,7 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
  * parv[0] = Sender prefix
  * parv[1] = [[+|-]<G-line mask>]
  *
- * For other parameters, see doc/readme.gline.
+ * For other parameters, see doc/readme.gline.md.
  */
 int
 mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])

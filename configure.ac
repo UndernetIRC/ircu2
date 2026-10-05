@@ -547,13 +547,13 @@ AC_MSG_CHECKING([if chroot operation is desired])
 AC_ARG_WITH([chroot],
 [  --with-chroot=dir       Specify that the server will be operated under
                           a different root directory given by dir.  See
-                          doc/readme.chroot for more information.],
+                          doc/history/readme.chroot for more information.],
 [unet_cv_with_chroot=$with_chroot],
 [AC_CACHE_VAL(unet_cv_with_chroot,
 [unet_cv_with_chroot=no])])
 
 if test x"$unet_cv_with_chroot" = xyes; then
-    AC_MSG_ERROR([--with-chroot given with no directory.  See doc/readme.chroot.])
+    AC_MSG_ERROR([--with-chroot given with no directory.  See doc/history/readme.chroot.])
 fi
 
 # Ensure there are no trailing /'s to mess us up

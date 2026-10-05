@@ -1,9 +1,0 @@
-If you want to indent this source file, in order to convert
-the source tree to the used programming style, you should use
-`make indent' in the base directory.
-
-For this to work you need to have `indent' version 2.1.0 or higher
-in your PATH.  GNU indent 2.1.0 is available from all GNU sites,
-its main ftp site is ftp://ftp.gnu.org/indent/.  Or you can download
-it directly from the webpage of its maintainer at
-http://www.xs4all.nl/~carlo17/indent/

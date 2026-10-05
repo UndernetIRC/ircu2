@@ -15,7 +15,7 @@
 /* To use this you need to get gc6.0 from:
  * http://www.hpl.hp.com/personal/Hans_Boehm/gc/
  * and you need to apply the patch in
- * doc/debug_memleak_gc.patch to your gc6.0 tree, and reconfigure your ircd using
+ * doc/history/debug_memleak_gc.patch to your gc6.0 tree, and reconfigure your ircd using
  --with-leak-detect=path-to-gc6.0/.lib/
  * You should only do this for debugging builds as it can slow things down
  * a bit.
