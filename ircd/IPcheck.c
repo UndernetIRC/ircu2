@@ -52,7 +52,7 @@ struct IPRegistryEntry {
   struct IPRegistryEntry*  next;   /**< Next entry in the hash chain. */
   struct IPTargetEntry*    target; /**< Recent targets, if any. */
   struct irc_in_addr       addr;   /**< IP address for this user. */
-  int		           last_connect; /**< Last connection attempt timestamp. */
+  unsigned int             last_connect; /**< Last connection attempt timestamp. */
   unsigned short           connected; /**< Number of currently connected clients. */
   unsigned char            attempts; /**< Number of recent connection attempts. */
 };
@@ -60,21 +60,23 @@ struct IPRegistryEntry {
 /** Stores information about an IPv6/48 block's recent connections. */
 struct IPRegistry48 {
   struct IPRegistry48* next;     /**< Next entry in the hash chain. */
-  int              last_connect; /**< Last connection attempt timestamp. */
+  unsigned int     last_connect; /**< Last connection attempt timestamp. */
   uint16_t             addr[3];  /**< 48 MSBs of IP address. */
   unsigned short       attempts; /**< Number of recent connection attempts. */
 };
 
 /** Size of hash table (must be a power of two). */
 #define IP_REGISTRY_TABLE_SIZE 0x10000
-/** Report current time for tracking in IPRegistryEntry::last_connect. */
-#define NOW ((unsigned short)(CurrentTime & 0xffff))
-/** Time from \a x until now, in seconds.  Both operands are 16-bit
- * timestamps, so reduce the difference modulo 2^16 as well: a plain
- * subtraction goes negative once CurrentTime crosses a multiple of 65536
- * (every 18.2 hours) and the period, expiry and free-target arithmetic
- * misbehave until the entry is next stamped. */
-#define CONNECTED_SINCE(x) ((unsigned short)(NOW - (x)))
+/** Report current time for tracking in IPRegistryEntry::last_connect.
+ * Truncated to 32 bits to fit the field (which costs no more than the
+ * old 16-bit stamp, thanks to padding). */
+#define NOW ((unsigned int)CurrentTime)
+/** Time from \a x until now, in seconds.  The subtraction is done modulo
+ * 2^32 so it stays correct when CurrentTime crosses a multiple of 2^32;
+ * a 16-bit stamp would alias any idle time of 18.2 hours or more to a
+ * short one.  The result is widened to time_t so comparisons against
+ * (signed) feature values behave as before. */
+#define CONNECTED_SINCE(x) ((time_t)(unsigned int)(NOW - (x)))
 
 /** Macro for easy access to configured IPcheck clone limit. */
 #define IPCHECK_CLONE_LIMIT feature_int(FEAT_IPCHECK_CLONE_LIMIT)

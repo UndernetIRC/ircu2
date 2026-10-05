@@ -5,7 +5,7 @@
  * period (IPCHECK_CLONE_DELAY), connect_fail() undo, disconnect() and
  * IPcheck_nr() accounting, exemption netblocks, remote vs. burst
  * introductions, the IPv6 /48 limit, address canonicalisation (IPv4 /32,
- * IPv6 /64), free-target bookkeeping, registry expiry, the 16-bit
+ * IPv6 /64), free-target bookkeeping, registry expiry, the 32-bit
  * last_connect clock wrap, and the "connected" counter overflow guard.
  */
 
@@ -648,26 +648,40 @@ static void test_expiry(void)
   }
 }
 
-/* last_connect is stored in 16 bits; the "seconds since" arithmetic must
- * survive CurrentTime crossing a multiple of 65536. */
+/* last_connect holds the low 32 bits of CurrentTime: a long idle time
+ * must not alias to a short one, and "seconds since" must survive
+ * CurrentTime crossing a multiple of 2^32. */
 static void test_clock_wrap(void)
 {
   begin("clock_wrap");
-  CurrentTime = (CurrentTime | 0xffff) - 5;      /* NOW == 65530 */
-  cli_since(&me) = CurrentTime - 100000;
 
-  CHECK(local_connect("10.12.0.1", NULL) != NULL); /* attempt 1 @65530 */
+  /* Idle for 2^16 + 1 s with a client still connected (so the entry is
+   * not expired).  A 16-bit stamp sees 1 s, keeps counting attempts and
+   * refuses the reconnect; the entry must instead look idle and reset. */
+  CHECK(local_connect("10.12.0.3", NULL) != NULL);
+  CHECK(local_connect("10.12.0.3", NULL) != NULL);
+  CHECK(local_connect("10.12.0.3", NULL) != NULL);
+  CurrentTime += 0x10000 + 1;
+  CHECK(local_connect("10.12.0.3", NULL) != NULL);
+  CHECK(local_connect("10.12.0.3", NULL) != NULL);
+
+  if (sizeof(time_t) <= 4)
+    return;                       /* cannot place CurrentTime near 2^32 */
+
+  /* Attempts on both sides of the 2^32 boundary still count together. */
+  CurrentTime = (CurrentTime | 0xffffffff) - 5;  /* NOW == 0xfffffffa */
+  cli_since(&me) = CurrentTime - 100000;
+  CHECK(local_connect("10.12.0.1", NULL) != NULL); /* attempt 1 */
   CurrentTime += 11;                               /* NOW == 5, 11 s later */
   CHECK(local_connect("10.12.0.1", NULL) != NULL); /* attempt 2 */
   CurrentTime += 1;
   CHECK(local_connect("10.12.0.1", NULL) != NULL); /* attempt 3 */
   CurrentTime += 1;
-  /* If the wrap were mishandled the entry would look ancient, the
-   * attempts would have been reset and this would be accepted. */
-  CHECK(local_connect("10.12.0.1", NULL) == NULL);
+  CHECK(local_connect("10.12.0.1", NULL) == NULL); /* attempt 4: limit */
 
-  /* And a genuinely idle entry across the wrap does reset. */
-  CurrentTime = (CurrentTime | 0xffff) - 5;
+  /* And an entry idle for longer than the period across the boundary
+   * does reset. */
+  CurrentTime = (CurrentTime | 0xffffffff) - 5;
   CHECK(local_connect("10.12.0.2", NULL) != NULL);
   CHECK(local_connect("10.12.0.2", NULL) != NULL);
   CHECK(local_connect("10.12.0.2", NULL) != NULL);
