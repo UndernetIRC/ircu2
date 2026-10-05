@@ -583,6 +583,9 @@ static int ip_registry_check_remote(struct Client* cptr, int is_burst)
   /* Avoid overflowing the connection counter. */
   if (0 == ++entry->connected) {
     entry->connected--;
+    /* Not counted after all: the caller kills the client, and exit_client()
+     * must not hand IPcheck_disconnect() a slot it never took. */
+    ClearIPChecked(cptr);
     Debug((DEBUG_DNS, "IPcheck refusing remote connection from %s: counter overflow.", ircd_ntoa(&entry->addr)));
     return 0;
   }

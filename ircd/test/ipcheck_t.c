@@ -695,6 +695,8 @@ static void test_connected_overflow(void)
   cli_ip(&r) = a;
   CHECK(IPcheck_remote_connect(&r, 1) == 0);
   CHECK_EQ(nr("10.13.0.1"), 65535);
+  /* Refused, so not counted: its exit must not release a slot. */
+  CHECK(!IsIPChecked(&r));
 }
 
 int main(void)
